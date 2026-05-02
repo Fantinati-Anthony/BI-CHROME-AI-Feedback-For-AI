@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "BI Chrome AI Feedback",
+  "version": "0.1.0",
+  "description": "Capture des feedbacks visuels (sélecteur d'élément CSS) + vocaux (speech-to-text) pour les transmettre à une IA (Claude Code).",
+  "permissions": ["activeTab", "storage", "scripting", "clipboardWrite"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "BI AI Feedback (Alt+Shift+F)"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "run_at": "document_idle",
+      "js": [
+        "content/css-selector.js",
+        "content/element-selector.js",
+        "content/voice-recorder.js",
+        "content/sidebar-ui.js",
+        "content/main.js"
+      ]
+    }
+  ],
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": { "default": "Alt+Shift+F" },
+      "description": "Ouvrir/fermer la sidebar de feedback"
+    },
+    "toggle-picker": {
+      "suggested_key": { "default": "Alt+Shift+E" },
+      "description": "Activer/désactiver le sélecteur d'élément"
+    },
+    "toggle-mic": {
+      "suggested_key": { "default": "Alt+Shift+M" },
+      "description": "Démarrer/arrêter le micro (speech-to-text)"
+    },
+    "copy-prompt": {
+      "suggested_key": { "default": "Alt+Shift+C" },
+      "description": "Copier le prompt formaté pour l'IA"
+    }
+  }
+}
