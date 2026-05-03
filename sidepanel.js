@@ -1,15 +1,23 @@
 /**
- * BIAIF Side Panel — UI v0.2
+ * BIAIF Side Panel — v0.3 (mono-instance)
  *
- * Lives in a chrome.sidePanel context : persistent across tab switches,
- * one instance per browser window. Communicates with :
- *   - the offscreen document (via service worker) for the microphone
- *   - the active tab's content script (via service worker) for picker
- *     and screenshot capture
+ * Architecture v0.3 :
+ *   - La side panel hôte tout : UI + SpeechRecognition + state.
+ *   - Plus d'offscreen document (le mic prompt n'avait pas de surface UI).
+ *   - Le content script de l'onglet actif fournit picker + screenshot via
+ *     chrome.tabs.sendMessage (réponse asynchrone).
+ *   - Persistance des segments dans chrome.storage.local.
+ *
+ * Une instance par fenêtre Chrome (le side panel est par-fenêtre). Plus
+ * de conflit cross-tab parce qu'il n'y a plus de content-script-mic.
  */
 
 (function () {
   'use strict';
+
+  // ============================================================
+  // STATE
+  // ============================================================
 
   const STATE = {
     armed: false,
@@ -18,19 +26,33 @@
     currentVoiceBuffer: '',
     pendingIntents: new Set(),
     segments: [],          // [{ id, voice, intents, element, screenshot, ts, metadata }]
+    lastShot: null,        // dernier screenshot manuel
+    lastShotMode: null,
+    lang: 'fr-FR',
   };
 
   const REFS = {};
+  const STORAGE_KEY = 'biaif:v03:state';
+
   let statusTimer = null;
   let timerInterval = null;
   let timerStart = 0;
 
-  // ----------- bootstrap --------------------------------------------------
+  // Mic (SpeechRecognition lives in this context now)
+  const MIC = {
+    rec: null,
+    finalTranscript: '',
+  };
 
-  document.addEventListener('DOMContentLoaded', () => {
+  // ============================================================
+  // BOOTSTRAP
+  // ============================================================
+
+  document.addEventListener('DOMContentLoaded', async () => {
     cacheRefs();
     bindEvents();
     bindRuntimeMessages();
+    await hydrateFromStorage();
     setStatus('Prêt.', 'info');
   });
 
@@ -49,6 +71,14 @@
     REFS.timer       = document.querySelector('.biaif-timer');
     REFS.langSelect  = document.querySelector('select[name="lang"]');
     REFS.sessionInfo = document.querySelector('.biaif-session-info');
+    // Shot tools
+    REFS.shotButtons = document.querySelectorAll('[data-shot]');
+    REFS.shotPreview = document.querySelector('.biaif-shot-preview');
+    REFS.shotInfo    = document.querySelector('.biaif-shot-info');
+    REFS.shotCopy    = document.querySelector('[data-act="shot-copy"]');
+    REFS.shotSave    = document.querySelector('[data-act="shot-save"]');
+    REFS.shotAttach  = document.querySelector('[data-act="shot-attach"]');
+    REFS.shotAnnotate= document.querySelector('[data-act="shot-annotate"]');
   }
 
   function bindEvents() {
@@ -59,11 +89,22 @@
     REFS.copyBtn.addEventListener('click',     () => copyPrompt());
     REFS.downloadBtn.addEventListener('click', () => downloadBundle());
     REFS.langSelect.addEventListener('change', (e) => {
-      sendBg({ type: 'biaif:mic-set-lang', lang: e.target.value });
+      STATE.lang = e.target.value;
+      if (MIC.rec) MIC.rec.lang = STATE.lang;
+      persist();
     });
-    // Click sur la zone de status : si erreur de permission, ouvre la page
-    // de détails permission de BIAIF directement (et non la liste globale,
-    // où BIAIF est noyée parmi des dizaines d'origines chrome-extension://).
+
+    // Shot tools
+    REFS.shotButtons.forEach((btn) => {
+      btn.addEventListener('click', () => runShotMode(btn.dataset.shot));
+    });
+    if (REFS.shotCopy)     REFS.shotCopy.addEventListener('click',     () => copyLastShot());
+    if (REFS.shotSave)     REFS.shotSave.addEventListener('click',     () => downloadLastShot());
+    if (REFS.shotAttach)   REFS.shotAttach.addEventListener('click',   () => attachLastShotAsSegment());
+    if (REFS.shotAnnotate) REFS.shotAnnotate.addEventListener('click', () => annotateLastShot());
+
+    // Click on status zone : if a permission error is shown, jump to BIAIF's
+    // per-site permission page.
     REFS.status.addEventListener('click', () => {
       if (REFS.status.dataset.kind === 'error' && REFS.status.dataset.action === 'open-mic-settings') {
         const url = `chrome://settings/content/siteDetails?site=chrome-extension%3A%2F%2F${chrome.runtime.id}`;
@@ -75,23 +116,11 @@
   function bindRuntimeMessages() {
     chrome.runtime.onMessage.addListener((msg) => {
       if (!msg || typeof msg.type !== 'string') return;
-
-      if (msg.type === 'biaif:voice-event') {
-        onVoiceEvent(msg.subtype, msg.payload || {});
-        return;
-      }
-      if (msg.type === 'biaif:element-picked') {
-        onElementPicked(msg);
-        return;
-      }
-      if (msg.type === 'biaif:picker-state') {
-        onPickerState(!!msg.active);
-        return;
-      }
+      if (msg.type === 'biaif:element-picked') { onElementPicked(msg); return; }
+      if (msg.type === 'biaif:picker-state')   { onPickerState(!!msg.active); return; }
       if (msg.type === 'biaif:hotkey') {
-        if (msg.action === 'toggle-mic')    toggleMic();
-        if (msg.action === 'copy-prompt')   copyPrompt();
-        // toggle-picker is handled by background → active tab directly
+        if (msg.action === 'toggle-mic')  toggleMic();
+        if (msg.action === 'copy-prompt') copyPrompt();
         return;
       }
     });
@@ -101,23 +130,72 @@
     return chrome.runtime.sendMessage(payload).catch(() => null);
   }
 
-  // ----------- mic permission (pre-flight from the panel context) --------
+  // ============================================================
+  // PERSISTENCE
+  // ============================================================
+
+  async function hydrateFromStorage() {
+    try {
+      const obj = await chrome.storage.local.get(STORAGE_KEY);
+      const saved = obj[STORAGE_KEY];
+      if (!saved) return;
+      if (Array.isArray(saved.segments)) STATE.segments = saved.segments;
+      if (typeof saved.lang === 'string') {
+        STATE.lang = saved.lang;
+        if (REFS.langSelect) REFS.langSelect.value = saved.lang;
+      }
+      if (typeof saved.notes === 'string' && REFS.textarea) REFS.textarea.value = saved.notes;
+      renderSegments();
+    } catch (e) {
+      console.warn('[BIAIF] hydrate failed', e?.message || e);
+    }
+  }
+
+  function persist() {
+    const payload = {
+      segments: STATE.segments,
+      lang: STATE.lang,
+      notes: REFS.textarea ? REFS.textarea.value : '',
+    };
+    try {
+      chrome.storage.local.set({ [STORAGE_KEY]: payload }).catch(() => {
+        // storage.local cap is ~5MB ; if exceeded, drop screenshots.
+        const slim = {
+          ...payload,
+          segments: payload.segments.map((s) => ({ ...s, screenshot: null })),
+        };
+        chrome.storage.local.set({ [STORAGE_KEY]: slim }).catch(() => {});
+      });
+    } catch (_) {}
+  }
+
+  // Save notes on input (debounced)
+  let notesTimer = null;
+  document.addEventListener('input', (e) => {
+    if (e.target && e.target === REFS.textarea) {
+      if (notesTimer) clearTimeout(notesTimer);
+      notesTimer = setTimeout(persist, 600);
+    }
+  });
+
+  // ============================================================
+  // MIC : SpeechRecognition runs HERE (sidepanel context)
+  // ============================================================
+
+  function isMicSupported() {
+    return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
 
   /**
-   * On demande la permission micro DEPUIS la side panel, pas depuis
-   * l'offscreen document. Raison : l'offscreen est invisible, donc le
-   * prompt Chrome n'a pas de surface UI naturelle (l'utilisateur ne le
-   * voit pas, ou Chrome le bloque silencieusement). En appelant
-   * getUserMedia ici, le prompt s'ancre sur le panneau visible.
-   * Une fois accordée, l'offscreen hérite (même origine extension).
+   * Pre-flight permission. The side panel is visible, so the prompt
+   * (when state === 'prompt') anchors to the panel UI cleanly.
    */
   async function ensureMicPermission() {
     try {
       const status = await navigator.permissions.query({ name: 'microphone' });
       if (status.state === 'granted') return { ok: true };
       if (status.state === 'denied')  return { ok: false, reason: 'denied-extension' };
-      // 'prompt' → on continue avec getUserMedia
-    } catch (_) { /* Permissions API non supportée */ }
+    } catch (_) {}
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       return { ok: false, reason: 'no-media-devices' };
     }
@@ -133,7 +211,135 @@
     }
   }
 
-  // ----------- master session --------------------------------------------
+  function initMic() {
+    if (MIC.rec) return true;
+    if (!isMicSupported()) return false;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = STATE.lang;
+
+    rec.onresult = (event) => {
+      let finalChunk = '';
+      let interimChunk = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const txt = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalChunk += txt + ' ';
+        else interimChunk += txt;
+      }
+      if (finalChunk) {
+        MIC.finalTranscript += finalChunk;
+        onVoiceTranscript(finalChunk.trim());
+      }
+      if (interimChunk) onVoiceInterim(interimChunk);
+    };
+
+    rec.onerror = (event) => {
+      if (event.error === 'no-speech' || event.error === 'aborted') return;
+      onVoiceError(event.error);
+    };
+
+    rec.onend = () => {
+      if (!STATE.micActive) {
+        setMicActive(false);
+        return;
+      }
+      // Auto-restart with backoff (Chrome cuts the session sometimes).
+      setTimeout(() => {
+        if (!STATE.micActive) return;
+        try { rec.start(); }
+        catch (e) {
+          STATE.micActive = false;
+          onVoiceError('auto-restart-failed');
+          setMicActive(false);
+        }
+      }, 200);
+    };
+
+    MIC.rec = rec;
+    return true;
+  }
+
+  async function startMic() {
+    if (STATE.micActive) return true;
+    if (!isMicSupported()) {
+      onVoiceError('not-supported');
+      return false;
+    }
+    const perm = await ensureMicPermission();
+    if (!perm.ok) {
+      onVoiceError(perm.reason);
+      return false;
+    }
+    if (!initMic()) {
+      onVoiceError('init-failed');
+      return false;
+    }
+    try {
+      MIC.rec.start();
+      STATE.micActive = true;
+      setMicActive(true);
+      return true;
+    } catch (e) {
+      onVoiceError('start-failed');
+      return false;
+    }
+  }
+
+  function stopMic() {
+    if (!STATE.micActive) return;
+    STATE.micActive = false;
+    try { MIC.rec && MIC.rec.stop(); } catch (_) {}
+  }
+
+  async function toggleMic() {
+    if (STATE.micActive) stopMic();
+    else                 await startMic();
+  }
+
+  // ----- Voice event handlers (in-context, no message routing) -----
+
+  function setMicActive(active) {
+    STATE.micActive = active;
+    REFS.micBtn.classList.toggle('active', active);
+    REFS.micBtn.querySelector('.label').textContent = active
+      ? 'Micro actif'
+      : 'Démarrer le micro';
+    if (!active) REFS.interim.textContent = '';
+  }
+
+  function onVoiceInterim(text) {
+    REFS.interim.textContent = text || '';
+  }
+
+  function onVoiceTranscript(text) {
+    if (!text) return;
+    STATE.currentVoiceBuffer += (STATE.currentVoiceBuffer ? ' ' : '') + text;
+    const intents = window.BIAIFIntentParser ? window.BIAIFIntentParser.detect(text) : [];
+    intents.forEach((i) => STATE.pendingIntents.add(i));
+    insertAtCursor(text + ' ');
+    persist();
+  }
+
+  function onVoiceError(code) {
+    const isPermDenied = code === 'not-allowed' || code === 'service-not-allowed' || code === 'denied-extension';
+    setStatusError('Micro : ' + voiceErrorFr(code), isPermDenied ? 'open-mic-settings' : null);
+  }
+
+  function insertAtCursor(text) {
+    const ta = REFS.textarea;
+    if (!ta) return;
+    const start = ta.selectionStart ?? ta.value.length;
+    const end   = ta.selectionEnd   ?? ta.value.length;
+    ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+    const pos = start + text.length;
+    ta.selectionStart = ta.selectionEnd = pos;
+  }
+
+  // ============================================================
+  // MASTER SESSION
+  // ============================================================
 
   function toggleSession() {
     STATE.armed ? stopSession() : startSession();
@@ -141,21 +347,13 @@
 
   async function startSession() {
     if (STATE.armed) return;
-    // Pré-flight permission micro depuis le panel (UI visible) avant de
-    // demander à l'offscreen. Évite le prompt silencieux dans l'offscreen.
-    const perm = await ensureMicPermission();
-    if (!perm.ok) {
-      setStatusError('Micro : ' + voiceErrorFr(perm.reason),
-        perm.reason === 'denied-extension' ? 'open-mic-settings' : null);
-      return;
-    }
     STATE.armed = true;
     REFS.masterBtn.classList.add('armed');
     REFS.masterBtn.querySelector('.master-label').textContent = 'STOP';
     REFS.sessionInfo.textContent = 'Session active — parlez puis cliquez les éléments';
     startTimer();
     if (!STATE.pickerActive) sendBg({ type: 'biaif:picker-enable' });
-    if (!STATE.micActive)    sendBg({ type: 'biaif:mic-start' });
+    if (!STATE.micActive)    await startMic();
     setStatus('Session démarrée.', 'success');
   }
 
@@ -167,22 +365,8 @@
     REFS.sessionInfo.textContent = 'Session arrêtée';
     stopTimer();
     if (STATE.pickerActive) sendBg({ type: 'biaif:picker-disable' });
-    if (STATE.micActive)    sendBg({ type: 'biaif:mic-stop' });
+    if (STATE.micActive)    stopMic();
     setStatus(`Session arrêtée — ${STATE.segments.length} segment(s) capturé(s).`, 'info');
-  }
-
-  async function toggleMic() {
-    if (STATE.micActive) {
-      sendBg({ type: 'biaif:mic-stop' });
-      return;
-    }
-    const perm = await ensureMicPermission();
-    if (!perm.ok) {
-      setStatusError('Micro : ' + voiceErrorFr(perm.reason),
-        perm.reason === 'denied-extension' ? 'open-mic-settings' : null);
-      return;
-    }
-    sendBg({ type: 'biaif:mic-start' });
   }
 
   function startTimer() {
@@ -200,50 +384,9 @@
     REFS.timer.textContent = '00:00';
   }
 
-  // ----------- voice events ----------------------------------------------
-
-  function onVoiceEvent(subtype, payload) {
-    if (subtype === 'state') {
-      STATE.micActive = !!payload.active;
-      REFS.micBtn.classList.toggle('active', STATE.micActive);
-      REFS.micBtn.querySelector('.label').textContent = STATE.micActive
-        ? 'Micro actif'
-        : 'Démarrer le micro';
-      if (!STATE.micActive) REFS.interim.textContent = '';
-      return;
-    }
-    if (subtype === 'interim') {
-      REFS.interim.textContent = payload.text || '';
-      return;
-    }
-    if (subtype === 'transcript') {
-      const text = payload.text || '';
-      if (!text) return;
-      STATE.currentVoiceBuffer += (STATE.currentVoiceBuffer ? ' ' : '') + text;
-      const intents = window.BIAIFIntentParser ? window.BIAIFIntentParser.detect(text) : [];
-      intents.forEach((i) => STATE.pendingIntents.add(i));
-      insertAtCursor(text + ' ');
-      return;
-    }
-    if (subtype === 'error') {
-      const code = payload.error;
-      const isPermDenied = code === 'not-allowed' || code === 'service-not-allowed' || code === 'denied-extension';
-      setStatusError('Micro : ' + voiceErrorFr(code), isPermDenied ? 'open-mic-settings' : null);
-      return;
-    }
-  }
-
-  function insertAtCursor(text) {
-    const ta = REFS.textarea;
-    if (!ta) return;
-    const start = ta.selectionStart ?? ta.value.length;
-    const end   = ta.selectionEnd   ?? ta.value.length;
-    ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
-    const pos = start + text.length;
-    ta.selectionStart = ta.selectionEnd = pos;
-  }
-
-  // ----------- picker / element-picked -----------------------------------
+  // ============================================================
+  // PICKER + SEGMENTS
+  // ============================================================
 
   function onPickerState(active) {
     STATE.pickerActive = active;
@@ -268,14 +411,13 @@
     STATE.currentVoiceBuffer = '';
     STATE.pendingIntents.clear();
     renderSegments();
+    persist();
     setStatus(
       `Segment ${segment.id} : ${descriptor.selector}` +
         (segment.intents.length ? ' — ' + segment.intents.map((i) => '#' + i).join(' ') : ''),
       'success'
     );
   }
-
-  // ----------- segments rendering ----------------------------------------
 
   function renderSegments() {
     REFS.segments.innerHTML = '';
@@ -304,7 +446,14 @@
         img.className = 'seg-thumb';
         img.src = seg.screenshot;
         img.alt = 'screenshot ' + (seg.element.selector || '');
+        const btn = document.createElement('button');
+        btn.className = 'seg-annotate';
+        btn.dataset.i = String(i);
+        btn.title = 'Annoter cette capture';
+        btn.textContent = '✏️';
+        btn.addEventListener('click', () => annotateSegment(i));
         wrap.appendChild(img);
+        wrap.appendChild(btn);
         card.appendChild(wrap);
       } else {
         const noshot = document.createElement('div');
@@ -315,12 +464,119 @@
       card.querySelector('.seg-del').addEventListener('click', (e) => {
         STATE.segments.splice(Number(e.currentTarget.dataset.i), 1);
         renderSegments();
+        persist();
       });
       REFS.segments.appendChild(card);
     });
   }
 
-  // ----------- prompt build / copy / download ----------------------------
+  // ============================================================
+  // MANUAL SCREENSHOT TOOLS
+  // The capture itself happens IN the active tab content script
+  // (it owns the DOM). Panel just orchestrates via SW + sendMessage.
+  // ============================================================
+
+  async function runShotMode(mode) {
+    setStatus('Capture (' + mode + ')…', 'info');
+    const resp = await sendBg({ type: 'biaif:capture-mode', mode });
+    if (!resp || resp.error) {
+      setStatus('Capture KO : ' + (resp ? resp.error : 'pas de réponse'), 'error');
+      return;
+    }
+    STATE.lastShot = resp.dataUrl;
+    STATE.lastShotMode = mode;
+    renderShotPreview();
+    setStatus(`Capture ${mode} OK — ${formatSize(getSize(resp.dataUrl))}`, 'success');
+  }
+
+  function renderShotPreview() {
+    const wrap = REFS.shotPreview;
+    if (!wrap) return;
+    if (!STATE.lastShot) {
+      wrap.innerHTML = '<div class="biaif-shot-empty">Aucune capture pour le moment.</div>';
+      if (REFS.shotInfo) REFS.shotInfo.textContent = '';
+      [REFS.shotCopy, REFS.shotSave, REFS.shotAttach, REFS.shotAnnotate].forEach((b) => { if (b) b.disabled = true; });
+      return;
+    }
+    wrap.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = STATE.lastShot;
+    img.alt = 'capture ' + (STATE.lastShotMode || '');
+    wrap.appendChild(img);
+    if (REFS.shotInfo) REFS.shotInfo.textContent = `${STATE.lastShotMode || ''} · ${formatSize(getSize(STATE.lastShot))}`;
+    [REFS.shotCopy, REFS.shotSave, REFS.shotAttach, REFS.shotAnnotate].forEach((b) => { if (b) b.disabled = false; });
+  }
+
+  async function copyLastShot() {
+    if (!STATE.lastShot) return;
+    try {
+      const blob = await dataUrlToBlob(STATE.lastShot);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      setStatus('Capture copiée dans le presse-papiers.', 'success');
+    } catch (e) {
+      setStatus('Copie image impossible : ' + e.message, 'error');
+    }
+  }
+
+  async function downloadLastShot() {
+    if (!STATE.lastShot) return;
+    const blob = await dataUrlToBlob(STATE.lastShot);
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    downloadFile(`biaif-${STATE.lastShotMode || 'shot'}-${ts}.png`, blob);
+  }
+
+  function attachLastShotAsSegment() {
+    if (!STATE.lastShot) return;
+    const segment = {
+      id: 'seg-' + (STATE.segments.length + 1),
+      ts: Date.now(),
+      intents: [],
+      voice: STATE.currentVoiceBuffer.trim(),
+      element: {
+        selector: '(capture ' + (STATE.lastShotMode || '') + ')',
+        tag: null, id: null, classes: [], text: null, outerHTML: null,
+      },
+      screenshot: STATE.lastShot,
+      metadata: null,
+    };
+    STATE.segments.push(segment);
+    STATE.currentVoiceBuffer = '';
+    renderSegments();
+    persist();
+    setStatus(`Capture attachée comme ${segment.id}.`, 'success');
+  }
+
+  // ============================================================
+  // ANNOTATOR (modal lives in content script of active tab)
+  // ============================================================
+
+  async function annotateLastShot() {
+    if (!STATE.lastShot) return;
+    setStatus("Annotateur ouvert dans l'onglet actif…", 'info');
+    const resp = await sendBg({ type: 'biaif:annotate', dataUrl: STATE.lastShot });
+    if (!resp || resp.cancelled) { setStatus('Annotation annulée.', 'info'); return; }
+    if (resp.error || !resp.dataUrl) { setStatus('Annotation KO : ' + (resp.error || 'no result'), 'error'); return; }
+    STATE.lastShot = resp.dataUrl;
+    renderShotPreview();
+    setStatus('Annotation enregistrée.', 'success');
+  }
+
+  async function annotateSegment(index) {
+    const seg = STATE.segments[index];
+    if (!seg || !seg.screenshot) return;
+    setStatus("Annotateur ouvert dans l'onglet actif…", 'info');
+    const resp = await sendBg({ type: 'biaif:annotate', dataUrl: seg.screenshot });
+    if (!resp || resp.cancelled) { setStatus('Annotation annulée.', 'info'); return; }
+    if (resp.error || !resp.dataUrl) { setStatus('Annotation KO : ' + (resp.error || 'no result'), 'error'); return; }
+    seg.screenshot = resp.dataUrl;
+    renderSegments();
+    persist();
+    setStatus(`Segment ${seg.id} : annotation enregistrée.`, 'success');
+  }
+
+  // ============================================================
+  // PROMPT BUILD / COPY / DOWNLOAD
+  // ============================================================
 
   function buildPrompt({ inlineImages = false } = {}) {
     const notes = REFS.textarea.value.trim();
@@ -334,10 +590,10 @@
       STATE.segments.forEach((seg, i) => {
         lines.push(`### Segment ${i + 1}${seg.intents.length ? ' — ' + seg.intents.map((t) => '#' + t).join(' ') : ''}`);
         lines.push(`- **Sélecteur :** \`${seg.element.selector}\``);
-        if (seg.element.tag)            lines.push(`- **Tag :** \`<${seg.element.tag}>\``);
-        if (seg.element.id)             lines.push(`- **id :** \`${seg.element.id}\``);
+        if (seg.element.tag)             lines.push(`- **Tag :** \`<${seg.element.tag}>\``);
+        if (seg.element.id)              lines.push(`- **id :** \`${seg.element.id}\``);
         if (seg.element.classes?.length) lines.push(`- **classes :** \`${seg.element.classes.join(' ')}\``);
-        if (seg.element.text)           lines.push(`- **texte :** « ${seg.element.text} »`);
+        if (seg.element.text)            lines.push(`- **texte :** « ${seg.element.text} »`);
         if (seg.voice) {
           lines.push('');
           lines.push('> ' + seg.voice.replace(/\n/g, '\n> '));
@@ -406,16 +662,23 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  // ----------- reset / status --------------------------------------------
+  // ============================================================
+  // RESET / STATUS
+  // ============================================================
 
   function clearAll() {
+    if (!confirm('Effacer la session ? (Tous les segments et notes seront perdus)')) return;
     STATE.segments = [];
     STATE.currentVoiceBuffer = '';
     STATE.pendingIntents.clear();
+    STATE.lastShot = null;
+    STATE.lastShotMode = null;
     REFS.textarea.value = '';
     REFS.interim.textContent = '';
+    MIC.finalTranscript = '';
     renderSegments();
-    sendBg({ type: 'biaif:mic-reset' });
+    renderShotPreview();
+    persist();
     setStatus('Tout effacé.', 'info');
   }
 
@@ -425,6 +688,7 @@
     REFS.status.dataset.kind = kind || 'info';
     delete REFS.status.dataset.action;
     REFS.status.style.cursor = '';
+    REFS.status.title = '';
     if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
     if (msg && (kind === 'success' || kind === 'info')) {
       statusTimer = setTimeout(() => {
@@ -433,7 +697,6 @@
     }
   }
 
-  // Status d'erreur cliquable (ex: ouvre chrome://settings/content/microphone)
   function setStatusError(msg, action) {
     setStatus(msg, 'error');
     if (action) {
@@ -443,7 +706,9 @@
     }
   }
 
-  // ----------- helpers ---------------------------------------------------
+  // ============================================================
+  // HELPERS
+  // ============================================================
 
   function escapeHtml(s) {
     return String(s)
@@ -462,6 +727,17 @@
     return fetch(dataUrl).then((r) => r.blob());
   }
 
+  function getSize(dataUrl) {
+    const base64 = (dataUrl.split(',')[1] || '');
+    return Math.round((base64.length * 3) / 4);
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
   function voiceErrorFr(code) {
     switch (code) {
       case 'denied-extension':
@@ -473,7 +749,7 @@
       case 'network':                return 'erreur réseau';
       case 'aborted':                return 'reconnaissance interrompue';
       case 'language-not-supported': return 'langue non supportée';
-      case 'bad-grammar':            return 'grammaire invalide';
+      case 'bad-grammar':             return 'grammaire invalide';
       case 'auto-restart-failed':    return 'session coupée par le navigateur — recliquez sur le micro';
       case 'no-media-devices':       return 'API media non disponible';
       case 'not-supported':          return 'reconnaissance vocale non supportée par le navigateur';
