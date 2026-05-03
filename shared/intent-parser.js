@@ -1,12 +1,12 @@
 /**
- * BIAIF Intent Parser
+ * BIAIF Intent Parser (shared)
  *
  * Repère, dans une transcription vocale, les verbes-déclencheurs qui
  * indiquent l'action voulue par l'utilisateur. Renvoie un tableau de
  * tags normalisés (move, copy, fix, …) qu'on attache aux segments.
  */
 
-(function (window) {
+(function (root) {
   'use strict';
 
   // FR + EN. La normalisation passe en lowercase + retrait des accents.
@@ -43,9 +43,7 @@
     return Array.from(found);
   }
 
-  function listIntents() {
-    return Object.keys(INTENTS);
-  }
+  function listIntents() { return Object.keys(INTENTS); }
 
-  window.BIAIFIntentParser = { detect, listIntents };
-})(window);
+  root.BIAIFIntentParser = { detect, listIntents };
+})(typeof window !== 'undefined' ? window : self);

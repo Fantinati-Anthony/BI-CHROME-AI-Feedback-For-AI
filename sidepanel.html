@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>BI AI Feedback</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <div class="biaif-root">
+    <header class="biaif-header">
+      <h1>BI AI Feedback</h1>
+      <span class="biaif-badge" title="Architecture v0.2 : Side Panel + Offscreen">v0.2</span>
+    </header>
+
+    <section class="biaif-master">
+      <button class="master-btn" data-act="master">
+        <span class="master-pulse"></span>
+        <span class="master-label">START</span>
+      </button>
+      <div class="biaif-master-meta">
+        <div class="biaif-timer">00:00</div>
+        <div class="biaif-session-info">Session arrêtée</div>
+      </div>
+    </section>
+
+    <section class="biaif-actions">
+      <button class="biaif-btn small" data-act="picker">
+        <span class="dot"></span><span class="label">Sélecteur d'élément</span>
+        <kbd>Alt+⇧+E</kbd>
+      </button>
+      <button class="biaif-btn small" data-act="mic">
+        <span class="dot"></span><span class="label">Démarrer le micro</span>
+        <kbd>Alt+⇧+M</kbd>
+      </button>
+    </section>
+
+    <section class="biaif-lang">
+      <label>Langue micro
+        <select name="lang">
+          <option value="fr-FR" selected>Français (FR)</option>
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="es-ES">Español</option>
+          <option value="de-DE">Deutsch</option>
+          <option value="it-IT">Italiano</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="biaif-segments-wrap">
+      <h2>Segments capturés</h2>
+      <div class="biaif-empty">Aucun segment. Démarrez la session, parlez puis cliquez les éléments.</div>
+      <div class="biaif-segments"></div>
+    </section>
+
+    <section class="biaif-notes">
+      <label>
+        Notes libres (texte + voix non-attribuée)
+        <textarea name="notes" placeholder="Tout ce que la voix capte arrive aussi ici. Vous pouvez compléter à la main."></textarea>
+      </label>
+      <div class="biaif-interim" aria-live="polite"></div>
+    </section>
+
+    <footer class="biaif-footer">
+      <button class="biaif-btn ghost" data-act="clear">Effacer</button>
+      <button class="biaif-btn ghost" data-act="download">.md + PNGs</button>
+      <button class="biaif-btn primary" data-act="copy">
+        Copier <kbd>Alt+⇧+C</kbd>
+      </button>
+    </footer>
+
+    <div class="biaif-status" data-kind="info"></div>
+  </div>
+  <script src="shared/intent-parser.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
