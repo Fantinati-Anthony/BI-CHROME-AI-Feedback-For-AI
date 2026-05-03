@@ -8,6 +8,7 @@
  *   - Intent parser : verbes-déclencheurs détectés dans la voix
  *   - Compilation du prompt en mode batch (un bloc par segment)
  *   - Outils screenshot manuels (visible / sélection / élément / page entière)
+ *   - Annotateur (BIAIFScreenshotEditor) sur captures libres ET segments
  */
 
 (function (window, document) {
@@ -99,6 +100,7 @@
         shotCopy:   $('[data-act="shot-copy"]'),
         shotSave:   $('[data-act="shot-save"]'),
         shotAttach: $('[data-act="shot-attach"]'),
+        shotAnnotate:$('[data-act="shot-annotate"]'),
       };
     },
 
@@ -121,6 +123,7 @@
       this.refs.shotCopy.addEventListener('click', () => this.copyLastShot());
       this.refs.shotSave.addEventListener('click', () => this.downloadLastShot());
       this.refs.shotAttach.addEventListener('click', () => this.attachLastShotAsSegment());
+      this.refs.shotAnnotate.addEventListener('click', () => this.annotateLastShot());
 
       document.addEventListener('biaif:element-picked', (e) => this.onElementPicked(e.detail));
       document.addEventListener('biaif:picker-state',   (e) => this.onPickerState(e.detail.active));
@@ -312,6 +315,7 @@
         this.refs.shotCopy.disabled = true;
         this.refs.shotSave.disabled = true;
         this.refs.shotAttach.disabled = true;
+        this.refs.shotAnnotate.disabled = true;
         return;
       }
       wrap.innerHTML = '';
@@ -325,6 +329,7 @@
       this.refs.shotCopy.disabled = false;
       this.refs.shotSave.disabled = false;
       this.refs.shotAttach.disabled = false;
+      this.refs.shotAnnotate.disabled = false;
     },
 
     async copyLastShot() {
@@ -343,6 +348,18 @@
       const blob = await dataUrlToBlob(this.state.lastShot);
       const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       this.downloadFile(`biaif-${this.state.lastShotMode || 'shot'}-${ts}.png`, blob);
+    },
+
+    async annotateLastShot() {
+      if (!this.state.lastShot) return;
+      if (!window.BIAIFScreenshotEditor) {
+        return this.setStatus('Annotateur indisponible.', 'error');
+      }
+      const result = await window.BIAIFScreenshotEditor.open(this.state.lastShot);
+      if (!result) return this.setStatus('Annotation annulée.', 'info');
+      this.state.lastShot = result;
+      this.renderShotPreview();
+      this.setStatus('Annotation enregistrée.', 'success');
     },
 
     /**
@@ -370,6 +387,22 @@
       this.setStatus(`Capture attachée comme ${segment.id}.`, 'success');
     },
 
+    /**
+     * Annote le screenshot d'un segment et remplace l'image en place.
+     */
+    async annotateSegment(index) {
+      const seg = this.state.segments[index];
+      if (!seg || !seg.screenshot) return;
+      if (!window.BIAIFScreenshotEditor) {
+        return this.setStatus('Annotateur indisponible.', 'error');
+      }
+      const result = await window.BIAIFScreenshotEditor.open(seg.screenshot);
+      if (!result) return;
+      seg.screenshot = result;
+      this.renderSegments();
+      this.setStatus(`Segment ${seg.id} : annotation enregistrée.`, 'success');
+    },
+
     // ---------------------------------------------------------------------
     // Rendu des segments
     // ---------------------------------------------------------------------
@@ -386,6 +419,12 @@
       this.state.segments.forEach((seg, i) => {
         const card = document.createElement('article');
         card.className = 'biaif-segment';
+        const thumb = seg.screenshot
+          ? `<div class="seg-thumb-wrap">
+               <img class="seg-thumb" src="${seg.screenshot}" alt="screenshot ${seg.element.selector}" />
+               <button class="seg-annotate" data-i="${i}" title="Annoter cette capture">✏️</button>
+             </div>`
+          : `<div class="seg-no-shot">Pas de screenshot</div>`;
         card.innerHTML = `
           <header>
             <span class="seg-num">#${i + 1}</span>
@@ -394,14 +433,18 @@
           </header>
           <div class="seg-selector"><code>${escapeHtml(seg.element.selector)}</code></div>
           ${seg.voice ? `<div class="seg-voice">« ${escapeHtml(seg.voice)} »</div>` : ''}
-          ${seg.screenshot
-            ? `<img class="seg-thumb" src="${seg.screenshot}" alt="screenshot ${seg.element.selector}" />`
-            : `<div class="seg-no-shot">Pas de screenshot</div>`}
+          ${thumb}
         `;
         card.querySelector('.seg-del').addEventListener('click', (e) => {
           this.state.segments.splice(Number(e.currentTarget.dataset.i), 1);
           this.renderSegments();
         });
+        const annotateBtn = card.querySelector('.seg-annotate');
+        if (annotateBtn) {
+          annotateBtn.addEventListener('click', (e) => {
+            this.annotateSegment(Number(e.currentTarget.dataset.i));
+          });
+        }
         list.appendChild(card);
       });
     },
@@ -592,6 +635,7 @@
               <div class="biaif-shot-meta">
                 <span class="biaif-shot-info"></span>
                 <div class="biaif-shot-actions">
+                  <button class="biaif-btn ghost mini" data-act="shot-annotate" disabled title="Ouvrir l'annotateur">✏️ Annoter</button>
                   <button class="biaif-btn ghost mini" data-act="shot-copy" disabled>Copier</button>
                   <button class="biaif-btn ghost mini" data-act="shot-save" disabled>Télécharger</button>
                   <button class="biaif-btn ghost mini" data-act="shot-attach" disabled>+ Segment</button>
@@ -796,10 +840,20 @@
           margin-top: 6px; font-size: 12px; color: #cbd5e1;
           font-style: italic;
         }
+        .seg-thumb-wrap { position: relative; margin-top: 8px; }
         .seg-thumb {
-          margin-top: 8px; max-width: 100%; max-height: 200px;
+          max-width: 100%; max-height: 200px;
           border: 1px solid #334155; border-radius: 4px; display: block;
         }
+        .seg-annotate {
+          position: absolute; top: 4px; right: 4px;
+          width: 26px; height: 26px;
+          background: rgba(15,23,42,0.85); color: #2bd4d9;
+          border: 1px solid #334155; border-radius: 4px;
+          cursor: pointer; font-size: 13px; line-height: 1;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .seg-annotate:hover { background: #2bd4d9; color: #0f172a; }
         .seg-no-shot { margin-top: 6px; font-size: 11px; color: #64748b; }
 
         /* Notes textarea */
