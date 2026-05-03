@@ -118,6 +118,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  // Sidepanel → SW : reload active tab (recover from "no content script")
+  if (msg.type === 'biaif:reload-active-tab') {
+    (async () => {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab || !tab.id) { sendResponse({ error: 'no active tab' }); return; }
+        await chrome.tabs.reload(tab.id);
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ error: e?.message || String(e) });
+      }
+    })();
+    return true;
+  }
+
   // Content script → SW : captureVisibleTab (sérialisée + rate-limit)
   if (msg.type === 'biaif:capture-tab') {
     const windowId = sender.tab?.windowId;

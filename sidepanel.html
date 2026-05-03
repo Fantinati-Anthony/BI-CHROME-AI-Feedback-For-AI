@@ -64,8 +64,10 @@
       </div>
     </section>
 
-    <section class="biaif-lang">
-      <label>Langue micro
+    <section class="biaif-settings">
+      <h2>Réglages micro</h2>
+      <label class="biaif-setting-row">
+        <span>Langue</span>
         <select name="lang">
           <option value="fr-FR" selected>Français (FR)</option>
           <option value="en-US">English (US)</option>
@@ -75,6 +77,25 @@
           <option value="it-IT">Italiano</option>
         </select>
       </label>
+      <label class="biaif-setting-row">
+        <span>Périphérique</span>
+        <select name="mic-device">
+          <option value="">Système par défaut</option>
+        </select>
+      </label>
+      <div class="biaif-mic-test-row">
+        <button class="biaif-btn ghost mini" data-act="mic-test">🔊 Tester</button>
+        <button class="biaif-btn ghost mini" data-act="mic-refresh" title="Recharger la liste des périphériques">🔄</button>
+        <a class="biaif-mic-perm-link" href="#" data-act="open-mic-perm" title="Ouvre la page de permissions de BIAIF">Permissions Chrome</a>
+      </div>
+      <div class="biaif-mic-meter" hidden>
+        <div class="biaif-mic-meter-bar"></div>
+        <span class="biaif-mic-meter-label">Niveau : —</span>
+      </div>
+      <p class="biaif-setting-hint">
+        💡 La reconnaissance vocale utilise le micro <strong>par défaut</strong> choisi par Chrome.
+        Si tu en as plusieurs, teste-les ici puis change le défaut dans <em>Permissions Chrome</em> ci-dessus.
+      </p>
     </section>
 
     <section class="biaif-segments-wrap">
