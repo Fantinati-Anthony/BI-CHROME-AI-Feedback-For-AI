@@ -24,6 +24,8 @@ Conçue pour préparer rapidement un prompt à coller dans **Claude Code**
 3. Activer le **mode développeur**.
 4. Cliquer **« Charger l'extension non empaquetée »** et sélectionner le
    dossier racine du repo (celui qui contient `manifest.json`).
+5. **Après chaque modification du code, recharger l'extension** dans
+   `chrome://extensions/` puis recharger l'onglet de la page cible.
 
 ## Raccourcis
 
@@ -35,6 +37,18 @@ Conçue pour préparer rapidement un prompt à coller dans **Claude Code**
 | Copier le prompt formaté pour l'IA         | `Alt+Shift+C`        |
 
 > Les raccourcis sont personnalisables dans `chrome://extensions/shortcuts`.
+>
+> ⚠️ **Conflit fréquent : `Alt+Shift+F` est aussi utilisé par VS Code et
+> certaines autres extensions.** Si Chrome ne détecte pas le raccourci au
+> niveau global :
+>
+> - cliquez l'**icône de l'extension** dans la barre d'outils (ouvre la
+>   sidebar via `chrome.action.onClicked`),
+> - **ou** utilisez le **listener clavier in-page** (le content-script
+>   écoute les mêmes combinaisons même quand `chrome.commands` est pris,
+>   tant que la page web a le focus),
+> - **ou** réassignez le raccourci dans `chrome://extensions/shortcuts`
+>   (changez la portée en « Global » si besoin).
 
 ### Raccourcis contextuels (dans la page)
 
@@ -44,12 +58,40 @@ Conçue pour préparer rapidement un prompt à coller dans **Claude Code**
 
 ## Workflow type
 
-1. Lancer la sidebar (`Alt+Shift+F`).
+1. Lancer la sidebar (`Alt+Shift+F` ou clic sur l'icône d'extension).
 2. Démarrer le micro (`Alt+Shift+M`) et décrire ce qui doit changer.
 3. Activer le sélecteur (`Alt+Shift+E`) et cliquer le ou les éléments
    à modifier — leurs sélecteurs s'insèrent dans la zone de notes et
    s'affichent en chips.
 4. Copier (`Alt+Shift+C`) puis coller dans Claude Code.
+
+## Format du prompt généré
+
+```markdown
+# Demande de modification
+
+**Page :** Titre de la page
+**URL :** https://exemple.com/page
+
+## Éléments ciblés
+
+### 1. `#header > nav.main-nav > a:nth-of-type(2)`
+- **tag :** `<a>`
+- **classes :** `nav-link primary`
+- **texte visible :** « Tarifs »
+- **position (px) :** x=412, y=24, w=68, h=20
+
+```html
+<a class="nav-link primary" href="/pricing">Tarifs</a>
+```
+
+## Description (voix + texte)
+
+Je voudrais que ce lien soit en gras et passe en orange (#ff7043) au survol…
+
+---
+Merci de proposer les modifications correspondantes…
+```
 
 ## Architecture
 
@@ -61,7 +103,7 @@ content/
   element-selector.js      Mode picker (overlay + capture click)
   voice-recorder.js        Web Speech API (continuous + interim)
   sidebar-ui.js            UI Shadow DOM, état, compilation du prompt
-  main.js                  Bridge service worker ↔ modules de page
+  main.js                  Bridge service worker ↔ modules + fallback clavier
 ```
 
 Chaque module expose un namespace global (`BIAIFSelector`,
