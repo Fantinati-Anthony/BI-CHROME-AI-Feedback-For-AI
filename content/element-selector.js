@@ -105,10 +105,9 @@
         new CustomEvent('biaif:element-picked', { detail: descriptor })
       );
 
-      // Si Ctrl/Cmd est tenu, on garde le picker actif pour multi-pick.
-      if (!(e.ctrlKey || e.metaKey)) {
-        ElementSelector.disable();
-      }
+      // Multi-pick par défaut : on reste actif pour que l'utilisateur
+      // puisse enchaîner « parler → cliquer → parler → cliquer ». L'arrêt
+      // se fait via Échap, le bouton picker de la sidebar, ou STOP master.
     },
 
     onKeyDown: function (e) {
