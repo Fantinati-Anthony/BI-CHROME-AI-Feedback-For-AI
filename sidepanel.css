@@ -90,14 +90,50 @@ kbd {
   padding: 2px 5px; border-radius: 3px; border: 1px solid #334155;
 }
 
-.biaif-lang label {
-  display: flex; flex-direction: column; gap: 4px;
+/* Settings (mic) */
+.biaif-settings { display: flex; flex-direction: column; gap: 8px; }
+.biaif-setting-row {
+  display: flex; align-items: center; gap: 8px;
   font-size: 11px; color: #94a3b8;
 }
-.biaif-lang select {
+.biaif-setting-row > span { flex: 0 0 90px; }
+.biaif-setting-row select {
+  flex: 1;
   background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
   padding: 5px; border-radius: 4px; font: inherit;
 }
+.biaif-mic-test-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 2px;
+}
+.biaif-mic-perm-link {
+  font-size: 11px; color: #2bd4d9; text-decoration: none;
+  margin-left: auto;
+}
+.biaif-mic-perm-link:hover { text-decoration: underline; }
+.biaif-mic-meter {
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px;
+}
+.biaif-mic-meter-bar {
+  height: 12px; width: 0%;
+  background: linear-gradient(90deg, #22c55e, #eab308 60%, #ef4444 90%);
+  border-radius: 4px;
+  transition: width 50ms linear;
+}
+.biaif-mic-meter-label {
+  font: 11px ui-monospace, Menlo, Consolas, monospace;
+  color: #94a3b8;
+  display: block; margin-top: 4px;
+}
+.biaif-setting-hint {
+  font-size: 10px; color: #64748b; margin: 4px 0 0;
+  line-height: 1.5;
+}
+.biaif-setting-hint em { color: #2bd4d9; font-style: normal; }
+.biaif-setting-hint strong { color: #cbd5e1; }
 
 /* Screenshot tools */
 .biaif-shot-tools { border-top: 1px solid #1e293b; }
