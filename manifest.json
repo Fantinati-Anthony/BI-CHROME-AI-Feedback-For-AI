@@ -20,6 +20,8 @@
         "content/css-selector.js",
         "content/element-selector.js",
         "content/voice-recorder.js",
+        "content/intent-parser.js",
+        "content/screenshot.js",
         "content/sidebar-ui.js",
         "content/main.js"
       ]

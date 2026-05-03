@@ -1,8 +1,9 @@
 /**
  * BI Chrome AI Feedback - Service Worker
  *
- * Relaie les hotkeys (chrome.commands) et les clics sur l'icône
- * d'extension vers le content script de l'onglet actif.
+ * Relaie :
+ *   - les hotkeys (chrome.commands) et clics sur l'icône vers le content script
+ *   - les demandes de capture (chrome.tabs.captureVisibleTab) depuis la page
  */
 
 const COMMAND_TO_ACTION = {
@@ -18,7 +19,6 @@ async function sendToActiveTab(action) {
   try {
     await chrome.tabs.sendMessage(tab.id, { type: 'biaif:command', action });
   } catch (err) {
-    // Le content script peut ne pas être chargé (page chrome://, store, etc.)
     console.warn('[BIAIF] sendMessage failed:', err?.message || err);
   }
 }
@@ -30,4 +30,26 @@ chrome.commands.onCommand.addListener((command) => {
 
 chrome.action.onClicked.addListener(() => {
   sendToActiveTab('toggle-sidebar');
+});
+
+/**
+ * Capture du tab visible (appelé depuis content/screenshot.js).
+ * captureVisibleTab nécessite la permission `activeTab` ET un user gesture
+ * récent (clic icône, hotkey, ou interaction utilisateur dans la page).
+ */
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || msg.type !== 'biaif:capture-tab') return false;
+  const windowId = sender.tab?.windowId;
+  try {
+    chrome.tabs.captureVisibleTab(windowId, { format: 'png' }, (dataUrl) => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ error: chrome.runtime.lastError.message });
+      } else {
+        sendResponse({ dataUrl });
+      }
+    });
+  } catch (e) {
+    sendResponse({ error: e.message });
+  }
+  return true; // réponse asynchrone
 });
