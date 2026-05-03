@@ -23,7 +23,8 @@
     armed: false,
     pickerActive: false,
     micActive: false,
-    currentVoiceBuffer: '',
+    currentVoiceBuffer: '',  // texte FINAL accumulé depuis le dernier clic
+    currentInterim: '',      // texte INTERIM en cours (flushé au clic ou au final suivant)
     pendingIntents: new Set(),
     segments: [],          // [{ id, voice, intents, element, screenshot, ts, metadata }]
     lastShot: null,        // dernier screenshot manuel
@@ -76,6 +77,7 @@
     REFS.timer       = document.querySelector('.biaif-timer');
     REFS.langSelect  = document.querySelector('select[name="lang"]');
     REFS.sessionInfo = document.querySelector('.biaif-session-info');
+    REFS.bufferPreview = document.querySelector('.biaif-buffer-preview');
     // Shot tools
     REFS.shotButtons = document.querySelectorAll('[data-shot]');
     REFS.shotPreview = document.querySelector('.biaif-shot-preview');
@@ -455,9 +457,6 @@
     return true;
   }
 
-  // Watchdog : si le mic est actif mais SR n'envoie aucun event pendant
-  // 10s, on alerte l'utilisateur — soit il ne parle pas, soit SR est mort
-  // (mauvais micro défaut Chrome, problème réseau, etc.).
   let srWatchdog = null;
   function startSrWatchdog() {
     stopSrWatchdog();
@@ -530,16 +529,34 @@
   }
 
   function onVoiceInterim(text) {
+    STATE.currentInterim = text || '';
     REFS.interim.textContent = text || '';
+    updateBufferPreview();
   }
 
   function onVoiceTranscript(text) {
     if (!text) return;
     STATE.currentVoiceBuffer += (STATE.currentVoiceBuffer ? ' ' : '') + text;
+    STATE.currentInterim = ''; // le final remplace l'interim
     const intents = window.BIAIFIntentParser ? window.BIAIFIntentParser.detect(text) : [];
     intents.forEach((i) => STATE.pendingIntents.add(i));
     insertAtCursor(text + ' ');
+    updateBufferPreview();
     persist();
+  }
+
+  /**
+   * Met à jour le « buffer preview » qui montre à l'utilisateur ce qui
+   * sera attaché au prochain élément cliqué : texte final accumulé +
+   * texte interim en cours.
+   */
+  function updateBufferPreview() {
+    if (!REFS.bufferPreview) return;
+    const buf = STATE.currentVoiceBuffer.trim();
+    const interim = STATE.currentInterim.trim();
+    const preview = [buf, interim].filter(Boolean).join(' ');
+    REFS.bufferPreview.textContent = preview;
+    REFS.bufferPreview.classList.toggle('armed', !!preview && STATE.armed);
   }
 
   function onVoiceError(code) {
@@ -572,6 +589,7 @@
     REFS.masterBtn.querySelector('.master-label').textContent = 'STOP';
     REFS.sessionInfo.textContent = 'Session active — parlez puis cliquez les éléments';
     startTimer();
+    updateBufferPreview();
     if (!STATE.pickerActive) {
       const resp = await sendBg({ type: 'biaif:picker-enable' });
       if (resp && resp.error) {
@@ -592,6 +610,7 @@
     stopTimer();
     if (STATE.pickerActive) sendBg({ type: 'biaif:picker-disable' });
     if (STATE.micActive)    stopMic();
+    updateBufferPreview();
     setStatus(`Session arrêtée — ${STATE.segments.length} segment(s) capturé(s).`, 'info');
   }
 
@@ -624,19 +643,28 @@
 
   function onElementPicked(msg) {
     const descriptor = msg.descriptor || { selector: '?', tag: null, id: null, classes: [], text: null, outerHTML: null };
+    // On inclut l'interim courant : si l'utilisateur dit « remplace ça »
+    // et clique pile à la fin, le « ça » peut encore être en interim.
+    const voiceParts = [STATE.currentVoiceBuffer.trim(), STATE.currentInterim.trim()].filter(Boolean);
+    const voice = voiceParts.join(' ').replace(/\s+/g, ' ').trim();
+    if (STATE.currentInterim && window.BIAIFIntentParser) {
+      window.BIAIFIntentParser.detect(STATE.currentInterim).forEach((i) => STATE.pendingIntents.add(i));
+    }
     const segment = {
       id: 'seg-' + (STATE.segments.length + 1),
       ts: Date.now(),
       intents: Array.from(STATE.pendingIntents),
-      voice: STATE.currentVoiceBuffer.trim(),
+      voice,
       element: descriptor,
       screenshot: msg.screenshot || null,
       metadata: msg.metadata || null,
     };
     STATE.segments.push(segment);
     STATE.currentVoiceBuffer = '';
+    STATE.currentInterim = '';
     STATE.pendingIntents.clear();
     renderSegments();
+    updateBufferPreview();
     persist();
     setStatus(
       `Segment ${segment.id} : ${descriptor.selector}` +
@@ -753,11 +781,12 @@
 
   function attachLastShotAsSegment() {
     if (!STATE.lastShot) return;
+    const voiceParts = [STATE.currentVoiceBuffer.trim(), STATE.currentInterim.trim()].filter(Boolean);
     const segment = {
       id: 'seg-' + (STATE.segments.length + 1),
       ts: Date.now(),
       intents: [],
-      voice: STATE.currentVoiceBuffer.trim(),
+      voice: voiceParts.join(' ').replace(/\s+/g, ' ').trim(),
       element: {
         selector: '(capture ' + (STATE.lastShotMode || '') + ')',
         tag: null, id: null, classes: [], text: null, outerHTML: null,
@@ -767,7 +796,9 @@
     };
     STATE.segments.push(segment);
     STATE.currentVoiceBuffer = '';
+    STATE.currentInterim = '';
     renderSegments();
+    updateBufferPreview();
     persist();
     setStatus(`Capture attachée comme ${segment.id}.`, 'success');
   }
@@ -906,6 +937,7 @@
     if (!confirm('Effacer la session ? (Tous les segments et notes seront perdus)')) return;
     STATE.segments = [];
     STATE.currentVoiceBuffer = '';
+    STATE.currentInterim = '';
     STATE.pendingIntents.clear();
     STATE.lastShot = null;
     STATE.lastShotMode = null;
@@ -914,6 +946,7 @@
     MIC.finalTranscript = '';
     renderSegments();
     renderShotPreview();
+    updateBufferPreview();
     persist();
     setStatus('Tout effacé.', 'info');
   }
