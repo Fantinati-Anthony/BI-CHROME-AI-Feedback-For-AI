@@ -1,17 +1,18 @@
 /**
- * BIAIF Screenshot — adapté de WP-Blazing-Minds (assets/js/screenshot.js)
+ * BIAIF Screenshot — outils étendus depuis Blazing Toolkit.
  *
- * Différence avec l'original : on utilise chrome.tabs.captureVisibleTab
- * (via le service worker) à la place d'html2canvas. C'est plus propre
- * dans une extension MV3 (pas de dépendance, capture pixel-perfect).
+ * Quatre modes de capture :
+ *   - capture()              : viewport visible (rapide)
+ *   - captureSelection()     : on dessine un rectangle (overlay crosshair)
+ *   - captureElement(el)     : élément ; scroll+stitch si plus grand que le viewport
+ *   - captureFullPage()      : page complète, scroll+stitch
  *
- * Conserve l'API et les helpers du module Blazing :
- *   - capture()             : viewport visible
- *   - captureElement(el)    : crop autour d'un élément
- *   - getMetadata()         : infos browser/OS/device/page
- *   - resize() / getSize()  : redimensionnement et mesure
- *   - hideWidget/showWidget : masque la sidebar pendant la capture
- *   - fallbackCapture()     : placeholder si la capture échoue
+ * Plus deux modes interactifs (sélection à la souris dans la page) :
+ *   - pickAndCapture('selection') : l'utilisateur dessine un cadre
+ *   - pickAndCapture('element')   : l'utilisateur clique un élément
+ *
+ * La capture pixel passe toujours par chrome.tabs.captureVisibleTab via le
+ * service worker (`background.js`), avec retry rate-limit côté SW.
  */
 
 (function (window, document) {
@@ -25,16 +26,20 @@
     },
 
     config: {
-      padding: 12,         // px autour de l'élément ciblé
-      maxWidth: 1600,      // redimensionnement automatique
+      padding: 12,
+      maxWidth: 1600,
       maxHeight: 1200,
       jpegQuality: 0.9,
+      scrollSettleMs: 300,
+      hideLoaderForCaptureMs: 100,
     },
 
+    // -------------------------------------------------------------------
+    // Modes de base
+    // -------------------------------------------------------------------
+
     async capture() {
-      if (this.state.isCapturing) {
-        throw new Error('Capture déjà en cours');
-      }
+      if (this.state.isCapturing) throw new Error('Capture déjà en cours');
       this.state.isCapturing = true;
       this.hideWidget();
       try {
@@ -53,20 +58,35 @@
       }
     },
 
+    /**
+     * Crop l'élément depuis le viewport. Si l'élément est plus grand que
+     * le viewport, on bascule automatiquement en scroll+stitch.
+     */
     async captureElement(element) {
       if (!element || element.nodeType !== 1) {
         throw new Error('Élément invalide');
       }
-      // Faire défiler l'élément en vue si nécessaire (sans animation pour rapidité)
+
       const rect = element.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      const vpW = window.innerWidth;
+      const vpH = window.innerHeight;
+
+      // Cas hors écran : on scrolle dans la vue
+      if (rect.bottom < 0 || rect.top > vpH) {
         element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await this.waitFrames(2);
       }
+
+      // Élément plus grand que le viewport → scroll + stitch
+      const newRect = element.getBoundingClientRect();
+      if (newRect.width > vpW || newRect.height > vpH) {
+        return this.captureElementScrollStitch(element);
+      }
+
+      // Élément qui rentre dans le viewport → capture + crop simple
       const fullDataUrl = await this.capture();
       try {
-        const cropped = await this.cropAroundElement(fullDataUrl, element);
-        return cropped;
+        return await this.cropAroundElement(fullDataUrl, element);
       } catch (e) {
         console.warn('[BIAIF] crop KO, on renvoie le viewport entier :', e.message);
         return fullDataUrl;
@@ -74,8 +94,220 @@
     },
 
     /**
-     * Crop l'image autour d'un élément, en tenant compte du devicePixelRatio
-     * (captureVisibleTab renvoie l'image en pixels physiques).
+     * Capture en dessinant un rectangle (overlay crosshair). Renvoie un
+     * dataURL recadré. Rejette si l'utilisateur appuie sur Échap.
+     */
+    captureSelection() {
+      return new Promise((resolve, reject) => {
+        this.openSelectionOverlay({
+          onCancel: () => reject(new Error('Sélection annulée')),
+          onSelect: async (rect) => {
+            try {
+              const dataUrl = await this.capture();
+              const dpr = window.devicePixelRatio || 1;
+              const cropped = await this.cropImage(dataUrl, {
+                x: rect.x * dpr,
+                y: rect.y * dpr,
+                w: rect.width * dpr,
+                h: rect.height * dpr,
+              });
+              resolve(cropped);
+            } catch (e) {
+              reject(e);
+            }
+          },
+        });
+      });
+    },
+
+    /**
+     * Mode interactif : l'utilisateur survole et clique sur un élément.
+     * Renvoie le dataURL recadré (scroll+stitch si nécessaire).
+     */
+    pickAndCapture(mode = 'element') {
+      if (mode === 'selection') return this.captureSelection();
+      return new Promise((resolve, reject) => {
+        this.openElementPicker({
+          onCancel: () => reject(new Error('Sélection annulée')),
+          onPick: async (el) => {
+            try {
+              resolve(await this.captureElement(el));
+            } catch (e) { reject(e); }
+          },
+        });
+      });
+    },
+
+    /**
+     * Capture la page entière en empilant des viewports. Hide les
+     * éléments fixed/sticky pour éviter les barres répétées.
+     */
+    async captureFullPage() {
+      if (this.state.isCapturing) throw new Error('Capture déjà en cours');
+      this.state.isCapturing = true;
+      this.hideWidget();
+      this.showLoader('Préparation…');
+
+      const dpr = window.devicePixelRatio || 1;
+      const vpH = window.innerHeight;
+      const vpW = window.innerWidth;
+      const scrollH = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      const scrollW = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+      const sections = Math.ceil(scrollH / vpH);
+      const previousScroll = { x: window.scrollX, y: window.scrollY };
+
+      const restored = this.hideFixedElements();
+      const captures = [];
+
+      try {
+        window.scrollTo(0, 0);
+        await this.sleep(this.config.scrollSettleMs);
+
+        for (let i = 0; i < sections; i++) {
+          this.showLoader('Capture en cours…', i + 1, sections);
+          window.scrollTo(0, i * vpH);
+          await this.sleep(this.config.scrollSettleMs);
+
+          this.hideLoader();
+          await this.sleep(this.config.hideLoaderForCaptureMs);
+          const dataUrl = await this.requestCapture();
+
+          const isLast = i === sections - 1;
+          captures.push({
+            dataUrl,
+            sectionIndex: i,
+            viewportHeight: vpH,
+            captureHeight: isLast ? scrollH - i * vpH : vpH,
+            isLast,
+          });
+        }
+
+        this.showLoader('Assemblage…');
+        const finalDataUrl = await this.stitchSections(captures, scrollW, scrollH, vpH, dpr);
+        this.state.lastCapture = finalDataUrl;
+        this.emit('success', { dataUrl: finalDataUrl, mode: 'fullpage' });
+        return finalDataUrl;
+      } catch (e) {
+        console.warn('[BIAIF] full-page KO :', e.message);
+        this.emit('error', { error: e.message });
+        return this.fallbackCapture();
+      } finally {
+        restored();
+        window.scrollTo(previousScroll.x, previousScroll.y);
+        this.removeLoader();
+        this.showWidget();
+        this.state.isCapturing = false;
+      }
+    },
+
+    /**
+     * Élément plus grand que le viewport → on scrolle dans la page pour
+     * couvrir l'élément en plusieurs viewports puis on stitch.
+     */
+    async captureElementScrollStitch(element) {
+      if (!element) throw new Error('Élément invalide');
+
+      this.state.isCapturing = true;
+      this.hideWidget();
+      this.showLoader('Préparation…');
+
+      const dpr = window.devicePixelRatio || 1;
+      const vpH = window.innerHeight;
+      const vpW = window.innerWidth;
+      const previousScroll = { x: window.scrollX, y: window.scrollY };
+      const restored = this.hideFixedElements();
+      const captures = [];
+
+      try {
+        // Position absolue de l'élément en haut de page
+        const startRect = element.getBoundingClientRect();
+        const elemTop = startRect.top + window.scrollY;
+        const elemLeft = startRect.left + window.scrollX;
+        const elemH = startRect.height;
+        const elemW = startRect.width;
+        const sections = Math.ceil(elemH / vpH);
+
+        for (let i = 0; i < sections; i++) {
+          this.showLoader('Capture en cours…', i + 1, sections);
+          window.scrollTo(elemLeft, elemTop + i * vpH);
+          await this.sleep(this.config.scrollSettleMs);
+
+          this.hideLoader();
+          await this.sleep(this.config.hideLoaderForCaptureMs);
+          const dataUrl = await this.requestCapture();
+
+          const live = element.getBoundingClientRect();
+          const cropX = Math.max(0, live.left);
+          const cropY = Math.max(0, live.top);
+          const cropW = Math.min(elemW, vpW - cropX, live.width);
+
+          const isLast = i === sections - 1;
+          const remaining = elemH - i * vpH;
+          const cropH = isLast ? Math.min(remaining, vpH - cropY) : Math.min(vpH - cropY, vpH);
+
+          captures.push({
+            dataUrl,
+            sectionIndex: i,
+            cropX, cropY, cropW, cropH,
+            viewportHeight: vpH,
+            isLast,
+          });
+        }
+
+        this.showLoader('Assemblage…');
+        const finalDataUrl = await this.stitchElementSections(captures, elemW, elemH, vpH, dpr);
+        this.state.lastCapture = finalDataUrl;
+        this.emit('success', { dataUrl: finalDataUrl, mode: 'element-stitch' });
+        return finalDataUrl;
+      } catch (e) {
+        console.warn('[BIAIF] element-stitch KO :', e.message);
+        this.emit('error', { error: e.message });
+        return this.fallbackCapture();
+      } finally {
+        restored();
+        window.scrollTo(previousScroll.x, previousScroll.y);
+        this.removeLoader();
+        this.showWidget();
+        this.state.isCapturing = false;
+      }
+    },
+
+    // -------------------------------------------------------------------
+    // Service worker bridge
+    // -------------------------------------------------------------------
+
+    requestCapture() {
+      return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: 'biaif:capture-tab' }, (resp) => {
+          if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+          if (!resp || resp.error) return reject(new Error(resp?.error || 'capture failed'));
+          resolve(resp.dataUrl);
+        });
+      });
+    },
+
+    fallbackCapture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 800; canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f5f5f5'; ctx.fillRect(0, 0, 800, 600);
+      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, 798, 598);
+      ctx.fillStyle = '#999'; ctx.font = '48px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('📷', 400, 270);
+      ctx.font = '16px Arial';
+      ctx.fillText('Capture non disponible', 400, 320);
+      ctx.font = '12px monospace'; ctx.fillStyle = '#666';
+      ctx.fillText(window.location.href, 400, 350);
+      return canvas.toDataURL('image/png');
+    },
+
+    // -------------------------------------------------------------------
+    // Crop / resize / sizing
+    // -------------------------------------------------------------------
+
+    /**
+     * Crop autour d'un élément qui rentre dans le viewport (capture
+     * unique). dpr-aware.
      */
     cropAroundElement(dataUrl, element) {
       return new Promise((resolve, reject) => {
@@ -90,10 +322,8 @@
           const h = Math.min(img.height - y, Math.ceil((rect.height + pad * 2) * dpr));
           if (w <= 0 || h <= 0) return reject(new Error('Zone hors écran'));
           const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
           resolve(canvas.toDataURL('image/png'));
         };
         img.onerror = () => reject(new Error('Image non chargée'));
@@ -101,61 +331,79 @@
       });
     },
 
-    requestCapture() {
+    cropImage(dataUrl, { x, y, w, h }) {
       return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: 'biaif:capture-tab' }, (resp) => {
-          if (chrome.runtime.lastError) {
-            return reject(new Error(chrome.runtime.lastError.message));
-          }
-          if (!resp || resp.error) {
-            return reject(new Error(resp?.error || 'capture failed'));
-          }
-          resolve(resp.dataUrl);
-        });
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, w);
+          canvas.height = Math.max(1, h);
+          canvas.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => reject(new Error('Image non chargée'));
+        img.src = dataUrl;
       });
     },
 
-    fallbackCapture() {
+    async stitchSections(captures, pageWidth, pageHeight, viewportHeight, dpr) {
+      const images = await Promise.all(captures.map((c) => this.loadImage(c.dataUrl)));
       const canvas = document.createElement('canvas');
-      canvas.width = 800;
-      canvas.height = 600;
+      canvas.width = pageWidth * dpr;
+      canvas.height = pageHeight * dpr;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#f5f5f5';
-      ctx.fillRect(0, 0, 800, 600);
-      ctx.strokeStyle = '#ddd';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(1, 1, 798, 598);
-      ctx.fillStyle = '#999';
-      ctx.font = '48px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('📷', 400, 270);
-      ctx.font = '16px Arial';
-      ctx.fillText('Capture non disponible', 400, 320);
-      ctx.font = '12px monospace';
-      ctx.fillStyle = '#666';
-      ctx.fillText(window.location.href, 400, 350);
+
+      captures.forEach((c, i) => {
+        const img = images[i];
+        const destY = c.sectionIndex * c.viewportHeight * dpr;
+        const sourceH = c.isLast ? c.captureHeight * dpr : img.height;
+        ctx.drawImage(img, 0, 0, img.width, sourceH, 0, destY, img.width, sourceH);
+      });
       return canvas.toDataURL('image/png');
     },
 
-    /**
-     * Redimensionnement façon BlazingScreenshot.resize.
-     */
+    async stitchElementSections(captures, elemWidth, elemHeight, viewportHeight, dpr) {
+      const images = await Promise.all(captures.map((c) => this.loadImage(c.dataUrl)));
+      const canvas = document.createElement('canvas');
+      canvas.width = elemWidth * dpr;
+      canvas.height = elemHeight * dpr;
+      const ctx = canvas.getContext('2d');
+
+      captures.forEach((c, i) => {
+        const img = images[i];
+        const destY = c.sectionIndex * viewportHeight * dpr;
+        const sectionH = c.isLast ? (elemHeight - c.sectionIndex * viewportHeight) : viewportHeight;
+        const drawH = Math.min(sectionH * dpr, c.cropH * dpr);
+
+        ctx.drawImage(
+          img,
+          c.cropX * dpr, c.cropY * dpr,
+          c.cropW * dpr, drawH,
+          0, destY,
+          c.cropW * dpr, drawH
+        );
+      });
+      return canvas.toDataURL('image/png');
+    },
+
+    loadImage(dataUrl) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Image non chargée'));
+        img.src = dataUrl;
+      });
+    },
+
     resize(dataUrl, maxWidth = this.config.maxWidth, maxHeight = this.config.maxHeight) {
       return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
           let { width, height } = img;
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-          if (height > maxHeight) {
-            width = (width * maxHeight) / height;
-            height = maxHeight;
-          }
+          if (width > maxWidth) { height = (height * maxWidth) / width; width = maxWidth; }
+          if (height > maxHeight) { width = (width * maxHeight) / height; height = maxHeight; }
           const canvas = document.createElement('canvas');
-          canvas.width = Math.round(width);
-          canvas.height = Math.round(height);
+          canvas.width = Math.round(width); canvas.height = Math.round(height);
           canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
           resolve(canvas.toDataURL('image/jpeg', this.config.jpegQuality));
         };
@@ -175,10 +423,227 @@
       return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     },
 
+    // -------------------------------------------------------------------
+    // Picker overlays (élément + sélection)
+    // -------------------------------------------------------------------
+
+    openElementPicker({ onPick, onCancel } = {}) {
+      this.closePickers();
+      const overlay = document.createElement('div');
+      overlay.id = 'biaif-shot-element-overlay';
+      Object.assign(overlay.style, {
+        position: 'fixed', inset: '0', zIndex: '2147483646', cursor: 'crosshair',
+      });
+      const hl = document.createElement('div');
+      hl.id = 'biaif-shot-highlight';
+      Object.assign(hl.style, {
+        position: 'fixed', border: '3px solid #2bd4d9',
+        background: 'rgba(43,212,217,0.10)', pointerEvents: 'none',
+        zIndex: '2147483647', display: 'none', boxSizing: 'border-box',
+      });
+      const tip = document.createElement('div');
+      Object.assign(tip.style, {
+        position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+        background: 'rgba(0,0,0,0.85)', color: '#fff', padding: '10px 20px',
+        borderRadius: '8px', font: '13px/1.4 -apple-system,Segoe UI,sans-serif',
+        zIndex: '2147483648',
+      });
+      tip.innerHTML = 'Cliquez sur l\'élément à capturer<br><small style="opacity:.7">Échap pour annuler</small>';
+      overlay.appendChild(tip);
+      document.body.appendChild(hl);
+      document.body.appendChild(overlay);
+
+      let current = null;
+      const onMove = (e) => {
+        overlay.style.pointerEvents = 'none';
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        overlay.style.pointerEvents = 'auto';
+        if (!el || el === overlay || el === hl || overlay.contains(el)) return;
+        current = el;
+        const r = el.getBoundingClientRect();
+        hl.style.display = 'block';
+        hl.style.left = r.left + 'px';
+        hl.style.top = r.top + 'px';
+        hl.style.width = r.width + 'px';
+        hl.style.height = r.height + 'px';
+      };
+      const onClick = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!current) return;
+        cleanup();
+        onPick && onPick(current);
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') { cleanup(); onCancel && onCancel(); }
+      };
+      const cleanup = () => {
+        overlay.removeEventListener('mousemove', onMove);
+        overlay.removeEventListener('click', onClick);
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove(); hl.remove();
+      };
+      overlay.addEventListener('mousemove', onMove);
+      overlay.addEventListener('click', onClick);
+      document.addEventListener('keydown', onKey, true);
+    },
+
+    openSelectionOverlay({ onSelect, onCancel } = {}) {
+      this.closePickers();
+      const overlay = document.createElement('div');
+      overlay.id = 'biaif-shot-selection-overlay';
+      Object.assign(overlay.style, {
+        position: 'fixed', inset: '0', background: 'rgba(0,0,0,0.30)',
+        cursor: 'crosshair', zIndex: '2147483647',
+      });
+      const box = document.createElement('div');
+      Object.assign(box.style, {
+        position: 'fixed', border: '2px dashed #fff',
+        background: 'rgba(43,212,217,0.20)', pointerEvents: 'none', display: 'none',
+      });
+      overlay.appendChild(box);
+      const tip = document.createElement('div');
+      Object.assign(tip.style, {
+        position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+        background: 'rgba(0,0,0,0.85)', color: '#fff', padding: '10px 20px',
+        borderRadius: '8px', font: '13px/1.4 sans-serif', zIndex: '2147483648',
+      });
+      tip.textContent = 'Dessinez un rectangle pour capturer (Échap pour annuler).';
+      overlay.appendChild(tip);
+      document.body.appendChild(overlay);
+
+      let drawing = false, sx = 0, sy = 0;
+      const onDown = (e) => {
+        drawing = true; sx = e.clientX; sy = e.clientY;
+        box.style.display = 'block';
+        box.style.left = sx + 'px'; box.style.top = sy + 'px';
+        box.style.width = '0'; box.style.height = '0';
+      };
+      const onMove = (e) => {
+        if (!drawing) return;
+        const left = Math.min(sx, e.clientX);
+        const top = Math.min(sy, e.clientY);
+        box.style.left = left + 'px'; box.style.top = top + 'px';
+        box.style.width = Math.abs(e.clientX - sx) + 'px';
+        box.style.height = Math.abs(e.clientY - sy) + 'px';
+      };
+      const onUp = (e) => {
+        if (!drawing) return;
+        drawing = false;
+        const rect = {
+          x: Math.min(sx, e.clientX),
+          y: Math.min(sy, e.clientY),
+          width: Math.abs(e.clientX - sx),
+          height: Math.abs(e.clientY - sy),
+        };
+        cleanup();
+        if (rect.width > 10 && rect.height > 10) onSelect && onSelect(rect);
+        else onCancel && onCancel();
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') { cleanup(); onCancel && onCancel(); }
+      };
+      const cleanup = () => {
+        overlay.removeEventListener('mousedown', onDown);
+        overlay.removeEventListener('mousemove', onMove);
+        overlay.removeEventListener('mouseup', onUp);
+        document.removeEventListener('keydown', onKey, true);
+        overlay.remove();
+      };
+      overlay.addEventListener('mousedown', onDown);
+      overlay.addEventListener('mousemove', onMove);
+      overlay.addEventListener('mouseup', onUp);
+      document.addEventListener('keydown', onKey, true);
+    },
+
+    closePickers() {
+      ['biaif-shot-element-overlay', 'biaif-shot-selection-overlay', 'biaif-shot-highlight']
+        .forEach((id) => { const e = document.getElementById(id); if (e) e.remove(); });
+    },
+
+    // -------------------------------------------------------------------
+    // Loader / hide widget / hide fixed elements
+    // -------------------------------------------------------------------
+
+    showLoader(message = 'Capture en cours…', current = null, total = null) {
+      let loader = document.getElementById('biaif-screenshot-loader');
+      if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'biaif-screenshot-loader';
+        Object.assign(loader.style, {
+          position: 'fixed', inset: '0',
+          background: 'rgba(15,23,42,0.85)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', zIndex: '2147483647',
+          font: '14px/1.4 -apple-system,Segoe UI,sans-serif',
+        });
+        document.body.appendChild(loader);
+      }
+      const progress = current && total
+        ? `<div style="font-size:13px;color:#94a3b8;margin-top:8px">Section ${current}/${total}</div>`
+        : '';
+      loader.innerHTML = `
+        <div style="
+          width:46px;height:46px;border:4px solid rgba(255,255,255,0.1);
+          border-top-color:#2bd4d9;border-radius:50%;
+          animation:biaif-spin 1s linear infinite;
+        "></div>
+        <div style="color:#fff;font-size:16px;margin-top:18px;text-align:center">${message}</div>
+        ${progress}
+        <div style="color:#94a3b8;font-size:12px;margin-top:14px">Merci de ne rien toucher</div>
+        <style>@keyframes biaif-spin{to{transform:rotate(360deg)}}</style>
+      `;
+      loader.style.display = 'flex';
+    },
+
+    hideLoader() {
+      const loader = document.getElementById('biaif-screenshot-loader');
+      if (loader) loader.style.display = 'none';
+    },
+
+    removeLoader() {
+      const loader = document.getElementById('biaif-screenshot-loader');
+      if (loader) loader.remove();
+    },
+
     /**
-     * Métadonnées de la page / browser / device — port direct du module
-     * Blazing (utile pour donner du contexte à l'IA).
+     * Masque les éléments en position fixed/sticky pendant un scroll-stitch
+     * pour éviter que les barres de nav apparaissent dupliquées.
+     * Renvoie une fonction de restauration.
      */
+    hideFixedElements() {
+      const hidden = [];
+      document.querySelectorAll('*').forEach((el) => {
+        const cs = window.getComputedStyle(el);
+        if (cs.position === 'fixed' || cs.position === 'sticky') {
+          hidden.push({ el, prev: el.style.display });
+          el.style.display = 'none';
+        }
+      });
+      return () => hidden.forEach(({ el, prev }) => { el.style.display = prev || ''; });
+    },
+
+    hideWidget() {
+      const host = document.getElementById('biaif-sidebar-host');
+      if (host) host.style.visibility = 'hidden';
+      const ov = document.getElementById('biaif-picker-overlay');
+      const tg = document.getElementById('biaif-picker-tag');
+      if (ov) { ov.dataset.prevDisplay = ov.style.display; ov.style.display = 'none'; }
+      if (tg) { tg.dataset.prevDisplay = tg.style.display; tg.style.display = 'none'; }
+    },
+
+    showWidget() {
+      const host = document.getElementById('biaif-sidebar-host');
+      if (host) host.style.visibility = 'visible';
+      const ov = document.getElementById('biaif-picker-overlay');
+      const tg = document.getElementById('biaif-picker-tag');
+      if (ov && ov.dataset.prevDisplay !== undefined) ov.style.display = ov.dataset.prevDisplay;
+      if (tg && tg.dataset.prevDisplay !== undefined) tg.style.display = tg.dataset.prevDisplay;
+    },
+
+    // -------------------------------------------------------------------
+    // Métadonnées + utils
+    // -------------------------------------------------------------------
+
     getMetadata() {
       const ua = navigator.userAgent;
       return {
@@ -225,23 +690,13 @@
       return 'Desktop';
     },
 
-    hideWidget() {
-      const host = document.getElementById('biaif-sidebar-host');
-      if (host) host.style.visibility = 'hidden';
-      // Masquer aussi l'overlay du picker pour qu'il n'apparaisse pas
-      const ov = document.getElementById('biaif-picker-overlay');
-      const tg = document.getElementById('biaif-picker-tag');
-      if (ov) ov.dataset.prevDisplay = ov.style.display, (ov.style.display = 'none');
-      if (tg) tg.dataset.prevDisplay = tg.style.display, (tg.style.display = 'none');
-    },
+    sleep(ms) { return new Promise((r) => setTimeout(r, ms)); },
 
-    showWidget() {
-      const host = document.getElementById('biaif-sidebar-host');
-      if (host) host.style.visibility = 'visible';
-      const ov = document.getElementById('biaif-picker-overlay');
-      const tg = document.getElementById('biaif-picker-tag');
-      if (ov && ov.dataset.prevDisplay !== undefined) ov.style.display = ov.dataset.prevDisplay;
-      if (tg && tg.dataset.prevDisplay !== undefined) tg.style.display = tg.dataset.prevDisplay;
+    waitFrames(n = 1) {
+      return new Promise((resolve) => {
+        const tick = (k) => k <= 0 ? resolve() : requestAnimationFrame(() => tick(k - 1));
+        tick(n);
+      });
     },
 
     emit(name, detail = {}) {
