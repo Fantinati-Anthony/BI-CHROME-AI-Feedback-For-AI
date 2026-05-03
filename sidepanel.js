@@ -46,6 +46,7 @@
   const MIC = {
     rec: null,
     finalTranscript: '',
+    lastEventAt: 0,
   };
 
   // ============================================================
@@ -136,7 +137,6 @@
       REFS.micDeviceSelect.addEventListener('change', (e) => {
         STATE.micDeviceId = e.target.value;
         persist();
-        // Si le test est en cours, on le redémarre sur le nouveau device.
         if (micTest) startMicTest(STATE.micDeviceId);
       });
     }
@@ -153,12 +153,10 @@
       REFS.micPermLink.addEventListener('click', (e) => { e.preventDefault(); openMicPermPage(); });
     }
 
-    // Auto-refresh device list when devices change (USB plug/unplug, etc.)
     if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
       navigator.mediaDevices.addEventListener('devicechange', () => refreshMicDevices());
     }
 
-    // Initial device enumeration (no prompt — labels appear after first granted getUserMedia)
     refreshMicDevices();
   }
 
@@ -184,11 +182,6 @@
     return chrome.runtime.sendMessage(payload).catch(() => null);
   }
 
-  /**
-   * Décode les erreurs récurrentes du bridge sidepanel → SW → content
-   * en messages utiles pour l'utilisateur. Renvoie aussi un "action"
-   * pour rendre le status cliquable (recharger l'onglet, etc.).
-   */
   function decodeContentScriptError(err) {
     const s = typeof err === 'string' ? err : (err && err.message) || String(err);
     if (s.includes('Receiving end does not exist') ||
@@ -202,7 +195,6 @@
     return s;
   }
 
-  // Détecte si l'erreur permet une action "reload tab" cliquable
   function isReloadableError(err) {
     const s = typeof err === 'string' ? err : (err && err.message) || String(err);
     return s.includes('Receiving end does not exist') ||
@@ -241,7 +233,6 @@
     };
     try {
       chrome.storage.local.set({ [STORAGE_KEY]: payload }).catch(() => {
-        // storage.local cap is ~5MB ; if exceeded, drop screenshots.
         const slim = {
           ...payload,
           segments: payload.segments.map((s) => ({ ...s, screenshot: null })),
@@ -251,7 +242,6 @@
     } catch (_) {}
   }
 
-  // Save notes on input (debounced)
   let notesTimer = null;
   document.addEventListener('input', (e) => {
     if (e.target && e.target === REFS.textarea) {
@@ -262,15 +252,8 @@
 
   // ============================================================
   // MIC SETTINGS : device enumeration + live level meter
-  // (séparé du SpeechRecognition — sert au diagnostic)
   // ============================================================
 
-  /**
-   * Énumère les périphériques audio d'entrée et peuple le <select>.
-   * Note : les labels ne sont visibles qu'APRÈS au moins un getUserMedia
-   * réussi (politique de privacy de Chrome). Au boot, on n'auto-prompte
-   * PAS — l'utilisateur doit cliquer 🔄 ou activer le mic via START.
-   */
   async function refreshMicDevices(forcePrompt = false) {
     if (!REFS.micDeviceSelect) return;
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
@@ -285,7 +268,7 @@
         try {
           const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           tempStream.getTracks().forEach((t) => t.stop());
-        } catch (_) { /* refusé : enumerate sans labels */ }
+        } catch (_) {}
       }
 
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -304,18 +287,12 @@
         opt.textContent = d.label || `Micro (${(d.deviceId || '').slice(0, 8) || 'sans label'}…)`;
         sel.appendChild(opt);
       }
-      // Restore previous selection if still present
       if ([...sel.options].some((o) => o.value === previous)) sel.value = previous;
     } catch (e) {
       console.warn('[BIAIF] enumerateDevices failed', e?.message || e);
     }
   }
 
-  /**
-   * Ouvre un stream sur le device choisi et anime un VU-mètre.
-   * Indépendant du SpeechRecognition — sert à vérifier visuellement
-   * que le micro physique reçoit bien du son.
-   */
   async function startMicTest(deviceId) {
     stopMicTest();
     try {
@@ -338,8 +315,6 @@
       if (REFS.micTestBtn) REFS.micTestBtn.textContent = '⏹ Stop test';
       setStatus('Test micro en cours — parle pour voir le niveau.', 'info');
 
-      // After a successful getUserMedia, device labels are now revealed.
-      // Refresh the list (without re-prompting) so the user sees real names.
       refreshMicDevices();
 
       const tick = () => {
@@ -347,8 +322,8 @@
         analyser.getByteFrequencyData(data);
         let sum = 0;
         for (let i = 0; i < data.length; i++) sum += data[i];
-        const avg = sum / data.length;        // 0..255
-        const pct = Math.min(100, Math.round((avg / 96) * 100));  // 96 ≈ "voix normale"
+        const avg = sum / data.length;
+        const pct = Math.min(100, Math.round((avg / 96) * 100));
         if (REFS.micMeterBar)   REFS.micMeterBar.style.width = pct + '%';
         if (REFS.micMeterLabel) REFS.micMeterLabel.textContent = `Niveau : ${pct}%`;
         micTest.raf = requestAnimationFrame(tick);
@@ -375,7 +350,6 @@
     if (REFS.micTestBtn)    REFS.micTestBtn.textContent = '🔊 Tester';
   }
 
-  // Stop the test if the panel is closed/hidden (release the mic)
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && micTest) stopMicTest();
   });
@@ -388,10 +362,6 @@
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   }
 
-  /**
-   * Pre-flight permission. The side panel is visible, so the prompt
-   * (when state === 'prompt') anchors to the panel UI cleanly.
-   */
   async function ensureMicPermission() {
     try {
       const status = await navigator.permissions.query({ name: 'microphone' });
@@ -422,32 +392,54 @@
     rec.interimResults = true;
     rec.lang = STATE.lang;
 
+    const log = (event, extra) => {
+      const t = new Date().toISOString().slice(11, 23);
+      console.log(`[BIAIF SR ${t}] ${event}${extra ? ' ' + JSON.stringify(extra) : ''}`);
+      MIC.lastEventAt = Date.now();
+    };
+
+    rec.onstart       = () => { log('onstart', { lang: rec.lang }); setSrIndicator('🟢 SR démarré'); };
+    rec.onaudiostart  = () => { log('onaudiostart');  setSrIndicator('🎤 audio reçu'); };
+    rec.onsoundstart  = () => { log('onsoundstart');  };
+    rec.onspeechstart = () => { log('onspeechstart'); setSrIndicator('🗣 parole détectée'); };
+    rec.onspeechend   = () => { log('onspeechend');   };
+    rec.onsoundend    = () => { log('onsoundend');    };
+    rec.onaudioend    = () => { log('onaudioend');    };
+    rec.onnomatch     = () => { log('onnomatch');     setSrIndicator('❓ inaudible (langue ?)'); };
+
     rec.onresult = (event) => {
       let finalChunk = '';
       let interimChunk = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const txt = event.results[i][0].transcript;
+        const conf = event.results[i][0].confidence;
         if (event.results[i].isFinal) finalChunk += txt + ' ';
         else interimChunk += txt;
+        log('onresult', { final: event.results[i].isFinal, conf: Math.round((conf||0)*100), txt: txt.slice(0, 40) });
       }
       if (finalChunk) {
         MIC.finalTranscript += finalChunk;
         onVoiceTranscript(finalChunk.trim());
+        setSrIndicator('✅ ' + finalChunk.trim().slice(0, 32));
       }
-      if (interimChunk) onVoiceInterim(interimChunk);
+      if (interimChunk) {
+        onVoiceInterim(interimChunk);
+        setSrIndicator('… ' + interimChunk.slice(0, 32));
+      }
     };
 
     rec.onerror = (event) => {
+      log('onerror', { error: event.error });
       if (event.error === 'no-speech' || event.error === 'aborted') return;
       onVoiceError(event.error);
     };
 
     rec.onend = () => {
+      log('onend', { stillActive: STATE.micActive });
       if (!STATE.micActive) {
         setMicActive(false);
         return;
       }
-      // Auto-restart with backoff (Chrome cuts the session sometimes).
       setTimeout(() => {
         if (!STATE.micActive) return;
         try { rec.start(); }
@@ -461,6 +453,29 @@
 
     MIC.rec = rec;
     return true;
+  }
+
+  // Watchdog : si le mic est actif mais SR n'envoie aucun event pendant
+  // 10s, on alerte l'utilisateur — soit il ne parle pas, soit SR est mort
+  // (mauvais micro défaut Chrome, problème réseau, etc.).
+  let srWatchdog = null;
+  function startSrWatchdog() {
+    stopSrWatchdog();
+    MIC.lastEventAt = Date.now();
+    srWatchdog = setInterval(() => {
+      if (!STATE.micActive) { stopSrWatchdog(); return; }
+      const idle = Date.now() - (MIC.lastEventAt || 0);
+      if (idle > 10000) {
+        setSrIndicator('⚠ aucun event SR depuis 10 s — vérifier le micro défaut Chrome');
+      }
+    }, 2000);
+  }
+  function stopSrWatchdog() {
+    if (srWatchdog) { clearInterval(srWatchdog); srWatchdog = null; }
+  }
+
+  function setSrIndicator(text) {
+    if (REFS.interim) REFS.interim.textContent = text || '';
   }
 
   async function startMic() {
@@ -482,7 +497,7 @@
       MIC.rec.start();
       STATE.micActive = true;
       setMicActive(true);
-      // After a successful start, refresh devices so labels appear.
+      startSrWatchdog();
       refreshMicDevices();
       return true;
     } catch (e) {
@@ -494,6 +509,7 @@
   function stopMic() {
     if (!STATE.micActive) return;
     STATE.micActive = false;
+    stopSrWatchdog();
     try { MIC.rec && MIC.rec.stop(); } catch (_) {}
   }
 
