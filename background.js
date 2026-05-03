@@ -19,8 +19,22 @@ const COMMAND_TO_ACTION = {
 
 const MIN_CAPTURE_INTERVAL_MS = 1500;
 const MAX_CAPTURE_ATTEMPTS = 3;
-let lastCaptureAt = 0;
+const LAST_CAPTURE_KEY = 'biaif:lastCaptureAt';
 let capturePromise = Promise.resolve();
+
+// Le service worker MV3 est tué après ~30s d'inactivité : la variable
+// in-memory `lastCaptureAt` est alors reset, ce qui peut faire violer la
+// rate-limit de chrome.tabs.captureVisibleTab au premier appel post-réveil.
+// On persiste donc dans chrome.storage.session.
+async function readLastCaptureAt() {
+  try {
+    const o = await chrome.storage.session.get(LAST_CAPTURE_KEY);
+    return Number(o[LAST_CAPTURE_KEY]) || 0;
+  } catch (_) { return 0; }
+}
+async function writeLastCaptureAt(ts) {
+  try { await chrome.storage.session.set({ [LAST_CAPTURE_KEY]: ts }); } catch (_) {}
+}
 
 async function sendToActiveTab(action) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -44,6 +58,7 @@ chrome.action.onClicked.addListener(() => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function captureWithRateLimit(windowId) {
+  const lastCaptureAt = await readLastCaptureAt();
   const now = Date.now();
   const wait = Math.max(0, MIN_CAPTURE_INTERVAL_MS - (now - lastCaptureAt));
   if (wait > 0) await sleep(wait);
@@ -51,7 +66,7 @@ async function captureWithRateLimit(windowId) {
   for (let attempt = 0; attempt < MAX_CAPTURE_ATTEMPTS; attempt++) {
     try {
       const dataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
-      lastCaptureAt = Date.now();
+      await writeLastCaptureAt(Date.now());
       return dataUrl;
     } catch (err) {
       const msg = err?.message || String(err);

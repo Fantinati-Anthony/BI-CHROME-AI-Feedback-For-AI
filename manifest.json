@@ -3,11 +3,10 @@
   "name": "BI Chrome AI Feedback",
   "version": "0.1.0",
   "description": "Capture des feedbacks visuels (sélecteur d'élément CSS) + vocaux (speech-to-text) pour les transmettre à une IA (Claude Code).",
-  "permissions": ["activeTab", "storage", "scripting", "clipboardWrite"],
+  "permissions": ["activeTab", "storage", "clipboardWrite"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "action": {
     "default_title": "BI AI Feedback (Alt+Shift+F)"
