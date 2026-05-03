@@ -7,6 +7,7 @@
  *   - Capture screenshot automatique de l'élément cliqué (via BIAIFScreenshot)
  *   - Intent parser : verbes-déclencheurs détectés dans la voix
  *   - Compilation du prompt en mode batch (un bloc par segment)
+ *   - Outils screenshot manuels (visible / sélection / élément / page entière)
  */
 
 (function (window, document) {
@@ -23,6 +24,8 @@
       currentVoiceBuffer: '',       // voix accumulée depuis le dernier segment
       pendingIntents: new Set(),    // intents détectés en attente d'un élément
       segments: [],                 // [{ id, voice, intents, element, screenshot, ts }]
+      lastShot: null,               // dernier screenshot manuel (dataUrl)
+      lastShotMode: null,
     },
     host: null,
     shadow: null,
@@ -72,6 +75,7 @@
 
     cacheRefs() {
       const $ = (s) => this.shadow.querySelector(s);
+      const $$ = (s) => this.shadow.querySelectorAll(s);
       this.refs = {
         closeBtn:   $('[data-act="close"]'),
         masterBtn:  $('[data-act="master"]'),
@@ -88,6 +92,13 @@
         timer:      $('.biaif-timer'),
         langSelect: $('select[name="lang"]'),
         sessionInfo:$('.biaif-session-info'),
+        // Screenshot tools
+        shotButtons:$$('[data-shot]'),
+        shotPreview:$('.biaif-shot-preview'),
+        shotInfo:   $('.biaif-shot-info'),
+        shotCopy:   $('[data-act="shot-copy"]'),
+        shotSave:   $('[data-act="shot-save"]'),
+        shotAttach: $('[data-act="shot-attach"]'),
       };
     },
 
@@ -102,6 +113,14 @@
       this.refs.langSelect.addEventListener('change', (e) => {
         window.BIAIFVoiceRecorder.setLang(e.target.value);
       });
+
+      // Screenshot tools
+      this.refs.shotButtons.forEach((btn) => {
+        btn.addEventListener('click', () => this.runShotMode(btn.dataset.shot));
+      });
+      this.refs.shotCopy.addEventListener('click', () => this.copyLastShot());
+      this.refs.shotSave.addEventListener('click', () => this.downloadLastShot());
+      this.refs.shotAttach.addEventListener('click', () => this.attachLastShotAsSegment());
 
       document.addEventListener('biaif:element-picked', (e) => this.onElementPicked(e.detail));
       document.addEventListener('biaif:picker-state',   (e) => this.onPickerState(e.detail.active));
@@ -260,6 +279,98 @@
     },
 
     // ---------------------------------------------------------------------
+    // Outils screenshot manuels
+    // ---------------------------------------------------------------------
+
+    async runShotMode(mode) {
+      const Shot = window.BIAIFScreenshot;
+      if (!Shot) return this.setStatus('Module screenshot indisponible.', 'error');
+      try {
+        this.setStatus('Capture (' + mode + ')…', 'info');
+        let dataUrl = null;
+        if (mode === 'visible') dataUrl = await Shot.capture();
+        else if (mode === 'selection') dataUrl = await Shot.pickAndCapture('selection');
+        else if (mode === 'element') dataUrl = await Shot.pickAndCapture('element');
+        else if (mode === 'fullpage') dataUrl = await Shot.captureFullPage();
+        else throw new Error('mode inconnu');
+
+        this.state.lastShot = dataUrl;
+        this.state.lastShotMode = mode;
+        this.renderShotPreview();
+        const size = Shot.formatSize(Shot.getSize(dataUrl));
+        this.setStatus(`Capture ${mode} OK — ${size}`, 'success');
+      } catch (e) {
+        this.setStatus('Capture KO : ' + e.message, 'error');
+      }
+    },
+
+    renderShotPreview() {
+      const wrap = this.refs.shotPreview;
+      if (!this.state.lastShot) {
+        wrap.innerHTML = '<div class="biaif-shot-empty">Aucune capture pour le moment.</div>';
+        this.refs.shotInfo.textContent = '';
+        this.refs.shotCopy.disabled = true;
+        this.refs.shotSave.disabled = true;
+        this.refs.shotAttach.disabled = true;
+        return;
+      }
+      wrap.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = this.state.lastShot;
+      img.alt = 'capture ' + (this.state.lastShotMode || '');
+      wrap.appendChild(img);
+      const Shot = window.BIAIFScreenshot;
+      const size = Shot.formatSize(Shot.getSize(this.state.lastShot));
+      this.refs.shotInfo.textContent = `${this.state.lastShotMode || ''} · ${size}`;
+      this.refs.shotCopy.disabled = false;
+      this.refs.shotSave.disabled = false;
+      this.refs.shotAttach.disabled = false;
+    },
+
+    async copyLastShot() {
+      if (!this.state.lastShot) return;
+      try {
+        const blob = await dataUrlToBlob(this.state.lastShot);
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        this.setStatus('Capture copiée dans le presse-papiers.', 'success');
+      } catch (e) {
+        this.setStatus('Copie image impossible : ' + e.message, 'error');
+      }
+    },
+
+    async downloadLastShot() {
+      if (!this.state.lastShot) return;
+      const blob = await dataUrlToBlob(this.state.lastShot);
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      this.downloadFile(`biaif-${this.state.lastShotMode || 'shot'}-${ts}.png`, blob);
+    },
+
+    /**
+     * Attache la dernière capture libre comme un segment (sans élément
+     * DOM précis). Utile pour ajouter une capture à un prompt batché.
+     */
+    attachLastShotAsSegment() {
+      if (!this.state.lastShot) return;
+      const md = window.BIAIFScreenshot ? window.BIAIFScreenshot.getMetadata() : null;
+      const segment = {
+        id: 'seg-' + (this.state.segments.length + 1),
+        ts: Date.now(),
+        intents: [],
+        voice: this.state.currentVoiceBuffer.trim(),
+        element: {
+          selector: '(capture ' + (this.state.lastShotMode || '') + ')',
+          tag: null, id: null, classes: [], text: null, outerHTML: null,
+        },
+        screenshot: this.state.lastShot,
+        metadata: md,
+      };
+      this.state.segments.push(segment);
+      this.state.currentVoiceBuffer = '';
+      this.renderSegments();
+      this.setStatus(`Capture attachée comme ${segment.id}.`, 'success');
+    },
+
+    // ---------------------------------------------------------------------
     // Rendu des segments
     // ---------------------------------------------------------------------
 
@@ -303,9 +414,12 @@
       this.state.segments = [];
       this.state.currentVoiceBuffer = '';
       this.state.pendingIntents.clear();
+      this.state.lastShot = null;
+      this.state.lastShotMode = null;
       this.refs.textarea.value = '';
       this.refs.interim.textContent = '';
       this.renderSegments();
+      this.renderShotPreview();
       window.BIAIFVoiceRecorder.reset();
       this.setStatus('Tout effacé.', 'info');
     },
@@ -457,6 +571,35 @@
             </button>
           </section>
 
+          <section class="biaif-shot-tools">
+            <h2>Captures écran</h2>
+            <div class="biaif-shot-grid">
+              <button class="biaif-btn shot" data-shot="visible" title="Capture du viewport visible">
+                <span class="ico">📷</span><span class="label">Visible</span>
+              </button>
+              <button class="biaif-btn shot" data-shot="selection" title="Dessinez un rectangle pour cropper">
+                <span class="ico">✂️</span><span class="label">Sélection</span>
+              </button>
+              <button class="biaif-btn shot" data-shot="element" title="Cliquez sur un élément pour le capturer">
+                <span class="ico">🎯</span><span class="label">Élément</span>
+              </button>
+              <button class="biaif-btn shot" data-shot="fullpage" title="Page entière (scroll + stitch)">
+                <span class="ico">📄</span><span class="label">Page entière</span>
+              </button>
+            </div>
+            <div class="biaif-shot-preview-wrap">
+              <div class="biaif-shot-preview"><div class="biaif-shot-empty">Aucune capture pour le moment.</div></div>
+              <div class="biaif-shot-meta">
+                <span class="biaif-shot-info"></span>
+                <div class="biaif-shot-actions">
+                  <button class="biaif-btn ghost mini" data-act="shot-copy" disabled>Copier</button>
+                  <button class="biaif-btn ghost mini" data-act="shot-save" disabled>Télécharger</button>
+                  <button class="biaif-btn ghost mini" data-act="shot-attach" disabled>+ Segment</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section class="biaif-lang">
             <label>Langue micro
               <select name="lang">
@@ -505,11 +648,13 @@
           display: flex; flex-direction: column; height: 100%;
           font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           color: #e2e8f0; background: #0f172a;
+          overflow-y: auto;
         }
         .biaif-header {
           display:flex; align-items:center; justify-content:space-between;
           padding: 12px 14px; border-bottom: 1px solid #1e293b;
           background: linear-gradient(135deg,#0ea5b7,#1e293b);
+          position: sticky; top: 0; z-index: 2;
         }
         .biaif-header h1 { font-size: 14px; margin: 0; letter-spacing: .3px; }
         .icon-btn {
@@ -519,6 +664,10 @@
         .icon-btn:hover { color: #2bd4d9; }
 
         section { padding: 10px 14px; }
+        section h2 {
+          font-size: 12px; margin: 0 0 8px; color: #94a3b8;
+          text-transform: uppercase; letter-spacing: .5px;
+        }
 
         /* Master button */
         .biaif-master { display: flex; gap: 12px; align-items: center; padding: 14px; border-bottom: 1px solid #1e293b; }
@@ -566,8 +715,11 @@
           cursor: pointer; font-size: 13px;
         }
         .biaif-btn.small { padding: 6px 8px; font-size: 12px; }
+        .biaif-btn.mini { padding: 4px 8px; font-size: 11px; }
         .biaif-btn:hover { border-color: #2bd4d9; }
         .biaif-btn.active { background: #064e54; border-color: #2bd4d9; }
+        .biaif-btn[disabled] { opacity: .45; cursor: not-allowed; }
+        .biaif-btn[disabled]:hover { border-color: #334155; }
         .biaif-btn .dot {
           width: 8px; height: 8px; border-radius: 50%; background: #475569; flex: 0 0 auto;
         }
@@ -579,6 +731,34 @@
           padding: 2px 5px; border-radius: 3px; border: 1px solid #334155;
         }
 
+        /* Screenshot tools */
+        .biaif-shot-tools { border-top: 1px solid #1e293b; }
+        .biaif-shot-grid {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+        }
+        .biaif-btn.shot {
+          flex-direction: column; align-items: center; gap: 4px;
+          padding: 10px 6px;
+        }
+        .biaif-btn.shot .ico { font-size: 18px; }
+        .biaif-btn.shot .label { font-size: 11px; text-align: center; flex: none; }
+        .biaif-shot-preview-wrap {
+          margin-top: 8px; background: #020617; border: 1px solid #1e293b;
+          border-radius: 6px; padding: 8px;
+        }
+        .biaif-shot-preview {
+          min-height: 80px; max-height: 220px; overflow: auto;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .biaif-shot-preview img { max-width: 100%; max-height: 200px; border-radius: 4px; }
+        .biaif-shot-empty { font-size: 11px; color: #64748b; font-style: italic; }
+        .biaif-shot-meta {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 6px; margin-top: 8px; flex-wrap: wrap;
+        }
+        .biaif-shot-info { font-size: 11px; color: #94a3b8; }
+        .biaif-shot-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+
         .biaif-lang label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #94a3b8; }
         .biaif-lang select {
           background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
@@ -586,8 +766,7 @@
         }
 
         /* Segments */
-        .biaif-segments-wrap { flex: 1; overflow-y: auto; min-height: 100px; }
-        .biaif-segments-wrap h2 { font-size: 12px; margin: 0 0 8px; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; }
+        .biaif-segments-wrap { min-height: 80px; }
         .biaif-empty { font-size: 12px; color: #64748b; font-style: italic; padding: 16px 0; text-align: center; }
         .biaif-segments { display: flex; flex-direction: column; gap: 8px; }
         .biaif-segment {
@@ -644,7 +823,7 @@
         .biaif-footer {
           display: flex; gap: 6px; padding: 10px 14px;
           border-top: 1px solid #1e293b; background: #0b1220;
-          flex-wrap: wrap;
+          flex-wrap: wrap; position: sticky; bottom: 0;
         }
         .biaif-btn.primary {
           background: #2bd4d9; color: #0f172a; border-color: #2bd4d9;
