@@ -163,22 +163,27 @@
         window.scrollTo(0, 0);
         await this.sleep(this.config.scrollSettleMs);
 
+        let lastScrollY = -1;
         for (let i = 0; i < sections; i++) {
           this.showLoader('Capture en cours…', i + 1, sections);
           window.scrollTo(0, i * vpH);
           await this.sleep(this.config.scrollSettleMs);
 
+          // Le navigateur clamp scrollY à scrollH - vpH : si le clamp donne
+          // la même position que la section précédente, on saute pour ne pas
+          // dupliquer la dernière bande dans le canvas.
+          const actualY = window.scrollY;
+          if (actualY === lastScrollY) continue;
+          lastScrollY = actualY;
+
           this.hideLoader();
           await this.sleep(this.config.hideLoaderForCaptureMs);
           const dataUrl = await this.requestCapture();
 
-          const isLast = i === sections - 1;
           captures.push({
             dataUrl,
-            sectionIndex: i,
+            scrollY: actualY,
             viewportHeight: vpH,
-            captureHeight: isLast ? scrollH - i * vpH : vpH,
-            isLast,
           });
         }
 
@@ -355,9 +360,12 @@
 
       captures.forEach((c, i) => {
         const img = images[i];
-        const destY = c.sectionIndex * c.viewportHeight * dpr;
-        const sourceH = c.isLast ? c.captureHeight * dpr : img.height;
-        ctx.drawImage(img, 0, 0, img.width, sourceH, 0, destY, img.width, sourceH);
+        const destY = c.scrollY * dpr;
+        const remaining = Math.max(0, pageHeight - c.scrollY);
+        const sourceH = Math.min(c.viewportHeight, remaining) * dpr;
+        if (sourceH > 0) {
+          ctx.drawImage(img, 0, 0, img.width, sourceH, 0, destY, img.width, sourceH);
+        }
       });
       return canvas.toDataURL('image/png');
     },
@@ -611,15 +619,39 @@
      * Renvoie une fonction de restauration.
      */
     hideFixedElements() {
+      // Stylesheet single-shot : (1) cible les inline styles fixed/sticky
+      // sans walk + getComputedStyle ; (2) hide via classe ajoutée pour les
+      // candidats trouvés lors d'un walk peu profond (la plupart des nav
+      // bars / cookie banners vivent à <= 6 niveaux du body).
+      const style = document.createElement('style');
+      style.id = 'biaif-hide-fixed-style';
+      style.textContent =
+        '[style*="position: fixed"],[style*="position:fixed"],' +
+        '[style*="position: sticky"],[style*="position:sticky"],' +
+        '.biaif-hidden-fixed{display:none !important}';
+      (document.head || document.documentElement).appendChild(style);
+
       const hidden = [];
-      document.querySelectorAll('*').forEach((el) => {
-        const cs = window.getComputedStyle(el);
-        if (cs.position === 'fixed' || cs.position === 'sticky') {
-          hidden.push({ el, prev: el.style.display });
-          el.style.display = 'none';
+      const MAX_DEPTH = 6;
+      const visit = (parent, depth) => {
+        if (depth > MAX_DEPTH || !parent) return;
+        for (const el of parent.children) {
+          const cs = window.getComputedStyle(el);
+          if (cs.position === 'fixed' || cs.position === 'sticky') {
+            el.classList.add('biaif-hidden-fixed');
+            hidden.push(el);
+            // pas de descente dans un sous-arbre déjà masqué
+          } else {
+            visit(el, depth + 1);
+          }
         }
-      });
-      return () => hidden.forEach(({ el, prev }) => { el.style.display = prev || ''; });
+      };
+      visit(document.body, 0);
+
+      return () => {
+        if (style.parentNode) style.remove();
+        hidden.forEach((el) => el.classList.remove('biaif-hidden-fixed'));
+      };
     },
 
     hideWidget() {
