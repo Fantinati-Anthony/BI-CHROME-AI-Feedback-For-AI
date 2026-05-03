@@ -22,6 +22,7 @@
         "content/voice-recorder.js",
         "content/intent-parser.js",
         "content/screenshot.js",
+        "content/screenshot-editor.js",
         "content/sidebar-ui.js",
         "content/main.js"
       ]
