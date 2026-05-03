@@ -1,24 +1,18 @@
 /**
- * BI Chrome AI Feedback - Service Worker (v0.2)
+ * BI Chrome AI Feedback - Service Worker (v0.3)
  *
- * Architecture v0.2 : Side Panel + Offscreen.
- *   - sidepanel.html : UI persistante, une seule par fenêtre, survit aux
- *     changements d'onglet.
- *   - offscreen.html : héberge SpeechRecognition. Un seul micro pour
- *     toute l'extension → plus de conflit cross-tab par construction.
- *   - content scripts (par onglet) : picker + screenshots du DOM actif.
- *
- * Le SW route les messages :
- *   sidepanel  → SW → offscreen        (commandes mic)
- *   offscreen  → SW → sidepanel        (events mic ; broadcast natif)
- *   sidepanel  → SW → activeTab        (picker, captures)
- *   activeTab  → SW → sidepanel        (element-picked, picker-state)
+ * Architecture v0.3 (mono-instance) :
+ *   - sidepanel.html : UI + SpeechRecognition (mic est ici directement,
+ *     plus d'offscreen). Persistant cross-tab.
+ *   - content scripts (par onglet) : picker + screenshot + annotateur.
+ *   - SW : route picker / capture-mode / annotate / capture-tab vers
+ *     l'onglet actif. Sérialise captureVisibleTab pour respecter le
+ *     rate-limit Chrome.
  */
 
 const MIN_CAPTURE_INTERVAL_MS = 1500;
 const MAX_CAPTURE_ATTEMPTS = 3;
 const LAST_CAPTURE_KEY = 'biaif:lastCaptureAt';
-const OFFSCREEN_PATH = 'offscreen.html';
 
 let capturePromise = Promise.resolve();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -34,30 +28,6 @@ async function openSidePanelForActive() {
   } catch (e) {
     console.warn('[BIAIF] sidePanel.open failed', e?.message || e);
   }
-}
-
-// ---------- offscreen : create-once, JIT ----------------------------------
-
-async function hasOffscreen() {
-  if (!chrome.runtime.getContexts) return false;
-  try {
-    const contexts = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
-    return contexts.some((c) => (c.documentUrl || '').endsWith('/' + OFFSCREEN_PATH));
-  } catch (_) { return false; }
-}
-
-let creatingOffscreen = null;
-async function ensureOffscreen() {
-  if (await hasOffscreen()) return;
-  if (creatingOffscreen) return creatingOffscreen;
-  creatingOffscreen = chrome.offscreen.createDocument({
-    url: OFFSCREEN_PATH,
-    reasons: ['USER_MEDIA'],
-    justification: 'Speech recognition for voice feedback (single mic across tabs).',
-  })
-    .catch((e) => { console.warn('[BIAIF] offscreen create failed', e?.message || e); })
-    .finally(() => { creatingOffscreen = null; });
-  return creatingOffscreen;
 }
 
 // ---------- captureVisibleTab : rate-limit + serialize --------------------
@@ -100,11 +70,11 @@ async function captureWithRateLimit(windowId) {
 async function sendToActiveTabContent(payload) {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab || !tab.id) return null;
+    if (!tab || !tab.id) return { error: 'no active tab' };
     return await chrome.tabs.sendMessage(tab.id, payload);
   } catch (e) {
     console.warn('[BIAIF] sendToActiveTabContent failed', e?.message || e);
-    return null;
+    return { error: e?.message || String(e) };
   }
 }
 
@@ -112,9 +82,13 @@ async function sendToActiveTabContent(payload) {
 
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'toggle-sidebar') { openSidePanelForActive(); return; }
-  if (command === 'toggle-picker')  { sendToActiveTabContent({ type: 'biaif:command', action: 'toggle-picker' }); return; }
-  if (command === 'toggle-mic')     { chrome.runtime.sendMessage({ type: 'biaif:hotkey', action: 'toggle-mic' }).catch(() => {}); return; }
-  if (command === 'copy-prompt')    { chrome.runtime.sendMessage({ type: 'biaif:hotkey', action: 'copy-prompt' }).catch(() => {}); return; }
+  if (command === 'toggle-picker')  {
+    sendToActiveTabContent({ type: 'biaif:command', action: 'toggle-picker' });
+    return;
+  }
+  if (command === 'toggle-mic' || command === 'copy-prompt') {
+    chrome.runtime.sendMessage({ type: 'biaif:hotkey', action: command }).catch(() => {});
+  }
 });
 
 // ---------- message routing ---------------------------------------------
@@ -122,23 +96,7 @@ chrome.commands.onCommand.addListener((command) => {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg.type !== 'string') return;
 
-  // Sidepanel → offscreen (mic commands)
-  if (msg.type === 'biaif:mic-start' || msg.type === 'biaif:mic-stop' ||
-      msg.type === 'biaif:mic-set-lang' || msg.type === 'biaif:mic-reset') {
-    (async () => {
-      await ensureOffscreen();
-      const action =
-        msg.type === 'biaif:mic-start'    ? 'start'    :
-        msg.type === 'biaif:mic-stop'     ? 'stop'     :
-        msg.type === 'biaif:mic-set-lang' ? 'set-lang' : 'reset';
-      await chrome.runtime.sendMessage({ type: 'biaif:offscreen-cmd', action, lang: msg.lang })
-        .catch(() => {});
-      sendResponse({ ok: true });
-    })();
-    return true;
-  }
-
-  // Sidepanel → active tab (picker)
+  // Sidepanel → active tab : picker
   if (msg.type === 'biaif:picker-toggle' || msg.type === 'biaif:picker-enable' ||
       msg.type === 'biaif:picker-disable') {
     sendToActiveTabContent({ type: 'biaif:command', action: msg.type.replace('biaif:', '') })
@@ -146,7 +104,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // Content → captureVisibleTab (existing)
+  // Sidepanel → active tab : capture manuelle (visible/selection/element/fullpage)
+  if (msg.type === 'biaif:capture-mode') {
+    sendToActiveTabContent({ type: 'biaif:command', action: 'capture-mode', mode: msg.mode })
+      .then((resp) => sendResponse(resp));
+    return true;
+  }
+
+  // Sidepanel → active tab : annotateur (modal dans la page)
+  if (msg.type === 'biaif:annotate') {
+    sendToActiveTabContent({ type: 'biaif:command', action: 'annotate', dataUrl: msg.dataUrl })
+      .then((resp) => sendResponse(resp));
+    return true;
+  }
+
+  // Content script → SW : captureVisibleTab (sérialisée + rate-limit)
   if (msg.type === 'biaif:capture-tab') {
     const windowId = sender.tab?.windowId;
     capturePromise = capturePromise
@@ -159,7 +131,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // biaif:voice-event (offscreen → broadcast → sidepanel) and
-  // biaif:element-picked / biaif:picker-state (content → broadcast → sidepanel)
-  // pass through chrome.runtime.sendMessage natively, no SW intervention needed.
+  // biaif:element-picked / biaif:picker-state passent natif via
+  // chrome.runtime.sendMessage → reçus directement par la side panel.
 });

@@ -9,7 +9,7 @@
   <div class="biaif-root">
     <header class="biaif-header">
       <h1>BI AI Feedback</h1>
-      <span class="biaif-badge" title="Architecture v0.2 : Side Panel + Offscreen">v0.2</span>
+      <span class="biaif-badge" title="Architecture v0.3 : mono-instance side panel">v0.3</span>
     </header>
 
     <section class="biaif-master">
@@ -32,6 +32,36 @@
         <span class="dot"></span><span class="label">Démarrer le micro</span>
         <kbd>Alt+⇧+M</kbd>
       </button>
+    </section>
+
+    <section class="biaif-shot-tools">
+      <h2>Captures écran</h2>
+      <div class="biaif-shot-grid">
+        <button class="biaif-btn shot" data-shot="visible" title="Capture du viewport visible">
+          <span class="ico">📷</span><span class="label">Visible</span>
+        </button>
+        <button class="biaif-btn shot" data-shot="selection" title="Dessinez un rectangle pour cropper">
+          <span class="ico">✂️</span><span class="label">Sélection</span>
+        </button>
+        <button class="biaif-btn shot" data-shot="element" title="Cliquez sur un élément pour le capturer">
+          <span class="ico">🎯</span><span class="label">Élément</span>
+        </button>
+        <button class="biaif-btn shot" data-shot="fullpage" title="Page entière (scroll + stitch)">
+          <span class="ico">📄</span><span class="label">Page entière</span>
+        </button>
+      </div>
+      <div class="biaif-shot-preview-wrap">
+        <div class="biaif-shot-preview"><div class="biaif-shot-empty">Aucune capture pour le moment.</div></div>
+        <div class="biaif-shot-meta">
+          <span class="biaif-shot-info"></span>
+          <div class="biaif-shot-actions">
+            <button class="biaif-btn ghost mini" data-act="shot-annotate" disabled title="Ouvrir l'annotateur">✏️ Annoter</button>
+            <button class="biaif-btn ghost mini" data-act="shot-copy" disabled>Copier</button>
+            <button class="biaif-btn ghost mini" data-act="shot-save" disabled>Télécharger</button>
+            <button class="biaif-btn ghost mini" data-act="shot-attach" disabled>+ Segment</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="biaif-lang">
