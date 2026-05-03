@@ -61,6 +61,12 @@
     REFS.langSelect.addEventListener('change', (e) => {
       sendBg({ type: 'biaif:mic-set-lang', lang: e.target.value });
     });
+    // Click sur la zone de status : si erreur de permission, ouvre les réglages.
+    REFS.status.addEventListener('click', () => {
+      if (REFS.status.dataset.kind === 'error' && REFS.status.dataset.action === 'open-mic-settings') {
+        chrome.tabs.create({ url: 'chrome://settings/content/microphone' });
+      }
+    });
   }
 
   function bindRuntimeMessages() {
@@ -92,13 +98,54 @@
     return chrome.runtime.sendMessage(payload).catch(() => null);
   }
 
+  // ----------- mic permission (pre-flight from the panel context) --------
+
+  /**
+   * On demande la permission micro DEPUIS la side panel, pas depuis
+   * l'offscreen document. Raison : l'offscreen est invisible, donc le
+   * prompt Chrome n'a pas de surface UI naturelle (l'utilisateur ne le
+   * voit pas, ou Chrome le bloque silencieusement). En appelant
+   * getUserMedia ici, le prompt s'ancre sur le panneau visible.
+   * Une fois accordée, l'offscreen hérite (même origine extension).
+   */
+  async function ensureMicPermission() {
+    try {
+      const status = await navigator.permissions.query({ name: 'microphone' });
+      if (status.state === 'granted') return { ok: true };
+      if (status.state === 'denied')  return { ok: false, reason: 'denied-extension' };
+      // 'prompt' → on continue avec getUserMedia
+    } catch (_) { /* Permissions API non supportée */ }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return { ok: false, reason: 'no-media-devices' };
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+      return { ok: true };
+    } catch (e) {
+      if (e && e.name === 'NotAllowedError')  return { ok: false, reason: 'denied-extension' };
+      if (e && e.name === 'NotFoundError')    return { ok: false, reason: 'audio-capture' };
+      if (e && e.name === 'NotReadableError') return { ok: false, reason: 'audio-capture' };
+      return { ok: false, reason: 'unknown' };
+    }
+  }
+
   // ----------- master session --------------------------------------------
 
   function toggleSession() {
     STATE.armed ? stopSession() : startSession();
   }
 
-  function startSession() {
+  async function startSession() {
+    if (STATE.armed) return;
+    // Pré-flight permission micro depuis le panel (UI visible) avant de
+    // demander à l'offscreen. Évite le prompt silencieux dans l'offscreen.
+    const perm = await ensureMicPermission();
+    if (!perm.ok) {
+      setStatusError('Micro : ' + voiceErrorFr(perm.reason),
+        perm.reason === 'denied-extension' ? 'open-mic-settings' : null);
+      return;
+    }
     STATE.armed = true;
     REFS.masterBtn.classList.add('armed');
     REFS.masterBtn.querySelector('.master-label').textContent = 'STOP';
@@ -121,9 +168,18 @@
     setStatus(`Session arrêtée — ${STATE.segments.length} segment(s) capturé(s).`, 'info');
   }
 
-  function toggleMic() {
-    if (STATE.micActive) sendBg({ type: 'biaif:mic-stop' });
-    else                 sendBg({ type: 'biaif:mic-start' });
+  async function toggleMic() {
+    if (STATE.micActive) {
+      sendBg({ type: 'biaif:mic-stop' });
+      return;
+    }
+    const perm = await ensureMicPermission();
+    if (!perm.ok) {
+      setStatusError('Micro : ' + voiceErrorFr(perm.reason),
+        perm.reason === 'denied-extension' ? 'open-mic-settings' : null);
+      return;
+    }
+    sendBg({ type: 'biaif:mic-start' });
   }
 
   function startTimer() {
@@ -167,7 +223,9 @@
       return;
     }
     if (subtype === 'error') {
-      setStatus('Micro : ' + voiceErrorFr(payload.error), 'error');
+      const code = payload.error;
+      const isPermDenied = code === 'not-allowed' || code === 'service-not-allowed' || code === 'denied-extension';
+      setStatusError('Micro : ' + voiceErrorFr(code), isPermDenied ? 'open-mic-settings' : null);
       return;
     }
   }
@@ -362,11 +420,23 @@
     if (!REFS.status) return;
     REFS.status.textContent = msg || '';
     REFS.status.dataset.kind = kind || 'info';
+    delete REFS.status.dataset.action;
+    REFS.status.style.cursor = '';
     if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
     if (msg && (kind === 'success' || kind === 'info')) {
       statusTimer = setTimeout(() => {
         if (REFS.status && REFS.status.textContent === msg) REFS.status.textContent = '';
       }, 5000);
+    }
+  }
+
+  // Status d'erreur cliquable (ex: ouvre chrome://settings/content/microphone)
+  function setStatusError(msg, action) {
+    setStatus(msg, 'error');
+    if (action) {
+      REFS.status.dataset.action = action;
+      REFS.status.style.cursor = 'pointer';
+      REFS.status.title = 'Cliquer pour ouvrir les réglages micro de Chrome';
     }
   }
 
@@ -391,9 +461,10 @@
 
   function voiceErrorFr(code) {
     switch (code) {
+      case 'denied-extension':
       case 'not-allowed':
       case 'service-not-allowed':
-        return 'micro refusé — autorisez l\'accès dans les réglages du site';
+        return "micro bloqué pour BIAIF — clique ici pour ouvrir les réglages Chrome, retire l'extension de la liste 'Bloqué'";
       case 'no-speech':              return 'rien entendu';
       case 'audio-capture':          return 'aucun micro détecté';
       case 'network':                return 'erreur réseau';
