@@ -66,12 +66,30 @@
       };
 
       rec.onend = () => {
-        // Auto-restart si toujours actif (la Web Speech API coupe parfois après silence)
-        if (this.state.active) {
-          try { rec.start(); } catch (_) {}
-        } else {
+        // Auto-restart si toujours actif (la Web Speech API coupe parfois
+        // après silence). Backoff léger pour éviter de tight-looper si
+        // Chrome rate-limite ou si le backend est down.
+        if (!this.state.active) {
           document.dispatchEvent(new CustomEvent('biaif:voice-state', { detail: { active: false } }));
+          return;
         }
+        setTimeout(() => {
+          if (!this.state.active) return;
+          try {
+            rec.start();
+          } catch (e) {
+            // start() peut throw si Chrome a définitivement coupé la
+            // session : on remet l'UI en cohérence et on remonte l'erreur.
+            console.warn('[BIAIF] voice auto-restart KO :', e?.message || e);
+            this.state.active = false;
+            document.dispatchEvent(
+              new CustomEvent('biaif:voice-error', { detail: { error: 'auto-restart-failed' } })
+            );
+            document.dispatchEvent(
+              new CustomEvent('biaif:voice-state', { detail: { active: false } })
+            );
+          }
+        }, 200);
       };
 
       this.state.recognition = rec;
