@@ -43,7 +43,7 @@
       if (!this.state.open) return;
       this.state.open = false;
       if (this.host) this.host.style.transform = 'translateX(100%)';
-      if (this.state.armed) this.stopSession();
+      if (this.state.armed && this.refs && this.refs.masterBtn) this.stopSession();
     },
 
     toggle() {
@@ -133,7 +133,7 @@
         this.refs.interim.textContent = e.detail.text || '';
       });
       document.addEventListener('biaif:voice-error',    (e) => {
-        this.setStatus('Micro : ' + e.detail.error, 'error');
+        this.setStatus('Micro : ' + voiceErrorFr(e.detail.error), 'error');
       });
     },
 
@@ -146,10 +146,12 @@
     },
 
     startSession() {
+      if (!this.refs || !this.refs.masterBtn) return;
       this.state.armed = true;
       this.refs.masterBtn.classList.add('armed');
-      this.refs.masterBtn.querySelector('.master-label').textContent = 'STOP';
-      this.refs.sessionInfo.textContent = 'Session active — parlez puis cliquez les éléments';
+      const lbl = this.refs.masterBtn.querySelector('.master-label');
+      if (lbl) lbl.textContent = 'STOP';
+      if (this.refs.sessionInfo) this.refs.sessionInfo.textContent = 'Session active — parlez puis cliquez les éléments';
       this.startTimer();
       // Arme picker + mic
       if (!this.state.pickerActive) window.BIAIFElementSelector.enable();
@@ -158,10 +160,14 @@
     },
 
     stopSession() {
+      if (!this.state.armed) return;
       this.state.armed = false;
-      this.refs.masterBtn.classList.remove('armed');
-      this.refs.masterBtn.querySelector('.master-label').textContent = 'START';
-      this.refs.sessionInfo.textContent = 'Session arrêtée';
+      if (this.refs && this.refs.masterBtn) {
+        this.refs.masterBtn.classList.remove('armed');
+        const lbl = this.refs.masterBtn.querySelector('.master-label');
+        if (lbl) lbl.textContent = 'START';
+      }
+      if (this.refs && this.refs.sessionInfo) this.refs.sessionInfo.textContent = 'Session arrêtée';
       this.stopTimer();
       if (this.state.pickerActive) window.BIAIFElementSelector.disable();
       if (this.state.micActive) window.BIAIFVoiceRecorder.stop();
@@ -419,12 +425,6 @@
       this.state.segments.forEach((seg, i) => {
         const card = document.createElement('article');
         card.className = 'biaif-segment';
-        const thumb = seg.screenshot
-          ? `<div class="seg-thumb-wrap">
-               <img class="seg-thumb" src="${seg.screenshot}" alt="screenshot ${seg.element.selector}" />
-               <button class="seg-annotate" data-i="${i}" title="Annoter cette capture">✏️</button>
-             </div>`
-          : `<div class="seg-no-shot">Pas de screenshot</div>`;
         card.innerHTML = `
           <header>
             <span class="seg-num">#${i + 1}</span>
@@ -433,8 +433,28 @@
           </header>
           <div class="seg-selector"><code>${escapeHtml(seg.element.selector)}</code></div>
           ${seg.voice ? `<div class="seg-voice">« ${escapeHtml(seg.voice)} »</div>` : ''}
-          ${thumb}
         `;
+        if (seg.screenshot) {
+          const wrap = document.createElement('div');
+          wrap.className = 'seg-thumb-wrap';
+          const img = document.createElement('img');
+          img.className = 'seg-thumb';
+          img.src = seg.screenshot;
+          img.alt = 'screenshot ' + (seg.element.selector || '');
+          const annotate = document.createElement('button');
+          annotate.className = 'seg-annotate';
+          annotate.dataset.i = String(i);
+          annotate.title = 'Annoter cette capture';
+          annotate.textContent = '✏️';
+          wrap.appendChild(img);
+          wrap.appendChild(annotate);
+          card.appendChild(wrap);
+        } else {
+          const noshot = document.createElement('div');
+          noshot.className = 'seg-no-shot';
+          noshot.textContent = 'Pas de screenshot';
+          card.appendChild(noshot);
+        }
         card.querySelector('.seg-del').addEventListener('click', (e) => {
           this.state.segments.splice(Number(e.currentTarget.dataset.i), 1);
           this.renderSegments();
@@ -498,9 +518,10 @@
           }
           if (seg.element.outerHTML) {
             lines.push('');
-            lines.push('```html');
+            const fence = pickFence(seg.element.outerHTML);
+            lines.push(fence + 'html');
             lines.push(seg.element.outerHTML);
-            lines.push('```');
+            lines.push(fence);
           }
           if (seg.screenshot) {
             if (inlineImages) {
@@ -575,8 +596,17 @@
     },
 
     setStatus(msg, kind) {
+      if (!this.refs || !this.refs.status) return;
       this.refs.status.textContent = msg || '';
       this.refs.status.dataset.kind = kind || 'info';
+      if (this._statusTimer) { clearTimeout(this._statusTimer); this._statusTimer = null; }
+      if (msg && (kind === 'success' || kind === 'info')) {
+        this._statusTimer = setTimeout(() => {
+          if (this.refs && this.refs.status && this.refs.status.textContent === msg) {
+            this.refs.status.textContent = '';
+          }
+        }, 5000);
+      }
     },
 
     // ---------------------------------------------------------------------
@@ -903,8 +933,32 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // Choose a fence longer than the longest run of backticks in the payload.
+  // Prevents fence-escape (prompt-injection) when outerHTML contains ```.
+  function pickFence(s) {
+    const runs = String(s).match(/`+/g) || [];
+    let max = 0;
+    for (const r of runs) if (r.length > max) max = r.length;
+    return '`'.repeat(Math.max(3, max + 1));
+  }
+
   function dataUrlToBlob(dataUrl) {
     return fetch(dataUrl).then((r) => r.blob());
+  }
+
+  function voiceErrorFr(code) {
+    switch (code) {
+      case 'not-allowed':
+      case 'service-not-allowed':
+        return 'micro refusé — autorisez l\'accès dans les réglages du site';
+      case 'no-speech':       return 'rien entendu';
+      case 'audio-capture':   return 'aucun micro détecté';
+      case 'network':         return 'erreur réseau';
+      case 'aborted':         return 'reconnaissance interrompue';
+      case 'language-not-supported': return 'langue non supportée';
+      case 'bad-grammar':     return 'grammaire invalide';
+      default:                return code || 'erreur inconnue';
+    }
   }
 
   window.BIAIFSidebar = SidebarUI;
