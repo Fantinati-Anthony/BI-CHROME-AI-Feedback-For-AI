@@ -8,6 +8,7 @@
 (function (window, document) {
   'use strict';
 
+  const HIGHLIGHT_CLASS = 'biaif-highlight';
   const OVERLAY_ID = 'biaif-picker-overlay';
   const TAG_ID = 'biaif-picker-tag';
 
@@ -98,6 +99,8 @@
       e.stopImmediatePropagation();
 
       const descriptor = window.BIAIFSelector.describeElement(target);
+      // Référence vivante vers le DOM (non-énumérable pour ne pas polluer JSON)
+      Object.defineProperty(descriptor, '_el', { value: target, enumerable: false });
       document.dispatchEvent(
         new CustomEvent('biaif:element-picked', { detail: descriptor })
       );

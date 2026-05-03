@@ -29,6 +29,10 @@
       ensureSidebarOpen();
       window.BIAIFVoiceRecorder.toggle();
     },
+    'toggle-session': () => {
+      ensureSidebarOpen();
+      window.BIAIFSidebar.toggleSession();
+    },
     'copy-prompt': () => {
       ensureSidebarOpen();
       window.BIAIFSidebar.copyPrompt();
