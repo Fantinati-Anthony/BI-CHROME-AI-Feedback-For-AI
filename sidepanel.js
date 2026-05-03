@@ -29,7 +29,11 @@
     lastShot: null,        // dernier screenshot manuel
     lastShotMode: null,
     lang: 'fr-FR',
+    micDeviceId: '',       // '' = système par défaut (Web Speech API utilise le défaut système)
   };
+
+  // Mic test (live audio level meter, separate from SpeechRecognition stream)
+  let micTest = null;
 
   const REFS = {};
   const STORAGE_KEY = 'biaif:v03:state';
@@ -79,11 +83,22 @@
     REFS.shotSave    = document.querySelector('[data-act="shot-save"]');
     REFS.shotAttach  = document.querySelector('[data-act="shot-attach"]');
     REFS.shotAnnotate= document.querySelector('[data-act="shot-annotate"]');
+    // Mic settings
+    REFS.micDeviceSelect = document.querySelector('select[name="mic-device"]');
+    REFS.micTestBtn      = document.querySelector('[data-act="mic-test"]');
+    REFS.micRefreshBtn   = document.querySelector('[data-act="mic-refresh"]');
+    REFS.micPermLink     = document.querySelector('[data-act="open-mic-perm"]');
+    REFS.micMeter        = document.querySelector('.biaif-mic-meter');
+    REFS.micMeterBar     = document.querySelector('.biaif-mic-meter-bar');
+    REFS.micMeterLabel   = document.querySelector('.biaif-mic-meter-label');
   }
 
   function bindEvents() {
     REFS.masterBtn.addEventListener('click',   () => toggleSession());
-    REFS.pickerBtn.addEventListener('click',   () => sendBg({ type: 'biaif:picker-toggle' }));
+    REFS.pickerBtn.addEventListener('click',   async () => {
+      const resp = await sendBg({ type: 'biaif:picker-toggle' });
+      if (resp && resp.error) setStatusError('Picker KO : ' + decodeContentScriptError(resp.error), isReloadableError(resp.error) ? 'reload-active-tab' : null);
+    });
     REFS.micBtn.addEventListener('click',      () => toggleMic());
     REFS.clearBtn.addEventListener('click',    () => clearAll());
     REFS.copyBtn.addEventListener('click',     () => copyPrompt());
@@ -103,14 +118,53 @@
     if (REFS.shotAttach)   REFS.shotAttach.addEventListener('click',   () => attachLastShotAsSegment());
     if (REFS.shotAnnotate) REFS.shotAnnotate.addEventListener('click', () => annotateLastShot());
 
-    // Click on status zone : if a permission error is shown, jump to BIAIF's
-    // per-site permission page.
-    REFS.status.addEventListener('click', () => {
-      if (REFS.status.dataset.kind === 'error' && REFS.status.dataset.action === 'open-mic-settings') {
-        const url = `chrome://settings/content/siteDetails?site=chrome-extension%3A%2F%2F${chrome.runtime.id}`;
-        chrome.tabs.create({ url });
+    // Click on status zone : route to the right action based on data-action.
+    REFS.status.addEventListener('click', async () => {
+      if (REFS.status.dataset.kind !== 'error') return;
+      const action = REFS.status.dataset.action;
+      if (action === 'open-mic-settings') {
+        openMicPermPage();
+      } else if (action === 'reload-active-tab') {
+        const resp = await sendBg({ type: 'biaif:reload-active-tab' });
+        if (resp && resp.ok) setStatus('Onglet rechargé — réessaye dans 1 s.', 'info');
+        else setStatus('Recharge KO : ' + (resp ? resp.error : 'no resp'), 'error');
       }
     });
+
+    // Mic settings
+    if (REFS.micDeviceSelect) {
+      REFS.micDeviceSelect.addEventListener('change', (e) => {
+        STATE.micDeviceId = e.target.value;
+        persist();
+        // Si le test est en cours, on le redémarre sur le nouveau device.
+        if (micTest) startMicTest(STATE.micDeviceId);
+      });
+    }
+    if (REFS.micTestBtn) {
+      REFS.micTestBtn.addEventListener('click', () => {
+        if (micTest) stopMicTest();
+        else         startMicTest(STATE.micDeviceId);
+      });
+    }
+    if (REFS.micRefreshBtn) {
+      REFS.micRefreshBtn.addEventListener('click', () => refreshMicDevices(true));
+    }
+    if (REFS.micPermLink) {
+      REFS.micPermLink.addEventListener('click', (e) => { e.preventDefault(); openMicPermPage(); });
+    }
+
+    // Auto-refresh device list when devices change (USB plug/unplug, etc.)
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', () => refreshMicDevices());
+    }
+
+    // Initial device enumeration (no prompt — labels appear after first granted getUserMedia)
+    refreshMicDevices();
+  }
+
+  function openMicPermPage() {
+    const url = `chrome://settings/content/siteDetails?site=chrome-extension%3A%2F%2F${chrome.runtime.id}`;
+    chrome.tabs.create({ url });
   }
 
   function bindRuntimeMessages() {
@@ -130,6 +184,32 @@
     return chrome.runtime.sendMessage(payload).catch(() => null);
   }
 
+  /**
+   * Décode les erreurs récurrentes du bridge sidepanel → SW → content
+   * en messages utiles pour l'utilisateur. Renvoie aussi un "action"
+   * pour rendre le status cliquable (recharger l'onglet, etc.).
+   */
+  function decodeContentScriptError(err) {
+    const s = typeof err === 'string' ? err : (err && err.message) || String(err);
+    if (s.includes('Receiving end does not exist') ||
+        s.includes('Could not establish connection') ||
+        s.includes('no active tab')) {
+      return "content script pas prêt — clique ici pour recharger l'onglet (sinon vérifie que tu es sur une page http/https, pas chrome://)";
+    }
+    if (s.includes('Module screenshot indisponible')) {
+      return 'le module screenshot ne s\'est pas chargé sur cet onglet — recharge la page (F5).';
+    }
+    return s;
+  }
+
+  // Détecte si l'erreur permet une action "reload tab" cliquable
+  function isReloadableError(err) {
+    const s = typeof err === 'string' ? err : (err && err.message) || String(err);
+    return s.includes('Receiving end does not exist') ||
+           s.includes('Could not establish connection') ||
+           s.includes('Module screenshot indisponible');
+  }
+
   // ============================================================
   // PERSISTENCE
   // ============================================================
@@ -144,6 +224,7 @@
         STATE.lang = saved.lang;
         if (REFS.langSelect) REFS.langSelect.value = saved.lang;
       }
+      if (typeof saved.micDeviceId === 'string') STATE.micDeviceId = saved.micDeviceId;
       if (typeof saved.notes === 'string' && REFS.textarea) REFS.textarea.value = saved.notes;
       renderSegments();
     } catch (e) {
@@ -155,6 +236,7 @@
     const payload = {
       segments: STATE.segments,
       lang: STATE.lang,
+      micDeviceId: STATE.micDeviceId,
       notes: REFS.textarea ? REFS.textarea.value : '',
     };
     try {
@@ -176,6 +258,126 @@
       if (notesTimer) clearTimeout(notesTimer);
       notesTimer = setTimeout(persist, 600);
     }
+  });
+
+  // ============================================================
+  // MIC SETTINGS : device enumeration + live level meter
+  // (séparé du SpeechRecognition — sert au diagnostic)
+  // ============================================================
+
+  /**
+   * Énumère les périphériques audio d'entrée et peuple le <select>.
+   * Note : les labels ne sont visibles qu'APRÈS au moins un getUserMedia
+   * réussi (politique de privacy de Chrome). Au boot, on n'auto-prompte
+   * PAS — l'utilisateur doit cliquer 🔄 ou activer le mic via START.
+   */
+  async function refreshMicDevices(forcePrompt = false) {
+    if (!REFS.micDeviceSelect) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+
+    try {
+      let alreadyGranted = false;
+      try {
+        const status = await navigator.permissions.query({ name: 'microphone' });
+        alreadyGranted = (status.state === 'granted');
+      } catch (_) {}
+      if (alreadyGranted || forcePrompt) {
+        try {
+          const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          tempStream.getTracks().forEach((t) => t.stop());
+        } catch (_) { /* refusé : enumerate sans labels */ }
+      }
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const inputs = devices.filter((d) => d.kind === 'audioinput');
+
+      const sel = REFS.micDeviceSelect;
+      const previous = STATE.micDeviceId || sel.value || '';
+      sel.innerHTML = '';
+      const def = document.createElement('option');
+      def.value = '';
+      def.textContent = 'Système par défaut';
+      sel.appendChild(def);
+      for (const d of inputs) {
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || `Micro (${(d.deviceId || '').slice(0, 8) || 'sans label'}…)`;
+        sel.appendChild(opt);
+      }
+      // Restore previous selection if still present
+      if ([...sel.options].some((o) => o.value === previous)) sel.value = previous;
+    } catch (e) {
+      console.warn('[BIAIF] enumerateDevices failed', e?.message || e);
+    }
+  }
+
+  /**
+   * Ouvre un stream sur le device choisi et anime un VU-mètre.
+   * Indépendant du SpeechRecognition — sert à vérifier visuellement
+   * que le micro physique reçoit bien du son.
+   */
+  async function startMicTest(deviceId) {
+    stopMicTest();
+    try {
+      const constraints = {
+        audio: deviceId ? { deviceId: { exact: deviceId } } : true,
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.6;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+
+      micTest = { stream, ctx, analyser, data, raf: 0 };
+
+      if (REFS.micMeter) REFS.micMeter.hidden = false;
+      if (REFS.micTestBtn) REFS.micTestBtn.textContent = '⏹ Stop test';
+      setStatus('Test micro en cours — parle pour voir le niveau.', 'info');
+
+      // After a successful getUserMedia, device labels are now revealed.
+      // Refresh the list (without re-prompting) so the user sees real names.
+      refreshMicDevices();
+
+      const tick = () => {
+        if (!micTest) return;
+        analyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        const avg = sum / data.length;        // 0..255
+        const pct = Math.min(100, Math.round((avg / 96) * 100));  // 96 ≈ "voix normale"
+        if (REFS.micMeterBar)   REFS.micMeterBar.style.width = pct + '%';
+        if (REFS.micMeterLabel) REFS.micMeterLabel.textContent = `Niveau : ${pct}%`;
+        micTest.raf = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch (e) {
+      const msg = e && e.name === 'NotAllowedError' ? 'permission refusée' :
+                  e && e.name === 'NotFoundError'   ? 'micro introuvable (déconnecté ?)' :
+                  e && e.name === 'NotReadableError' ? 'micro déjà utilisé par une autre app' :
+                  (e?.message || String(e));
+      setStatusError('Test micro KO : ' + msg, 'open-mic-settings');
+    }
+  }
+
+  function stopMicTest() {
+    if (!micTest) return;
+    cancelAnimationFrame(micTest.raf);
+    try { micTest.stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+    try { micTest.ctx.close(); } catch (_) {}
+    micTest = null;
+    if (REFS.micMeter)      REFS.micMeter.hidden = true;
+    if (REFS.micMeterBar)   REFS.micMeterBar.style.width = '0%';
+    if (REFS.micMeterLabel) REFS.micMeterLabel.textContent = 'Niveau : —';
+    if (REFS.micTestBtn)    REFS.micTestBtn.textContent = '🔊 Tester';
+  }
+
+  // Stop the test if the panel is closed/hidden (release the mic)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && micTest) stopMicTest();
   });
 
   // ============================================================
@@ -280,6 +482,8 @@
       MIC.rec.start();
       STATE.micActive = true;
       setMicActive(true);
+      // After a successful start, refresh devices so labels appear.
+      refreshMicDevices();
       return true;
     } catch (e) {
       onVoiceError('start-failed');
@@ -352,8 +556,14 @@
     REFS.masterBtn.querySelector('.master-label').textContent = 'STOP';
     REFS.sessionInfo.textContent = 'Session active — parlez puis cliquez les éléments';
     startTimer();
-    if (!STATE.pickerActive) sendBg({ type: 'biaif:picker-enable' });
-    if (!STATE.micActive)    await startMic();
+    if (!STATE.pickerActive) {
+      const resp = await sendBg({ type: 'biaif:picker-enable' });
+      if (resp && resp.error) {
+        setStatusError('Picker KO : ' + decodeContentScriptError(resp.error),
+          isReloadableError(resp.error) ? 'reload-active-tab' : null);
+      }
+    }
+    if (!STATE.micActive) await startMic();
     setStatus('Session démarrée.', 'success');
   }
 
@@ -472,15 +682,15 @@
 
   // ============================================================
   // MANUAL SCREENSHOT TOOLS
-  // The capture itself happens IN the active tab content script
-  // (it owns the DOM). Panel just orchestrates via SW + sendMessage.
   // ============================================================
 
   async function runShotMode(mode) {
     setStatus('Capture (' + mode + ')…', 'info');
     const resp = await sendBg({ type: 'biaif:capture-mode', mode });
-    if (!resp || resp.error) {
-      setStatus('Capture KO : ' + (resp ? resp.error : 'pas de réponse'), 'error');
+    if (!resp || resp.error || !resp.dataUrl) {
+      const reason = resp ? resp.error || 'pas de dataUrl' : 'pas de réponse';
+      setStatusError('Capture KO : ' + decodeContentScriptError(reason),
+        isReloadableError(reason) ? 'reload-active-tab' : null);
       return;
     }
     STATE.lastShot = resp.dataUrl;
@@ -547,15 +757,20 @@
   }
 
   // ============================================================
-  // ANNOTATOR (modal lives in content script of active tab)
+  // ANNOTATOR
   // ============================================================
 
   async function annotateLastShot() {
     if (!STATE.lastShot) return;
     setStatus("Annotateur ouvert dans l'onglet actif…", 'info');
     const resp = await sendBg({ type: 'biaif:annotate', dataUrl: STATE.lastShot });
-    if (!resp || resp.cancelled) { setStatus('Annotation annulée.', 'info'); return; }
-    if (resp.error || !resp.dataUrl) { setStatus('Annotation KO : ' + (resp.error || 'no result'), 'error'); return; }
+    if (!resp) { setStatus('Annotation KO : pas de réponse', 'error'); return; }
+    if (resp.cancelled) { setStatus('Annotation annulée.', 'info'); return; }
+    if (resp.error || !resp.dataUrl) {
+      setStatusError('Annotation KO : ' + decodeContentScriptError(resp.error || 'no result'),
+        isReloadableError(resp.error || '') ? 'reload-active-tab' : null);
+      return;
+    }
     STATE.lastShot = resp.dataUrl;
     renderShotPreview();
     setStatus('Annotation enregistrée.', 'success');
@@ -566,8 +781,13 @@
     if (!seg || !seg.screenshot) return;
     setStatus("Annotateur ouvert dans l'onglet actif…", 'info');
     const resp = await sendBg({ type: 'biaif:annotate', dataUrl: seg.screenshot });
-    if (!resp || resp.cancelled) { setStatus('Annotation annulée.', 'info'); return; }
-    if (resp.error || !resp.dataUrl) { setStatus('Annotation KO : ' + (resp.error || 'no result'), 'error'); return; }
+    if (!resp) { setStatus('Annotation KO : pas de réponse', 'error'); return; }
+    if (resp.cancelled) { setStatus('Annotation annulée.', 'info'); return; }
+    if (resp.error || !resp.dataUrl) {
+      setStatusError('Annotation KO : ' + decodeContentScriptError(resp.error || 'no result'),
+        isReloadableError(resp.error || '') ? 'reload-active-tab' : null);
+      return;
+    }
     seg.screenshot = resp.dataUrl;
     renderSegments();
     persist();
@@ -702,7 +922,10 @@
     if (action) {
       REFS.status.dataset.action = action;
       REFS.status.style.cursor = 'pointer';
-      REFS.status.title = 'Cliquer pour ouvrir les réglages micro de Chrome';
+      REFS.status.title =
+        action === 'open-mic-settings' ? 'Cliquer pour ouvrir la page de permissions micro de BIAIF' :
+        action === 'reload-active-tab' ? "Cliquer pour recharger l'onglet actif" :
+        '';
     }
   }
 
