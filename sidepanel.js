@@ -78,6 +78,7 @@
     REFS.langSelect  = document.querySelector('select[name="lang"]');
     REFS.sessionInfo = document.querySelector('.biaif-session-info');
     REFS.bufferPreview = document.querySelector('.biaif-buffer-preview');
+    REFS.nextBtn       = document.querySelector('[data-act="next"]');
     // Shot tools
     REFS.shotButtons = document.querySelectorAll('[data-shot]');
     REFS.shotPreview = document.querySelector('.biaif-shot-preview');
@@ -103,6 +104,7 @@
       if (resp && resp.error) setStatusError('Picker KO : ' + decodeContentScriptError(resp.error), isReloadableError(resp.error) ? 'reload-active-tab' : null);
     });
     REFS.micBtn.addEventListener('click',      () => toggleMic());
+    if (REFS.nextBtn) REFS.nextBtn.addEventListener('click', () => nextVoiceSegment());
     REFS.clearBtn.addEventListener('click',    () => clearAll());
     REFS.copyBtn.addEventListener('click',     () => copyPrompt());
     REFS.downloadBtn.addEventListener('click', () => downloadBundle());
@@ -643,8 +645,6 @@
 
   function onElementPicked(msg) {
     const descriptor = msg.descriptor || { selector: '?', tag: null, id: null, classes: [], text: null, outerHTML: null };
-    // On inclut l'interim courant : si l'utilisateur dit « remplace ça »
-    // et clique pile à la fin, le « ça » peut encore être en interim.
     const voiceParts = [STATE.currentVoiceBuffer.trim(), STATE.currentInterim.trim()].filter(Boolean);
     const voice = voiceParts.join(' ').replace(/\s+/g, ' ').trim();
     if (STATE.currentInterim && window.BIAIFIntentParser) {
@@ -667,10 +667,77 @@
     updateBufferPreview();
     persist();
     setStatus(
-      `Segment ${segment.id} : ${descriptor.selector}` +
+      `Segment ${segment.id} : ${shortLabel(descriptor)}` +
         (segment.intents.length ? ' — ' + segment.intents.map((i) => '#' + i).join(' ') : ''),
       'success'
     );
+  }
+
+  /**
+   * Renvoie un libellé COURT et lisible pour l'affichage UI d'un segment.
+   * Le sélecteur CSS complet reste dans seg.element.selector pour le prompt
+   * IA et le tooltip — on n'allège QUE l'affichage sidebar.
+   *
+   * Priorité : id > tag.classe-courte > <tag> "texte" > <tag>
+   */
+  function shortLabel(descriptor) {
+    if (!descriptor) return '?';
+    const tag = (descriptor.tag || 'el').toString().toLowerCase();
+    if (descriptor.id) return '#' + descriptor.id;
+    let label = '<' + tag + '>';
+    if (Array.isArray(descriptor.classes) && descriptor.classes.length) {
+      // Filtre : on évite les classes très longues (≥ 22 chars) ou
+      // camelCase à rallonge (typique des hash-styles type CSS-in-JS,
+      // ytLockupViewModelHost, etc.)
+      const candidates = descriptor.classes.filter((c) => {
+        if (!c || c.length > 22) return false;
+        const camel = (c.match(/[A-Z]/g) || []).length;
+        return camel < 3;
+      });
+      if (candidates.length) label = tag + '.' + candidates[0];
+    }
+    if (descriptor.text) {
+      const snip = String(descriptor.text).replace(/\s+/g, ' ').trim();
+      if (snip) {
+        label += ' « ' + (snip.length > 40 ? snip.slice(0, 40) + '…' : snip) + ' »';
+      }
+    }
+    return label;
+  }
+
+  /**
+   * Crée un segment "voix seule" : flush le buffer (final + interim) en
+   * tant que segment sans élément ni screenshot. Permet de découper la
+   * dictée à la volée — « je veux remplacer ça (clic) par ça (clic)
+   * et ajouter ce texte (Suivant) ».
+   */
+  function nextVoiceSegment() {
+    const voiceParts = [STATE.currentVoiceBuffer.trim(), STATE.currentInterim.trim()].filter(Boolean);
+    const voice = voiceParts.join(' ').replace(/\s+/g, ' ').trim();
+    if (!voice) {
+      setStatus('Rien à attacher — parle puis clique Suivant.', 'info');
+      return;
+    }
+    if (STATE.currentInterim && window.BIAIFIntentParser) {
+      window.BIAIFIntentParser.detect(STATE.currentInterim).forEach((i) => STATE.pendingIntents.add(i));
+    }
+    const segment = {
+      id: 'seg-' + (STATE.segments.length + 1),
+      ts: Date.now(),
+      intents: Array.from(STATE.pendingIntents),
+      voice,
+      element: { selector: '(voix seule)', tag: null, id: null, classes: [], text: null, outerHTML: null },
+      screenshot: null,
+      metadata: null,
+    };
+    STATE.segments.push(segment);
+    STATE.currentVoiceBuffer = '';
+    STATE.currentInterim = '';
+    STATE.pendingIntents.clear();
+    renderSegments();
+    updateBufferPreview();
+    persist();
+    setStatus(`Segment ${segment.id} : voix seule`, 'success');
   }
 
   function renderSegments() {
@@ -684,13 +751,15 @@
     STATE.segments.forEach((seg, i) => {
       const card = document.createElement('article');
       card.className = 'biaif-segment';
+      const label = shortLabel(seg.element);
+      const fullSel = seg.element.selector || '';
       card.innerHTML = `
         <header>
           <span class="seg-num">#${i + 1}</span>
           <span class="seg-tags">${seg.intents.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</span>
           <button class="seg-del" data-i="${i}" title="Supprimer">×</button>
         </header>
-        <div class="seg-selector"><code>${escapeHtml(seg.element.selector)}</code></div>
+        <div class="seg-selector" title="${escapeHtml(fullSel)}"><code>${escapeHtml(label)}</code></div>
         ${seg.voice ? `<div class="seg-voice">« ${escapeHtml(seg.voice)} »</div>` : ''}
       `;
       if (seg.screenshot) {
@@ -709,11 +778,6 @@
         wrap.appendChild(img);
         wrap.appendChild(btn);
         card.appendChild(wrap);
-      } else {
-        const noshot = document.createElement('div');
-        noshot.className = 'seg-no-shot';
-        noshot.textContent = 'Pas de screenshot';
-        card.appendChild(noshot);
       }
       card.querySelector('.seg-del').addEventListener('click', (e) => {
         STATE.segments.splice(Number(e.currentTarget.dataset.i), 1);
