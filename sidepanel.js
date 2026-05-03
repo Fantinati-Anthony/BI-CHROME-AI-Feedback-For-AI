@@ -61,10 +61,13 @@
     REFS.langSelect.addEventListener('change', (e) => {
       sendBg({ type: 'biaif:mic-set-lang', lang: e.target.value });
     });
-    // Click sur la zone de status : si erreur de permission, ouvre les réglages.
+    // Click sur la zone de status : si erreur de permission, ouvre la page
+    // de détails permission de BIAIF directement (et non la liste globale,
+    // où BIAIF est noyée parmi des dizaines d'origines chrome-extension://).
     REFS.status.addEventListener('click', () => {
       if (REFS.status.dataset.kind === 'error' && REFS.status.dataset.action === 'open-mic-settings') {
-        chrome.tabs.create({ url: 'chrome://settings/content/microphone' });
+        const url = `chrome://settings/content/siteDetails?site=chrome-extension%3A%2F%2F${chrome.runtime.id}`;
+        chrome.tabs.create({ url });
       }
     });
   }
@@ -464,7 +467,7 @@
       case 'denied-extension':
       case 'not-allowed':
       case 'service-not-allowed':
-        return "micro bloqué pour BIAIF — clique ici pour ouvrir les réglages Chrome, retire l'extension de la liste 'Bloqué'";
+        return "micro bloqué pour BIAIF — clique ici pour ouvrir la page de permissions de l'extension, puis Microphone → Autoriser";
       case 'no-speech':              return 'rien entendu';
       case 'audio-capture':          return 'aucun micro détecté';
       case 'network':                return 'erreur réseau';
