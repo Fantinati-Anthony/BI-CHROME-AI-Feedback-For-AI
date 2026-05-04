@@ -98,17 +98,17 @@
   }
 
   function bindEvents() {
-    REFS.masterBtn.addEventListener('click',   () => toggleSession());
-    REFS.pickerBtn.addEventListener('click',   async () => {
+    if (REFS.masterBtn) REFS.masterBtn.addEventListener('click',   () => toggleSession());
+    if (REFS.pickerBtn) REFS.pickerBtn.addEventListener('click',   async () => {
       const resp = await sendBg({ type: 'biaif:picker-toggle' });
       if (resp && resp.error) setStatusError('Picker KO : ' + decodeContentScriptError(resp.error), isReloadableError(resp.error) ? 'reload-active-tab' : null);
     });
-    REFS.micBtn.addEventListener('click',      () => toggleMic());
+    if (REFS.micBtn) REFS.micBtn.addEventListener('click',      () => toggleMic());
     if (REFS.nextBtn) REFS.nextBtn.addEventListener('click', () => nextVoiceSegment());
-    REFS.clearBtn.addEventListener('click',    () => clearAll());
-    REFS.copyBtn.addEventListener('click',     () => copyPrompt());
-    REFS.downloadBtn.addEventListener('click', () => downloadBundle());
-    REFS.langSelect.addEventListener('change', (e) => {
+    if (REFS.clearBtn) REFS.clearBtn.addEventListener('click',    () => clearAll());
+    if (REFS.copyBtn) REFS.copyBtn.addEventListener('click',     () => copyPrompt());
+    if (REFS.downloadBtn) REFS.downloadBtn.addEventListener('click', () => downloadBundle());
+    if (REFS.langSelect) REFS.langSelect.addEventListener('change', (e) => {
       STATE.lang = e.target.value;
       if (MIC.rec) MIC.rec.lang = STATE.lang;
       persist();
@@ -116,8 +116,30 @@
 
     // Shot tools
     REFS.shotButtons.forEach((btn) => {
-      btn.addEventListener('click', () => runShotMode(btn.dataset.shot));
+      btn.addEventListener('click', () => {
+        runShotMode(btn.dataset.shot);
+        closeCaptureMenu();
+      });
     });
+
+    // Capture dropdown toggle
+    const captureToggle = document.querySelector('[data-act="capture-toggle"]');
+    const captureMenu = document.querySelector('.capture-submenu');
+    if (captureToggle && captureMenu) {
+      captureToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = !captureMenu.hasAttribute('hidden');
+        if (open) closeCaptureMenu();
+        else openCaptureMenu();
+      });
+      document.addEventListener('click', (e) => {
+        if (captureMenu.hasAttribute('hidden')) return;
+        if (!e.target.closest('.tool-capture-wrap')) closeCaptureMenu();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeCaptureMenu();
+      });
+    }
     if (REFS.shotCopy)     REFS.shotCopy.addEventListener('click',     () => copyLastShot());
     if (REFS.shotSave)     REFS.shotSave.addEventListener('click',     () => downloadLastShot());
     if (REFS.shotAttach)   REFS.shotAttach.addEventListener('click',   () => attachLastShotAsSegment());
@@ -162,6 +184,21 @@
     }
 
     refreshMicDevices();
+  }
+
+  function openCaptureMenu() {
+    const toggle = document.querySelector('[data-act="capture-toggle"]');
+    const menu = document.querySelector('.capture-submenu');
+    if (!toggle || !menu) return;
+    menu.removeAttribute('hidden');
+    toggle.setAttribute('aria-expanded', 'true');
+  }
+  function closeCaptureMenu() {
+    const toggle = document.querySelector('[data-act="capture-toggle"]');
+    const menu = document.querySelector('.capture-submenu');
+    if (!toggle || !menu) return;
+    menu.setAttribute('hidden', '');
+    toggle.setAttribute('aria-expanded', 'false');
   }
 
   function openMicPermPage() {
