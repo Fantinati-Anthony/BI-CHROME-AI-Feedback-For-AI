@@ -60,7 +60,37 @@
     bindRuntimeMessages();
     await hydrateFromStorage();
     setStatus('Prêt.', 'info');
+    checkActiveTabReady();
+    if (chrome?.tabs?.onActivated) {
+      chrome.tabs.onActivated.addListener(() => checkActiveTabReady());
+    }
+    if (chrome?.tabs?.onUpdated) {
+      chrome.tabs.onUpdated.addListener((_id, info, tab) => {
+        if (info.status === 'complete' && tab && tab.active) checkActiveTabReady();
+      });
+    }
   });
+
+  async function checkActiveTabReady() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab || !tab.id) return;
+      const url = tab.url || '';
+      if (!/^https?:|^file:/.test(url)) return;
+      let resp = null;
+      try {
+        resp = await chrome.tabs.sendMessage(tab.id, { type: 'biaif:command', action: 'ping' });
+      } catch (e) {
+        resp = { error: e?.message || String(e) };
+      }
+      if (!resp || resp.error) {
+        setStatusError(
+          "La page actuelle n'a pas été rechargée depuis l'installation/MAJ de l'extension. Clique ici pour la recharger.",
+          'reload-active-tab'
+        );
+      }
+    } catch (_) { /* ignore */ }
+  }
 
   function cacheRefs() {
     REFS.masterBtn   = document.querySelector('[data-act="master"]');
@@ -788,18 +818,27 @@
     STATE.segments.forEach((seg, i) => {
       const card = document.createElement('article');
       card.className = 'biaif-segment';
+      if (seg.screenshot) card.classList.add('has-thumb');
       const label = shortLabel(seg.element);
       const fullSel = seg.element.selector || '';
+      const tagsHtml = seg.intents.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+      const voiceHtml = seg.voice ? `<div class="seg-voice">« ${escapeHtml(seg.voice)} »</div>` : '';
       card.innerHTML = `
         <header>
           <span class="seg-num">#${i + 1}</span>
-          <span class="seg-tags">${seg.intents.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</span>
+          <span class="seg-tags">${tagsHtml}</span>
           <button class="seg-del" data-i="${i}" title="Supprimer">×</button>
         </header>
-        <div class="seg-selector" title="${escapeHtml(fullSel)}"><code>${escapeHtml(label)}</code></div>
-        ${seg.voice ? `<div class="seg-voice">« ${escapeHtml(seg.voice)} »</div>` : ''}
+        <div class="seg-body">
+          ${seg.screenshot ? '<div class="seg-thumb-col"></div>' : ''}
+          <div class="seg-text-col">
+            <div class="seg-selector" title="${escapeHtml(fullSel)}"><code>${escapeHtml(label)}</code></div>
+            ${voiceHtml}
+          </div>
+        </div>
       `;
       if (seg.screenshot) {
+        const col = card.querySelector('.seg-thumb-col');
         const wrap = document.createElement('div');
         wrap.className = 'seg-thumb-wrap';
         const img = document.createElement('img');
@@ -814,7 +853,7 @@
         btn.addEventListener('click', () => annotateSegment(i));
         wrap.appendChild(img);
         wrap.appendChild(btn);
-        card.appendChild(wrap);
+        col.appendChild(wrap);
       }
       card.querySelector('.seg-del').addEventListener('click', (e) => {
         STATE.segments.splice(Number(e.currentTarget.dataset.i), 1);
