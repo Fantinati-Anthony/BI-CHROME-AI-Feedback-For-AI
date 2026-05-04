@@ -6,15 +6,20 @@
     const logPanel = document.getElementById('logs-panel');
     const logContainer = document.getElementById('logs-container');
     const clearLogsBtn = document.getElementById('clear-logs');
-    
-    if (logBtn && logPanel) {
-      logBtn.addEventListener('click', () => {
-        if (logPanel.hasAttribute('hidden')) logPanel.removeAttribute('hidden');
-        else logPanel.setAttribute('hidden', '');
-      });
+    const closeLogsBtn = document.getElementById('close-logs');
+
+    function openPanel() { if (logPanel) logPanel.removeAttribute('hidden'); }
+    function closePanel() { if (logPanel) logPanel.setAttribute('hidden', ''); }
+    function togglePanel() {
+      if (!logPanel) return;
+      if (logPanel.hasAttribute('hidden')) openPanel();
+      else closePanel();
     }
+
+    if (logBtn) logBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePanel(); });
+    if (closeLogsBtn) closeLogsBtn.addEventListener('click', (e) => { e.stopPropagation(); closePanel(); });
     if (clearLogsBtn && logContainer) {
-      clearLogsBtn.addEventListener('click', () => { logContainer.innerHTML = ''; });
+      clearLogsBtn.addEventListener('click', (e) => { e.stopPropagation(); logContainer.innerHTML = ''; });
     }
 
     const originalLog = console.log;

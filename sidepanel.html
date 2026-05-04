@@ -10,7 +10,13 @@
 
     <!-- Console Logs (toggled from mini footer) -->
     <div class="biaif-logs-panel" id="logs-panel" hidden>
-      <div class="logs-header">Console Logs <button class="btn-secondary" id="clear-logs" style="padding:2px 8px; font-size:10px;">Clear</button></div>
+      <div class="logs-header">
+        <span>Console Logs</span>
+        <div class="logs-header-actions">
+          <button class="btn-secondary" id="clear-logs">Clear</button>
+          <button class="logs-close" id="close-logs" aria-label="Fermer">×</button>
+        </div>
+      </div>
       <pre id="logs-container"></pre>
     </div>
 
