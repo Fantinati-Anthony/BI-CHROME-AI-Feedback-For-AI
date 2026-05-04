@@ -94,6 +94,7 @@
 
   function cacheRefs() {
     REFS.masterBtn   = document.querySelector('[data-act="master"]');
+    REFS.stopBtn     = document.querySelector('[data-act="stop"]');
     REFS.pickerBtn   = document.querySelector('[data-act="picker"]');
     REFS.micBtn      = document.querySelector('[data-act="mic"]');
     REFS.clearBtn    = document.querySelector('[data-act="clear"]');
@@ -102,6 +103,7 @@
     REFS.textarea    = document.querySelector('textarea[name="notes"]');
     REFS.interim     = document.querySelector('.biaif-interim');
     REFS.segments    = document.querySelector('.biaif-segments');
+    REFS.segmentsCount = document.querySelector('.segments-count');
     REFS.empty       = document.querySelector('.biaif-empty');
     REFS.status      = document.querySelector('.biaif-status');
     REFS.timer       = document.querySelector('.biaif-timer');
@@ -128,7 +130,11 @@
   }
 
   function bindEvents() {
-    if (REFS.masterBtn) REFS.masterBtn.addEventListener('click',   () => toggleSession());
+    if (REFS.masterBtn) REFS.masterBtn.addEventListener('click', () => {
+      if (STATE.armed) nextVoiceSegment();
+      else startSession();
+    });
+    if (REFS.stopBtn) REFS.stopBtn.addEventListener('click', () => stopSession());
     if (REFS.pickerBtn) REFS.pickerBtn.addEventListener('click',   async () => {
       const resp = await sendBg({ type: 'biaif:picker-toggle' });
       if (resp && resp.error) setStatusError('Picker KO : ' + decodeContentScriptError(resp.error), isReloadableError(resp.error) ? 'reload-active-tab' : null);
@@ -590,11 +596,12 @@
 
   function setMicActive(active) {
     STATE.micActive = active;
-    REFS.micBtn.classList.toggle('active', active);
-    REFS.micBtn.querySelector('.label').textContent = active
-      ? 'Micro actif'
-      : 'Démarrer le micro';
-    if (!active) REFS.interim.textContent = '';
+    if (REFS.micBtn) {
+      REFS.micBtn.classList.toggle('active', active);
+      const lbl = REFS.micBtn.querySelector('.label');
+      if (lbl) lbl.textContent = active ? 'Micro ✓' : 'Micro';
+    }
+    if (!active && REFS.interim) REFS.interim.textContent = '';
   }
 
   function onVoiceInterim(text) {
@@ -654,9 +661,13 @@
   async function startSession() {
     if (STATE.armed) return;
     STATE.armed = true;
-    REFS.masterBtn.classList.add('armed');
-    REFS.masterBtn.querySelector('.master-label').textContent = 'STOP';
-    REFS.sessionInfo.textContent = 'Session active — parlez puis cliquez les éléments';
+    if (REFS.masterBtn) {
+      REFS.masterBtn.classList.add('armed');
+      const lbl = REFS.masterBtn.querySelector('.master-label');
+      if (lbl) lbl.textContent = 'Suivant';
+    }
+    if (REFS.stopBtn) REFS.stopBtn.hidden = false;
+    if (REFS.sessionInfo) REFS.sessionInfo.textContent = 'Session active — parlez puis cliquez les éléments';
     startTimer();
     updateBufferPreview();
     if (!STATE.pickerActive) {
@@ -673,9 +684,13 @@
   function stopSession() {
     if (!STATE.armed) return;
     STATE.armed = false;
-    REFS.masterBtn.classList.remove('armed');
-    REFS.masterBtn.querySelector('.master-label').textContent = 'START';
-    REFS.sessionInfo.textContent = 'Session arrêtée';
+    if (REFS.masterBtn) {
+      REFS.masterBtn.classList.remove('armed');
+      const lbl = REFS.masterBtn.querySelector('.master-label');
+      if (lbl) lbl.textContent = 'Démarrer';
+    }
+    if (REFS.stopBtn) REFS.stopBtn.hidden = true;
+    if (REFS.sessionInfo) REFS.sessionInfo.textContent = 'Session arrêtée';
     stopTimer();
     if (STATE.pickerActive) sendBg({ type: 'biaif:picker-disable' });
     if (STATE.micActive)    stopMic();
@@ -684,6 +699,7 @@
   }
 
   function startTimer() {
+    if (!REFS.timer) return;
     timerStart = Date.now();
     timerInterval = setInterval(() => {
       const s = Math.floor((Date.now() - timerStart) / 1000);
@@ -695,7 +711,7 @@
   function stopTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = null;
-    REFS.timer.textContent = '00:00';
+    if (REFS.timer) REFS.timer.textContent = '00:00';
   }
 
   // ============================================================
@@ -704,10 +720,10 @@
 
   function onPickerState(active) {
     STATE.pickerActive = active;
+    if (!REFS.pickerBtn) return;
     REFS.pickerBtn.classList.toggle('active', active);
-    REFS.pickerBtn.querySelector('.label').textContent = active
-      ? 'Picker actif (Esc)'
-      : "Sélecteur d'élément";
+    const lbl = REFS.pickerBtn.querySelector('.label');
+    if (lbl) lbl.textContent = active ? 'Picker actif' : 'Sélecteur';
   }
 
   function onElementPicked(msg) {
@@ -809,11 +825,14 @@
 
   function renderSegments() {
     REFS.segments.innerHTML = '';
+    if (REFS.segmentsCount) REFS.segmentsCount.textContent = String(STATE.segments.length);
     if (!STATE.segments.length) {
-      REFS.empty.style.display = '';
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'biaif-empty';
+      emptyEl.textContent = 'Aucun segment pour le moment';
+      REFS.segments.appendChild(emptyEl);
       return;
     }
-    REFS.empty.style.display = 'none';
 
     STATE.segments.forEach((seg, i) => {
       const card = document.createElement('article');
