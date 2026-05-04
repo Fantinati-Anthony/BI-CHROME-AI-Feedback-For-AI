@@ -23,15 +23,17 @@
     armed: false,
     pickerActive: false,
     micActive: false,
-    currentVoiceBuffer: '',  // texte FINAL accumulé depuis le dernier clic
-    currentInterim: '',      // texte INTERIM en cours (flushé au clic ou au final suivant)
-    pendingIntents: new Set(),
-    segments: [],          // [{ id, voice, intents, element, screenshot, ts, metadata }]
-    lastShot: null,        // dernier screenshot manuel (gardé pour annotation)
+    currentInterim: '',
+    // Mad-Libs : la demande en cours est un texte avec tokens {{ref:N}} pointant
+    // sur des entrées de refs[]. Les refs peuvent être des éléments (sélecteur)
+    // ou des captures (dataUrl).
+    currentDemande: { text: '', refs: [] },
+    demandes: [],
+    lastShot: null,
     lastShotMode: null,
-    sortOrder: 'desc',     // 'desc' = plus récent en haut (défaut), 'asc' = plus ancien en haut
+    sortOrder: 'desc',
     lang: 'fr-FR',
-    micDeviceId: '',       // '' = système par défaut (Web Speech API utilise le défaut système)
+    micDeviceId: '',
   };
 
   // Mic test (live audio level meter, separate from SpeechRecognition stream)
@@ -109,7 +111,10 @@
     REFS.clearBtn    = document.querySelector('[data-act="clear"]');
     REFS.copyBtn     = document.querySelector('[data-act="copy"]');
     REFS.downloadBtn = document.querySelector('[data-act="download"]');
-    REFS.textarea    = document.querySelector('textarea[name="notes"]');
+    REFS.textarea    = null; // textarea remplacée par .demande-editor
+    REFS.demandeEditor = document.querySelector('.demande-editor');
+    REFS.demandeRefsStrip = document.querySelector('.demande-refs-strip');
+    REFS.demandeRefsCount = document.querySelector('.demande-refs-count');
     REFS.interim     = document.querySelector('.biaif-interim');
     REFS.segments    = document.querySelector('.biaif-segments');
     REFS.segmentsCount = document.querySelector('.segments-count');
@@ -338,15 +343,21 @@
       const obj = await chrome.storage.local.get(STORAGE_KEY);
       const saved = obj[STORAGE_KEY];
       if (!saved) return;
-      if (Array.isArray(saved.segments)) STATE.segments = saved.segments;
+      if (Array.isArray(saved.demandes)) STATE.demandes = saved.demandes;
+      if (saved.currentDemande && typeof saved.currentDemande.text === 'string') {
+        STATE.currentDemande = {
+          text: saved.currentDemande.text,
+          refs: Array.isArray(saved.currentDemande.refs) ? saved.currentDemande.refs : [],
+        };
+      }
       if (typeof saved.lang === 'string') {
         STATE.lang = saved.lang;
         if (REFS.langSelect) REFS.langSelect.value = saved.lang;
       }
       if (typeof saved.micDeviceId === 'string') STATE.micDeviceId = saved.micDeviceId;
       if (saved.sortOrder === 'asc' || saved.sortOrder === 'desc') STATE.sortOrder = saved.sortOrder;
-      if (typeof saved.notes === 'string' && REFS.textarea) REFS.textarea.value = saved.notes;
       updateSortToggleLabel();
+      renderDemandeEditor();
       renderSegments();
     } catch (e) {
       console.warn('[BIAIF] hydrate failed', e?.message || e);
@@ -355,28 +366,41 @@
 
   function persist() {
     const payload = {
-      segments: STATE.segments,
+      demandes: STATE.demandes,
+      currentDemande: STATE.currentDemande,
       lang: STATE.lang,
       micDeviceId: STATE.micDeviceId,
       sortOrder: STATE.sortOrder,
-      notes: REFS.textarea ? REFS.textarea.value : '',
     };
     try {
       chrome.storage.local.set({ [STORAGE_KEY]: payload }).catch(() => {
         const slim = {
           ...payload,
-          segments: payload.segments.map((s) => ({ ...s, screenshot: null })),
+          demandes: payload.demandes.map((d) => ({
+            ...d,
+            refs: (d.refs || []).map((r) => r.type === 'screenshot' ? { ...r, dataUrl: null } : r),
+          })),
+          currentDemande: {
+            ...payload.currentDemande,
+            refs: (payload.currentDemande.refs || []).map((r) => r.type === 'screenshot' ? { ...r, dataUrl: null } : r),
+          },
         };
         chrome.storage.local.set({ [STORAGE_KEY]: slim }).catch(() => {});
       });
     } catch (_) {}
   }
 
-  let notesTimer = null;
+  let demandeEditTimer = null;
   document.addEventListener('input', (e) => {
-    if (e.target && e.target === REFS.textarea) {
-      if (notesTimer) clearTimeout(notesTimer);
-      notesTimer = setTimeout(persist, 600);
+    if (e.target && e.target === REFS.demandeEditor) {
+      // L'utilisateur tape ou édite manuellement : on resync vers
+      // STATE.currentDemande (debounced) et on persiste.
+      if (demandeEditTimer) clearTimeout(demandeEditTimer);
+      demandeEditTimer = setTimeout(() => {
+        syncCurrentDemandeFromEditor();
+        renderDemandeRefsStrip();
+        persist();
+      }, 400);
     }
   });
 
@@ -659,19 +683,14 @@
 
   function onVoiceInterim(text) {
     STATE.currentInterim = text || '';
-    REFS.interim.textContent = text || '';
-    updateBufferPreview();
+    if (REFS.interim) REFS.interim.textContent = text || '';
   }
 
   function onVoiceTranscript(text) {
     if (!text) return;
-    STATE.currentVoiceBuffer += (STATE.currentVoiceBuffer ? ' ' : '') + text;
-    STATE.currentInterim = ''; // le final remplace l'interim
-    const intents = window.BIAIFIntentParser ? window.BIAIFIntentParser.detect(text) : [];
-    intents.forEach((i) => STATE.pendingIntents.add(i));
-    insertAtCursor(text + ' ');
-    updateBufferPreview();
-    persist();
+    STATE.currentInterim = '';
+    if (REFS.interim) REFS.interim.textContent = '';
+    appendVoiceToEditor(text);
   }
 
   /**
@@ -679,28 +698,11 @@
    * sera attaché au prochain élément cliqué : texte final accumulé +
    * texte interim en cours.
    */
-  function updateBufferPreview() {
-    if (!REFS.bufferPreview) return;
-    const buf = STATE.currentVoiceBuffer.trim();
-    const interim = STATE.currentInterim.trim();
-    const preview = [buf, interim].filter(Boolean).join(' ');
-    REFS.bufferPreview.textContent = preview;
-    REFS.bufferPreview.classList.toggle('armed', !!preview && STATE.armed);
-  }
+  function updateBufferPreview() { /* obsolète : preview retirée */ }
 
   function onVoiceError(code) {
     const isPermDenied = code === 'not-allowed' || code === 'service-not-allowed' || code === 'denied-extension';
     setStatusError('Micro : ' + voiceErrorFr(code), isPermDenied ? 'open-mic-settings' : null);
-  }
-
-  function insertAtCursor(text) {
-    const ta = REFS.textarea;
-    if (!ta) return;
-    const start = ta.selectionStart ?? ta.value.length;
-    const end   = ta.selectionEnd   ?? ta.value.length;
-    ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
-    const pos = start + text.length;
-    ta.selectionStart = ta.selectionEnd = pos;
   }
 
   // ============================================================
@@ -748,7 +750,12 @@
     if (STATE.pickerActive) sendBg({ type: 'biaif:picker-disable' });
     if (STATE.micActive)    stopMic();
     updateBufferPreview();
-    setStatus(`Session arrêtée — ${STATE.segments.length} segment(s) capturé(s).`, 'info');
+    // Si la demande en cours a du contenu, on la finalise automatiquement.
+    syncCurrentDemandeFromEditor();
+    if ((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length) {
+      finalizeDemande();
+    }
+    setStatus(`Session arrêtée — ${STATE.demandes.length} demande(s) capturée(s).`, 'info');
   }
 
   function startTimer() {
@@ -781,32 +788,23 @@
 
   function onElementPicked(msg) {
     const descriptor = msg.descriptor || { selector: '?', tag: null, id: null, classes: [], text: null, outerHTML: null };
-    const voiceParts = [STATE.currentVoiceBuffer.trim(), STATE.currentInterim.trim()].filter(Boolean);
-    const voice = voiceParts.join(' ').replace(/\s+/g, ' ').trim();
-    if (STATE.currentInterim && window.BIAIFIntentParser) {
-      window.BIAIFIntentParser.detect(STATE.currentInterim).forEach((i) => STATE.pendingIntents.add(i));
-    }
-    const segment = {
-      id: 'seg-' + (STATE.segments.length + 1),
-      ts: Date.now(),
-      intents: Array.from(STATE.pendingIntents),
-      voice,
-      element: descriptor,
+    // Pousse l'élément comme nouvelle référence et insère un chip inline.
+    const ref = {
+      type: 'element',
+      selector: descriptor.selector || '?',
+      tag: descriptor.tag || null,
+      id: descriptor.id || null,
+      classes: descriptor.classes || [],
+      text: descriptor.text || null,
+      outerHTML: descriptor.outerHTML || null,
       screenshot: msg.screenshot || null,
       metadata: msg.metadata || null,
+      ts: Date.now(),
     };
-    STATE.segments.push(segment);
-    STATE.currentVoiceBuffer = '';
-    STATE.currentInterim = '';
-    STATE.pendingIntents.clear();
-    renderSegments();
-    updateBufferPreview();
-    persist();
-    setStatus(
-      `Segment ${segment.id} : ${shortLabel(descriptor)}` +
-        (segment.intents.length ? ' — ' + segment.intents.map((i) => '#' + i).join(' ') : ''),
-      'success'
-    );
+    STATE.currentDemande.refs.push(ref);
+    const absIdx = STATE.currentDemande.refs.length - 1;
+    appendChipToEditor(absIdx, ref);
+    setStatus(`Référence #${absIdx + 1} ajoutée : ${shortLabel(descriptor)}`, 'success');
   }
 
   /**
@@ -847,121 +845,341 @@
    * dictée à la volée — « je veux remplacer ça (clic) par ça (clic)
    * et ajouter ce texte (Suivant) ».
    */
-  function nextVoiceSegment() {
-    const voiceParts = [STATE.currentVoiceBuffer.trim(), STATE.currentInterim.trim()].filter(Boolean);
-    const voice = voiceParts.join(' ').replace(/\s+/g, ' ').trim();
-    if (!voice) {
-      setStatus('Rien à attacher — parle puis clique Suivant.', 'info');
-      return;
-    }
-    if (STATE.currentInterim && window.BIAIFIntentParser) {
-      window.BIAIFIntentParser.detect(STATE.currentInterim).forEach((i) => STATE.pendingIntents.add(i));
-    }
-    const segment = {
-      id: 'seg-' + (STATE.segments.length + 1),
-      ts: Date.now(),
-      intents: Array.from(STATE.pendingIntents),
-      voice,
-      element: { selector: '(voix seule)', tag: null, id: null, classes: [], text: null, outerHTML: null },
-      screenshot: null,
-      metadata: null,
-    };
-    STATE.segments.push(segment);
-    STATE.currentVoiceBuffer = '';
-    STATE.currentInterim = '';
-    STATE.pendingIntents.clear();
-    renderSegments();
-    updateBufferPreview();
-    persist();
-    setStatus(`Segment ${segment.id} : voix seule`, 'success');
+  // ============================================================
+  // DEMANDE EDITOR — Mad-Libs flow
+  // ============================================================
+
+  // Crée le DOM d'un chip de référence (inline dans l'éditeur).
+  function makeChipElement(absIdx, ref, opts) {
+    const span = document.createElement('span');
+    span.className = 'ref-chip ref-chip--' + (ref?.type || 'element');
+    if (opts && opts.readOnly) span.classList.add('ref-chip-readonly');
+    span.contentEditable = 'false';
+    span.dataset.ref = String(absIdx);
+    const isShot = ref?.type === 'screenshot';
+    const icon = isShot
+      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6L9 6L9 18"/><polyline points="14 8 17 12 14 16"/></svg>';
+    const labelKind = isShot ? 'capture' : 'élément';
+    const num = (opts && opts.displayNum) || (absIdx + 1);
+    span.innerHTML = icon + '<span>' + labelKind + ' #' + num + '</span>';
+    span.title = isShot
+      ? `Capture (${ref.mode || ''})`
+      : `Élément : ${ref?.selector || '?'}`;
+    return span;
   }
 
+  // Insère un chip à la fin de l'éditeur courant + un espace après.
+  function appendChipToEditor(absIdx, ref) {
+    const ed = REFS.demandeEditor;
+    if (!ed) return;
+    const last = ed.lastChild;
+    if (last && last.nodeType === Node.TEXT_NODE && !/\s$/.test(last.textContent)) {
+      last.textContent += ' ';
+    } else if (last && last.nodeType === Node.ELEMENT_NODE) {
+      ed.appendChild(document.createTextNode(' '));
+    }
+    ed.appendChild(makeChipElement(absIdx, ref));
+    ed.appendChild(document.createTextNode(' '));
+    syncCurrentDemandeFromEditor();
+    renderDemandeRefsStrip();
+    persist();
+  }
+
+  // Append du texte voix à la fin de l'éditeur (fusionne avec le dernier
+  // text node si possible, ajoute un espace de transition).
+  function appendVoiceToEditor(text) {
+    const ed = REFS.demandeEditor;
+    if (!ed || !text) return;
+    const last = ed.lastChild;
+    if (last && last.nodeType === Node.TEXT_NODE) {
+      last.textContent += (last.textContent && !/\s$/.test(last.textContent) ? ' ' : '') + text;
+    } else if (last && last.nodeType === Node.ELEMENT_NODE) {
+      ed.appendChild(document.createTextNode(' ' + text));
+    } else {
+      ed.appendChild(document.createTextNode(text));
+    }
+    syncCurrentDemandeFromEditor();
+    persist();
+  }
+
+  // Reconstruit STATE.currentDemande {text, refs} en marchant le DOM de
+  // l'éditeur. Utilise un mapping ancien->nouveau index pour gérer les
+  // suppressions de chips (Backspace) sans casser les références.
+  function syncCurrentDemandeFromEditor() {
+    const ed = REFS.demandeEditor;
+    if (!ed) return;
+    const oldRefs = STATE.currentDemande.refs;
+    const newRefs = [];
+    let text = '';
+    walkEditorNodes(ed, (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        text += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.classList && node.classList.contains('ref-chip')) {
+          const oldIdx = Number(node.dataset.ref);
+          const ref = oldRefs[oldIdx];
+          if (ref) {
+            newRefs.push(ref);
+            const newIdx = newRefs.length - 1;
+            text += `{{ref:${newIdx}}}`;
+            node.dataset.ref = String(newIdx);
+            // Met à jour le numéro affiché dans le chip
+            const numSpan = node.querySelector('span');
+            if (numSpan) numSpan.textContent = numSpan.textContent.replace(/#\d+/, '#' + (newIdx + 1));
+          }
+        } else if (node.tagName === 'BR') {
+          text += '\n';
+        }
+      }
+    });
+    STATE.currentDemande.text = text;
+    STATE.currentDemande.refs = newRefs;
+  }
+
+  function walkEditorNodes(root, cb) {
+    for (const node of root.childNodes) {
+      cb(node);
+      // Pas de descente : on n'autorise pas la mise en forme imbriquée
+    }
+  }
+
+  // Rend l'éditeur depuis STATE.currentDemande (utilisé après hydrate).
+  function renderDemandeEditor() {
+    const ed = REFS.demandeEditor;
+    if (!ed) return;
+    ed.innerHTML = '';
+    const { text, refs } = STATE.currentDemande;
+    if (!text) { renderDemandeRefsStrip(); return; }
+    const re = /\{\{ref:(\d+)\}\}/g;
+    let last = 0; let m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) ed.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const idx = Number(m[1]);
+      const ref = refs[idx];
+      if (ref) ed.appendChild(makeChipElement(idx, ref));
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) ed.appendChild(document.createTextNode(text.slice(last)));
+    renderDemandeRefsStrip();
+  }
+
+  function renderDemandeRefsStrip() {
+    if (REFS.demandeRefsCount) {
+      const n = STATE.currentDemande.refs.length;
+      REFS.demandeRefsCount.textContent = n + ' réf' + (n > 1 ? 's' : '');
+      REFS.demandeRefsCount.dataset.count = String(n);
+    }
+    const strip = REFS.demandeRefsStrip;
+    if (!strip) return;
+    strip.innerHTML = '';
+    STATE.currentDemande.refs.forEach((ref, i) => {
+      const mini = document.createElement('div');
+      mini.className = 'ref-mini ref-mini--' + (ref.type || 'element');
+      const num = document.createElement('span');
+      num.className = 'ref-mini-num';
+      num.textContent = '#' + (i + 1);
+      mini.appendChild(num);
+      if (ref.type === 'screenshot' && ref.dataUrl) {
+        const img = document.createElement('img');
+        img.className = 'ref-mini-thumb';
+        img.src = ref.dataUrl;
+        mini.appendChild(img);
+        const lbl = document.createElement('span');
+        lbl.className = 'ref-mini-label';
+        lbl.textContent = ref.mode || 'capture';
+        mini.appendChild(lbl);
+      } else {
+        const lbl = document.createElement('span');
+        lbl.className = 'ref-mini-label';
+        lbl.textContent = ref.selector || ref.tag || '?';
+        mini.appendChild(lbl);
+      }
+      strip.appendChild(mini);
+    });
+  }
+
+  // Suivant : finalise la demande en cours et l'ajoute à l'historique.
+  function finalizeDemande() {
+    syncCurrentDemandeFromEditor();
+    const { text, refs } = STATE.currentDemande;
+    const cleaned = (text || '').replace(/\s+/g, ' ').trim();
+    if (!cleaned && !refs.length) {
+      setStatus('Rien à finaliser — parlez ou ajoutez une référence.', 'info');
+      return;
+    }
+    const demande = {
+      id: 'dem-' + Date.now(),
+      ts: Date.now(),
+      text: cleaned,
+      refs: refs.slice(),
+    };
+    STATE.demandes.push(demande);
+    STATE.currentDemande = { text: '', refs: [] };
+    if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
+    renderDemandeRefsStrip();
+    renderSegments();
+    persist();
+    setStatus(`Demande #${STATE.demandes.length} finalisée.`, 'success');
+  }
+
+  // Alias rétro-compatible : les anciens chemins appellent encore nextVoiceSegment.
+  function nextVoiceSegment() { finalizeDemande(); }
+
+  // Rend l'historique des demandes (ex-renderSegments).
   function renderSegments() {
+    if (!REFS.segments) return;
     REFS.segments.innerHTML = '';
-    if (REFS.segmentsCount) REFS.segmentsCount.textContent = String(STATE.segments.length);
-    if (!STATE.segments.length) {
+    if (REFS.segmentsCount) REFS.segmentsCount.textContent = String(STATE.demandes.length);
+    if (!STATE.demandes.length) {
       const emptyEl = document.createElement('div');
       emptyEl.className = 'biaif-empty';
-      emptyEl.textContent = 'Aucun segment pour le moment';
+      emptyEl.textContent = 'Aucune demande pour le moment';
       REFS.segments.appendChild(emptyEl);
       return;
     }
 
-    // On affiche les segments selon STATE.sortOrder, mais on conserve l'index réel
-    // (origIndex) pour les actions delete/annotate.
-    const indexed = STATE.segments.map((s, idx) => ({ seg: s, origIndex: idx }));
+    const indexed = STATE.demandes.map((d, idx) => ({ dem: d, origIndex: idx }));
     if (STATE.sortOrder === 'desc') indexed.reverse();
 
-    indexed.forEach(({ seg, origIndex }) => {
+    indexed.forEach(({ dem, origIndex }) => {
       const num = origIndex + 1;
       const card = document.createElement('article');
       card.className = 'biaif-segment';
-      if (seg.screenshot) card.classList.add('has-thumb');
-      const label = shortLabel(seg.element);
-      const fullSel = seg.element.selector || '';
-      const tagsHtml = seg.intents.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+      const dt = new Date(dem.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      const refsCount = (dem.refs || []).length;
       card.innerHTML = `
         <header>
           <span class="seg-num">#${num}</span>
-          <span class="seg-tags">${tagsHtml}</span>
+          <span class="seg-meta">${dt} · ${refsCount} réf${refsCount > 1 ? 's' : ''}</span>
           <button class="seg-del" data-i="${origIndex}" title="Supprimer">×</button>
         </header>
-        <div class="seg-body">
-          ${seg.screenshot ? '<div class="seg-thumb-col"></div>' : ''}
-          <div class="seg-text-col">
-            <div class="seg-selector" title="${escapeHtml(fullSel)}"><code>${escapeHtml(label)}</code></div>
-            <div class="seg-voice ${seg.voice ? '' : 'seg-voice-empty'}"
-                 contenteditable="true"
-                 spellcheck="true"
-                 data-i="${origIndex}"
-                 data-placeholder="Cliquez pour ajouter du texte…"></div>
-          </div>
-        </div>
+        <div class="demande-text ${dem.text ? '' : 'demande-text-empty'}"
+             contenteditable="true" spellcheck="true"
+             data-i="${origIndex}"
+             data-placeholder="(demande vide)"></div>
+        <div class="demande-refs-list"></div>
       `;
-      const voiceEl = card.querySelector('.seg-voice');
-      voiceEl.textContent = seg.voice || '';
-      voiceEl.addEventListener('blur', (e) => {
-        const idx = Number(e.currentTarget.dataset.i);
-        const newText = e.currentTarget.textContent.trim();
-        if (STATE.segments[idx] && STATE.segments[idx].voice !== newText) {
-          STATE.segments[idx].voice = newText;
-          persist();
+      // Rendu du texte avec chips read-only
+      const textEl = card.querySelector('.demande-text');
+      renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true });
+      // Édition manuelle : sync sur blur, garder les chips intacts
+      textEl.addEventListener('blur', () => {
+        // Reconstruit le texte/refs depuis le DOM (chips read-only mais text éditable)
+        const oldRefs = dem.refs || [];
+        const newRefs = [];
+        let txt = '';
+        for (const node of textEl.childNodes) {
+          if (node.nodeType === Node.TEXT_NODE) txt += node.textContent;
+          else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.classList && node.classList.contains('ref-chip')) {
+              const oldIdx = Number(node.dataset.ref);
+              const ref = oldRefs[oldIdx];
+              if (ref) {
+                newRefs.push(ref);
+                txt += `{{ref:${newRefs.length - 1}}}`;
+              }
+            } else if (node.tagName === 'BR') txt += '\n';
+            else txt += node.textContent;
+          }
         }
-        e.currentTarget.classList.toggle('seg-voice-empty', !newText);
+        dem.text = txt.replace(/\s+/g, ' ').trim();
+        dem.refs = newRefs;
+        persist();
       });
-      // Empêche que la barre d'espace / Enter dans le contenteditable
-      // déclenche un comportement parasite.
-      voiceEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.currentTarget.blur(); });
+      textEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.currentTarget.blur(); });
 
-      if (seg.screenshot) {
-        const col = card.querySelector('.seg-thumb-col');
-        const wrap = document.createElement('div');
-        wrap.className = 'seg-thumb-wrap';
-        const numBadge = document.createElement('span');
-        numBadge.className = 'seg-thumb-num';
-        numBadge.textContent = '#' + num;
-        const img = document.createElement('img');
-        img.className = 'seg-thumb';
-        img.src = seg.screenshot;
-        img.alt = 'screenshot ' + (seg.element.selector || '');
-        const btn = document.createElement('button');
-        btn.className = 'seg-annotate';
-        btn.dataset.i = String(origIndex);
-        btn.title = 'Annoter cette capture';
-        btn.textContent = '✏';
-        btn.addEventListener('click', () => annotateSegment(origIndex));
-        wrap.appendChild(numBadge);
-        wrap.appendChild(img);
-        wrap.appendChild(btn);
-        col.appendChild(wrap);
-      }
+      // Liste des refs en dessous (info détaillée pour visu rapide)
+      const refsList = card.querySelector('.demande-refs-list');
+      (dem.refs || []).forEach((ref, i) => {
+        const row = document.createElement('div');
+        row.className = 'demande-ref-row' + (ref.type === 'screenshot' ? ' is-screenshot' : '');
+        if (ref.type === 'screenshot' && ref.dataUrl) {
+          const wrap = document.createElement('div');
+          wrap.className = 'ref-thumb-wrap';
+          const numEl = document.createElement('span');
+          numEl.className = 'ref-thumb-num';
+          numEl.textContent = '#' + (i + 1);
+          const img = document.createElement('img');
+          img.className = 'ref-thumb';
+          img.src = ref.dataUrl;
+          img.alt = 'capture #' + (i + 1);
+          const aBtn = document.createElement('button');
+          aBtn.className = 'ref-annotate';
+          aBtn.title = 'Annoter cette capture';
+          aBtn.textContent = '✏';
+          aBtn.addEventListener('click', () => annotateDemandeRef(origIndex, i));
+          wrap.appendChild(numEl);
+          wrap.appendChild(img);
+          wrap.appendChild(aBtn);
+          row.appendChild(wrap);
+        }
+        const info = document.createElement('div');
+        info.className = 'ref-info';
+        const tag = document.createElement('div');
+        tag.innerHTML = `<span class="ref-num-tag">#${i + 1}</span> ${ref.type === 'screenshot' ? 'capture' : 'élément'}${ref.type === 'screenshot' && ref.mode ? ' (' + escapeHtml(ref.mode) + ')' : ''}`;
+        info.appendChild(tag);
+        if (ref.type !== 'screenshot' && ref.selector) {
+          const sel = document.createElement('div');
+          sel.innerHTML = '<code>' + escapeHtml(ref.selector) + '</code>';
+          info.appendChild(sel);
+        }
+        if (ref.text) {
+          const t = document.createElement('div');
+          t.className = 'ref-text';
+          t.textContent = '« ' + ref.text + ' »';
+          info.appendChild(t);
+        }
+        row.appendChild(info);
+        refsList.appendChild(row);
+      });
+
       card.querySelector('.seg-del').addEventListener('click', (e) => {
-        STATE.segments.splice(Number(e.currentTarget.dataset.i), 1);
+        const i = Number(e.currentTarget.dataset.i);
+        STATE.demandes.splice(i, 1);
         renderSegments();
         persist();
       });
       REFS.segments.appendChild(card);
     });
+  }
+
+  // Rend un texte (avec tokens {{ref:N}}) + ses refs[] en mixant text nodes et chips.
+  function renderTextWithChips(text, refs, root, opts) {
+    root.innerHTML = '';
+    const re = /\{\{ref:(\d+)\}\}/g;
+    let last = 0; let m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) root.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const idx = Number(m[1]);
+      const ref = refs[idx];
+      if (ref) root.appendChild(makeChipElement(idx, ref, { readOnly: true, displayNum: idx + 1 }));
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) root.appendChild(document.createTextNode(text.slice(last)));
+    if (!root.childNodes.length) {
+      // Empty — le placeholder CSS prend le relais via :empty
+    }
+  }
+
+  async function annotateDemandeRef(demIndex, refIndex) {
+    const dem = STATE.demandes[demIndex];
+    if (!dem) return;
+    const ref = (dem.refs || [])[refIndex];
+    if (!ref || ref.type !== 'screenshot' || !ref.dataUrl) return;
+    setStatus("Annotateur ouvert dans l'onglet actif…", 'info');
+    const resp = await sendBg({ type: 'biaif:annotate', dataUrl: ref.dataUrl });
+    if (!resp) { setStatus('Annotation KO : pas de réponse', 'error'); return; }
+    if (resp.cancelled) { setStatus('Annotation annulée.', 'info'); return; }
+    if (resp.error || !resp.dataUrl) {
+      setStatusError('Annotation KO : ' + decodeContentScriptError(resp.error || 'no result'),
+        isReloadableError(resp.error || '') ? 'reload-active-tab' : null);
+      return;
+    }
+    ref.dataUrl = resp.dataUrl;
+    renderSegments();
+    persist();
+    setStatus(`Demande #${demIndex + 1} ref #${refIndex + 1} : annotation enregistrée.`, 'success');
   }
 
   // ============================================================
@@ -979,9 +1197,18 @@
     }
     STATE.lastShot = resp.dataUrl;
     STATE.lastShotMode = mode;
-    // Auto-attach : la capture devient immédiatement un nouveau segment.
-    attachLastShotAsSegment();
-    setStatus(`Capture ${mode} OK — ${formatSize(getSize(resp.dataUrl))}`, 'success');
+    // Mad-Libs : la capture devient une nouvelle référence, et un chip est
+    // inséré inline dans la demande en cours.
+    const ref = {
+      type: 'screenshot',
+      mode,
+      dataUrl: resp.dataUrl,
+      ts: Date.now(),
+    };
+    STATE.currentDemande.refs.push(ref);
+    const absIdx = STATE.currentDemande.refs.length - 1;
+    appendChipToEditor(absIdx, ref);
+    setStatus(`Capture ${mode} OK — ajoutée comme référence #${absIdx + 1}`, 'success');
   }
 
   function renderShotPreview() { /* no-op : preview-block supprimé */ }
@@ -1005,27 +1232,9 @@
   }
 
   function attachLastShotAsSegment() {
-    if (!STATE.lastShot) return;
-    const voiceParts = [STATE.currentVoiceBuffer.trim(), STATE.currentInterim.trim()].filter(Boolean);
-    const segment = {
-      id: 'seg-' + (STATE.segments.length + 1),
-      ts: Date.now(),
-      intents: [],
-      voice: voiceParts.join(' ').replace(/\s+/g, ' ').trim(),
-      element: {
-        selector: '(capture ' + (STATE.lastShotMode || '') + ')',
-        tag: null, id: null, classes: [], text: null, outerHTML: null,
-      },
-      screenshot: STATE.lastShot,
-      metadata: null,
-    };
-    STATE.segments.push(segment);
-    STATE.currentVoiceBuffer = '';
-    STATE.currentInterim = '';
-    renderSegments();
-    updateBufferPreview();
-    persist();
-    setStatus(`Capture attachée comme ${segment.id}.`, 'success');
+    // Obsolète : la capture est désormais auto-insérée comme ref de la
+    // demande courante via runShotMode. Conservé en no-op pour rétro-compat.
+    return;
   }
 
   // ============================================================
@@ -1049,7 +1258,10 @@
   }
 
   async function annotateSegment(index) {
-    const seg = STATE.segments[index];
+    // Obsolète : remplacé par annotateDemandeRef(demIdx, refIdx).
+    return;
+    /* eslint-disable no-unreachable */
+    const seg = null;
     if (!seg || !seg.screenshot) return;
     setStatus("Annotateur ouvert dans l'onglet actif…", 'info');
     const resp = await sendBg({ type: 'biaif:annotate', dataUrl: seg.screenshot });
@@ -1070,51 +1282,71 @@
   // PROMPT BUILD / COPY / DOWNLOAD
   // ============================================================
 
+  // Rend le texte d'une demande en "phrase humaine" : remplace {{ref:N}}
+  // par "[ref #N+1 — élément/capture]" ou un libellé court (selector / mode).
+  function renderInlineHuman(text, refs) {
+    return (text || '').replace(/\{\{ref:(\d+)\}\}/g, (_, n) => {
+      const i = Number(n);
+      const r = refs[i];
+      if (!r) return `[ref #${i + 1}]`;
+      if (r.type === 'screenshot') return `[#${i + 1} capture${r.mode ? ' ' + r.mode : ''}]`;
+      const lbl = r.selector || r.tag || '?';
+      return `[#${i + 1} ${lbl}]`;
+    }).replace(/\s+/g, ' ').trim();
+  }
+
   function buildPrompt({ inlineImages = false } = {}) {
-    const notes = REFS.textarea.value.trim();
     const lines = [];
-    lines.push('# Demandes de modification batchées');
+    lines.push('# Demandes utilisateur');
+    lines.push('');
+    lines.push("> Chaque demande est une instruction unique exprimée en langage naturel, avec des références numérotées `[#N]` insérées inline. Les références sont détaillées en dessous (élément cliqué ou capture d'écran).");
     lines.push('');
 
-    if (STATE.segments.length) {
-      lines.push(`## Segments (${STATE.segments.length})`);
-      lines.push('');
-      STATE.segments.forEach((seg, i) => {
-        lines.push(`### Segment ${i + 1}${seg.intents.length ? ' — ' + seg.intents.map((t) => '#' + t).join(' ') : ''}`);
-        lines.push(`- **Sélecteur :** \`${seg.element.selector}\``);
-        if (seg.element.tag)             lines.push(`- **Tag :** \`<${seg.element.tag}>\``);
-        if (seg.element.id)              lines.push(`- **id :** \`${seg.element.id}\``);
-        if (seg.element.classes?.length) lines.push(`- **classes :** \`${seg.element.classes.join(' ')}\``);
-        if (seg.element.text)            lines.push(`- **texte :** « ${seg.element.text} »`);
-        if (seg.voice) {
-          lines.push('');
-          lines.push('> ' + seg.voice.replace(/\n/g, '\n> '));
-        }
-        if (seg.element.outerHTML) {
-          lines.push('');
-          const fence = pickFence(seg.element.outerHTML);
-          lines.push(fence + 'html');
-          lines.push(seg.element.outerHTML);
-          lines.push(fence);
-        }
-        if (seg.screenshot) {
-          lines.push('');
-          if (inlineImages) lines.push(`![${seg.element.selector}](${seg.screenshot})`);
-          else              lines.push(`📷 Voir \`${seg.id}.png\` (à dropper avec ce prompt).`);
-        }
-        lines.push('');
-      });
+    if (!STATE.demandes.length) {
+      lines.push('_Aucune demande._');
+      return lines.join('\n');
     }
 
-    if (notes) {
-      lines.push('## Notes additionnelles');
+    STATE.demandes.forEach((dem, di) => {
+      const num = di + 1;
+      lines.push(`## Demande #${num}`);
       lines.push('');
-      lines.push(notes);
+      lines.push('**Instruction :**');
       lines.push('');
-    }
+      lines.push('> ' + renderInlineHuman(dem.text, dem.refs || []));
+      lines.push('');
+      if ((dem.refs || []).length) {
+        lines.push('**Références :**');
+        lines.push('');
+        dem.refs.forEach((r, i) => {
+          const refNum = i + 1;
+          if (r.type === 'screenshot') {
+            const fileName = `dem${num}-ref${refNum}.png`;
+            lines.push(`- **#${refNum} — capture (${r.mode || 'visible'})**`);
+            if (inlineImages && r.dataUrl) lines.push(`  ![capture #${refNum}](${r.dataUrl})`);
+            else                            lines.push(`  📷 Voir \`${fileName}\` (à joindre avec ce prompt).`);
+          } else {
+            lines.push(`- **#${refNum} — élément**`);
+            if (r.selector)         lines.push(`  - sélecteur : \`${r.selector}\``);
+            if (r.tag)              lines.push(`  - tag : \`<${r.tag}>\``);
+            if (r.id)               lines.push(`  - id : \`${r.id}\``);
+            if (r.classes?.length)  lines.push(`  - classes : \`${r.classes.join(' ')}\``);
+            if (r.text)             lines.push(`  - texte : « ${r.text} »`);
+            if (r.outerHTML) {
+              const fence = pickFence(r.outerHTML);
+              lines.push('');
+              lines.push('  ' + fence + 'html');
+              r.outerHTML.split('\n').forEach((ln) => lines.push('  ' + ln));
+              lines.push('  ' + fence);
+            }
+          }
+        });
+        lines.push('');
+      }
+    });
 
     lines.push('---');
-    lines.push('Pour chaque segment, propose un plan groupé puis applique. Déduplique si plusieurs segments touchent le même fichier.');
+    lines.push('Pour chaque demande, propose un plan groupé puis applique. Si plusieurs demandes touchent les mêmes fichiers/composants, déduplique.');
     return lines.join('\n');
   }
 
@@ -1129,18 +1361,25 @@
   }
 
   async function downloadBundle() {
-    if (!STATE.segments.length) {
+    if (!STATE.demandes.length) {
       setStatus('Rien à télécharger.', 'info');
       return;
     }
     const text = buildPrompt({ inlineImages: false });
     downloadFile('biaif-prompt.md', new Blob([text], { type: 'text/markdown' }));
-    for (const seg of STATE.segments) {
-      if (!seg.screenshot) continue;
-      const blob = await dataUrlToBlob(seg.screenshot);
-      downloadFile(`${seg.id}.png`, blob);
+    let imgCount = 0;
+    for (let di = 0; di < STATE.demandes.length; di++) {
+      const dem = STATE.demandes[di];
+      const refs = dem.refs || [];
+      for (let ri = 0; ri < refs.length; ri++) {
+        const r = refs[ri];
+        if (r.type !== 'screenshot' || !r.dataUrl) continue;
+        const blob = await dataUrlToBlob(r.dataUrl);
+        downloadFile(`dem${di + 1}-ref${ri + 1}.png`, blob);
+        imgCount++;
+      }
     }
-    setStatus(`${STATE.segments.length + 1} fichiers téléchargés.`, 'success');
+    setStatus(`Prompt + ${imgCount} capture(s) téléchargés.`, 'success');
   }
 
   function downloadFile(name, blob) {
@@ -1159,19 +1398,17 @@
   // ============================================================
 
   function clearAll() {
-    if (!confirm('Effacer la session ? (Tous les segments et notes seront perdus)')) return;
-    STATE.segments = [];
-    STATE.currentVoiceBuffer = '';
+    if (!confirm('Effacer la session ? (Toutes les demandes finalisées et la demande en cours seront perdues)')) return;
+    STATE.demandes = [];
+    STATE.currentDemande = { text: '', refs: [] };
     STATE.currentInterim = '';
-    STATE.pendingIntents.clear();
     STATE.lastShot = null;
     STATE.lastShotMode = null;
-    REFS.textarea.value = '';
-    REFS.interim.textContent = '';
+    if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
+    if (REFS.interim) REFS.interim.textContent = '';
     MIC.finalTranscript = '';
+    renderDemandeRefsStrip();
     renderSegments();
-    renderShotPreview();
-    updateBufferPreview();
     persist();
     setStatus('Tout effacé.', 'info');
   }
