@@ -157,8 +157,8 @@ kbd {
 .shot-btn span { font-size: 11px; font-weight: 500; }
 
 .biaif-shot-preview-wrap { border: 1px dashed var(--border-card); background: #000; border-radius: var(--radius-sm); padding: 12px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
-.biaif-shot-preview { width: 100%; display: flex; justify-content: center; max-height: 180px; overflow: hidden; border-radius: 4px; }
-.biaif-shot-preview img { max-width: 100%; object-fit: contain; }
+.biaif-shot-preview { width: 100%; display: flex; justify-content: center; max-height: 140px; overflow: hidden; border-radius: 4px; }
+.biaif-shot-preview img { max-width: 180px; max-height: 140px; width: auto; height: auto; object-fit: contain; }
 .biaif-shot-empty { font-size: 12px; color: var(--text-muted); font-style: italic; }
 
 .biaif-pill-group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
@@ -218,10 +218,10 @@ textarea.modern-input::placeholder { color: var(--text-muted); }
 
 /* Segment two-column layout: thumbnail left, text right */
 .biaif-segment .seg-body { display: flex; gap: 10px; align-items: flex-start; }
-.biaif-segment.has-thumb .seg-thumb-col { flex: 0 0 38%; max-width: 38%; }
+.biaif-segment.has-thumb .seg-thumb-col { flex: 0 0 110px; max-width: 110px; }
 .biaif-segment .seg-text-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.seg-thumb-wrap { position: relative; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-card); background: #000; }
-.seg-thumb { display: block; width: 100%; height: auto; object-fit: cover; }
+.seg-thumb-wrap { position: relative; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-card); background: #000; max-width: 110px; }
+.seg-thumb { display: block; width: 100%; height: auto; max-height: 80px; object-fit: cover; }
 .seg-annotate {
   position: absolute; top: 4px; right: 4px;
   background: rgba(0,0,0,0.65); border: 1px solid var(--border-card);
