@@ -24,6 +24,12 @@
 
     const action = msg.action;
 
+    // Ping : permet à la side panel de savoir si le content script est chargé.
+    if (action === 'ping') {
+      sendResponse({ ok: true, version: '0.4' });
+      return;
+    }
+
     // Picker : sync, fire-and-forget
     if (action === 'toggle-picker' || action === 'picker-toggle') {
       try { window.BIAIFElementSelector && window.BIAIFElementSelector.toggle(); } catch (_) {}
