@@ -27,8 +27,9 @@
     currentInterim: '',      // texte INTERIM en cours (flushé au clic ou au final suivant)
     pendingIntents: new Set(),
     segments: [],          // [{ id, voice, intents, element, screenshot, ts, metadata }]
-    lastShot: null,        // dernier screenshot manuel
+    lastShot: null,        // dernier screenshot manuel (gardé pour annotation)
     lastShotMode: null,
+    sortOrder: 'desc',     // 'desc' = plus récent en haut (défaut), 'asc' = plus ancien en haut
     lang: 'fr-FR',
     micDeviceId: '',       // '' = système par défaut (Web Speech API utilise le défaut système)
   };
@@ -76,20 +77,28 @@
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab || !tab.id) return;
       const url = tab.url || '';
-      if (!/^https?:|^file:/.test(url)) return;
+      if (!/^https?:|^file:/.test(url)) { hideReloadModal(); return; }
       let resp = null;
       try {
         resp = await chrome.tabs.sendMessage(tab.id, { type: 'biaif:command', action: 'ping' });
       } catch (e) {
         resp = { error: e?.message || String(e) };
       }
-      if (!resp || resp.error) {
-        setStatusError(
-          "La page actuelle n'a pas été rechargée depuis l'installation/MAJ de l'extension. Clique ici pour la recharger.",
-          'reload-active-tab'
-        );
-      }
+      if (!resp || resp.error) showReloadModal();
+      else hideReloadModal();
     } catch (_) { /* ignore */ }
+  }
+
+  function showReloadModal() {
+    if (REFS.reloadModal) REFS.reloadModal.removeAttribute('hidden');
+  }
+  function hideReloadModal() {
+    if (REFS.reloadModal) REFS.reloadModal.setAttribute('hidden', '');
+  }
+  function updateSortToggleLabel() {
+    if (!REFS.sortToggle) return;
+    const lbl = REFS.sortToggle.querySelector('.sort-label');
+    if (lbl) lbl.textContent = STATE.sortOrder === 'desc' ? 'Z→A' : 'A→Z';
   }
 
   function cacheRefs() {
@@ -111,14 +120,23 @@
     REFS.sessionInfo = document.querySelector('.biaif-session-info');
     REFS.bufferPreview = document.querySelector('.biaif-buffer-preview');
     REFS.nextBtn       = document.querySelector('[data-act="next"]');
-    // Shot tools
+    // Shot tools (auto-attach : pas de preview, pas de pills)
     REFS.shotButtons = document.querySelectorAll('[data-shot]');
-    REFS.shotPreview = document.querySelector('.biaif-shot-preview');
-    REFS.shotInfo    = document.querySelector('.biaif-shot-info');
-    REFS.shotCopy    = document.querySelector('[data-act="shot-copy"]');
-    REFS.shotSave    = document.querySelector('[data-act="shot-save"]');
-    REFS.shotAttach  = document.querySelector('[data-act="shot-attach"]');
-    REFS.shotAnnotate= document.querySelector('[data-act="shot-annotate"]');
+    REFS.shotPreview = null;
+    REFS.shotInfo    = null;
+    REFS.shotCopy    = null;
+    REFS.shotSave    = null;
+    REFS.shotAttach  = null;
+    REFS.shotAnnotate= null;
+    // Sort toggle
+    REFS.sortToggle  = document.querySelector('[data-act="sort-toggle"]');
+    // Mini footer + modals
+    REFS.toggleSettings = document.querySelector('[data-act="toggle-settings"]');
+    REFS.openShortcuts  = document.querySelector('[data-act="open-shortcuts"]');
+    REFS.settingsPopover= document.getElementById('settings-popover');
+    REFS.reloadModal    = document.getElementById('reload-modal');
+    REFS.reloadModalBtn = document.querySelector('[data-act="reload-tab-modal"]');
+    REFS.reloadDismiss  = document.querySelector('[data-act="reload-dismiss"]');
     // Mic settings
     REFS.micDeviceSelect = document.querySelector('select[name="mic-device"]');
     REFS.micTestBtn      = document.querySelector('[data-act="mic-test"]');
@@ -176,10 +194,42 @@
         if (e.key === 'Escape') closeCaptureMenu();
       });
     }
-    if (REFS.shotCopy)     REFS.shotCopy.addEventListener('click',     () => copyLastShot());
-    if (REFS.shotSave)     REFS.shotSave.addEventListener('click',     () => downloadLastShot());
-    if (REFS.shotAttach)   REFS.shotAttach.addEventListener('click',   () => attachLastShotAsSegment());
-    if (REFS.shotAnnotate) REFS.shotAnnotate.addEventListener('click', () => annotateLastShot());
+    // Sort toggle
+    if (REFS.sortToggle) REFS.sortToggle.addEventListener('click', () => {
+      STATE.sortOrder = STATE.sortOrder === 'desc' ? 'asc' : 'desc';
+      updateSortToggleLabel();
+      renderSegments();
+      persist();
+    });
+    updateSortToggleLabel();
+
+    // Mini footer : settings popover + shortcuts page
+    if (REFS.toggleSettings) REFS.toggleSettings.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!REFS.settingsPopover) return;
+      if (REFS.settingsPopover.hasAttribute('hidden')) REFS.settingsPopover.removeAttribute('hidden');
+      else REFS.settingsPopover.setAttribute('hidden', '');
+    });
+    document.addEventListener('click', (e) => {
+      if (!REFS.settingsPopover || REFS.settingsPopover.hasAttribute('hidden')) return;
+      if (e.target.closest('#settings-popover') || e.target.closest('[data-act="toggle-settings"]')) return;
+      REFS.settingsPopover.setAttribute('hidden', '');
+    });
+    if (REFS.openShortcuts) REFS.openShortcuts.addEventListener('click', () => {
+      try { chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }); } catch (_) {}
+    });
+
+    // Reload modal : bouton recharger + dismiss
+    if (REFS.reloadModalBtn) REFS.reloadModalBtn.addEventListener('click', async () => {
+      const resp = await sendBg({ type: 'biaif:reload-active-tab' });
+      if (resp && resp.ok) {
+        hideReloadModal();
+        setStatus('Onglet rechargé — réessaye dans 1 s.', 'info');
+      } else {
+        setStatus('Recharge KO : ' + (resp ? resp.error : 'no resp'), 'error');
+      }
+    });
+    if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', () => hideReloadModal());
 
     // Click on status zone : route to the right action based on data-action.
     REFS.status.addEventListener('click', async () => {
@@ -294,7 +344,9 @@
         if (REFS.langSelect) REFS.langSelect.value = saved.lang;
       }
       if (typeof saved.micDeviceId === 'string') STATE.micDeviceId = saved.micDeviceId;
+      if (saved.sortOrder === 'asc' || saved.sortOrder === 'desc') STATE.sortOrder = saved.sortOrder;
       if (typeof saved.notes === 'string' && REFS.textarea) REFS.textarea.value = saved.notes;
+      updateSortToggleLabel();
       renderSegments();
     } catch (e) {
       console.warn('[BIAIF] hydrate failed', e?.message || e);
@@ -306,6 +358,7 @@
       segments: STATE.segments,
       lang: STATE.lang,
       micDeviceId: STATE.micDeviceId,
+      sortOrder: STATE.sortOrder,
       notes: REFS.textarea ? REFS.textarea.value : '',
     };
     try {
@@ -834,42 +887,70 @@
       return;
     }
 
-    STATE.segments.forEach((seg, i) => {
+    // On affiche les segments selon STATE.sortOrder, mais on conserve l'index réel
+    // (origIndex) pour les actions delete/annotate.
+    const indexed = STATE.segments.map((s, idx) => ({ seg: s, origIndex: idx }));
+    if (STATE.sortOrder === 'desc') indexed.reverse();
+
+    indexed.forEach(({ seg, origIndex }) => {
+      const num = origIndex + 1;
       const card = document.createElement('article');
       card.className = 'biaif-segment';
       if (seg.screenshot) card.classList.add('has-thumb');
       const label = shortLabel(seg.element);
       const fullSel = seg.element.selector || '';
       const tagsHtml = seg.intents.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('');
-      const voiceHtml = seg.voice ? `<div class="seg-voice">« ${escapeHtml(seg.voice)} »</div>` : '';
       card.innerHTML = `
         <header>
-          <span class="seg-num">#${i + 1}</span>
+          <span class="seg-num">#${num}</span>
           <span class="seg-tags">${tagsHtml}</span>
-          <button class="seg-del" data-i="${i}" title="Supprimer">×</button>
+          <button class="seg-del" data-i="${origIndex}" title="Supprimer">×</button>
         </header>
         <div class="seg-body">
           ${seg.screenshot ? '<div class="seg-thumb-col"></div>' : ''}
           <div class="seg-text-col">
             <div class="seg-selector" title="${escapeHtml(fullSel)}"><code>${escapeHtml(label)}</code></div>
-            ${voiceHtml}
+            <div class="seg-voice ${seg.voice ? '' : 'seg-voice-empty'}"
+                 contenteditable="true"
+                 spellcheck="true"
+                 data-i="${origIndex}"
+                 data-placeholder="Cliquez pour ajouter du texte…"></div>
           </div>
         </div>
       `;
+      const voiceEl = card.querySelector('.seg-voice');
+      voiceEl.textContent = seg.voice || '';
+      voiceEl.addEventListener('blur', (e) => {
+        const idx = Number(e.currentTarget.dataset.i);
+        const newText = e.currentTarget.textContent.trim();
+        if (STATE.segments[idx] && STATE.segments[idx].voice !== newText) {
+          STATE.segments[idx].voice = newText;
+          persist();
+        }
+        e.currentTarget.classList.toggle('seg-voice-empty', !newText);
+      });
+      // Empêche que la barre d'espace / Enter dans le contenteditable
+      // déclenche un comportement parasite.
+      voiceEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.currentTarget.blur(); });
+
       if (seg.screenshot) {
         const col = card.querySelector('.seg-thumb-col');
         const wrap = document.createElement('div');
         wrap.className = 'seg-thumb-wrap';
+        const numBadge = document.createElement('span');
+        numBadge.className = 'seg-thumb-num';
+        numBadge.textContent = '#' + num;
         const img = document.createElement('img');
         img.className = 'seg-thumb';
         img.src = seg.screenshot;
         img.alt = 'screenshot ' + (seg.element.selector || '');
         const btn = document.createElement('button');
         btn.className = 'seg-annotate';
-        btn.dataset.i = String(i);
+        btn.dataset.i = String(origIndex);
         btn.title = 'Annoter cette capture';
-        btn.textContent = '✏️';
-        btn.addEventListener('click', () => annotateSegment(i));
+        btn.textContent = '✏';
+        btn.addEventListener('click', () => annotateSegment(origIndex));
+        wrap.appendChild(numBadge);
         wrap.appendChild(img);
         wrap.appendChild(btn);
         col.appendChild(wrap);
@@ -898,27 +979,12 @@
     }
     STATE.lastShot = resp.dataUrl;
     STATE.lastShotMode = mode;
-    renderShotPreview();
+    // Auto-attach : la capture devient immédiatement un nouveau segment.
+    attachLastShotAsSegment();
     setStatus(`Capture ${mode} OK — ${formatSize(getSize(resp.dataUrl))}`, 'success');
   }
 
-  function renderShotPreview() {
-    const wrap = REFS.shotPreview;
-    if (!wrap) return;
-    if (!STATE.lastShot) {
-      wrap.innerHTML = '<div class="biaif-shot-empty">Aucune capture pour le moment.</div>';
-      if (REFS.shotInfo) REFS.shotInfo.textContent = '';
-      [REFS.shotCopy, REFS.shotSave, REFS.shotAttach, REFS.shotAnnotate].forEach((b) => { if (b) b.disabled = true; });
-      return;
-    }
-    wrap.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = STATE.lastShot;
-    img.alt = 'capture ' + (STATE.lastShotMode || '');
-    wrap.appendChild(img);
-    if (REFS.shotInfo) REFS.shotInfo.textContent = `${STATE.lastShotMode || ''} · ${formatSize(getSize(STATE.lastShot))}`;
-    [REFS.shotCopy, REFS.shotSave, REFS.shotAttach, REFS.shotAnnotate].forEach((b) => { if (b) b.disabled = false; });
-  }
+  function renderShotPreview() { /* no-op : preview-block supprimé */ }
 
   async function copyLastShot() {
     if (!STATE.lastShot) return;
@@ -1134,6 +1200,7 @@
         action === 'open-mic-settings' ? 'Cliquer pour ouvrir la page de permissions micro de BIAIF' :
         action === 'reload-active-tab' ? "Cliquer pour recharger l'onglet actif" :
         '';
+      if (action === 'reload-active-tab') showReloadModal();
     }
   }
 
