@@ -9,7 +9,8 @@
     
     if (logBtn && logPanel) {
       logBtn.addEventListener('click', () => {
-        logPanel.style.display = logPanel.style.display === 'none' ? 'flex' : 'none';
+        if (logPanel.hasAttribute('hidden')) logPanel.removeAttribute('hidden');
+        else logPanel.setAttribute('hidden', '');
       });
     }
     if (clearLogsBtn && logContainer) {
