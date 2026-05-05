@@ -78,15 +78,51 @@
     await hydrateFromStorage();
     setStatus('Prêt.', 'info');
     checkActiveTabReady();
+    refreshErrorsFromActiveTab();
     if (chrome?.tabs?.onActivated) {
-      chrome.tabs.onActivated.addListener(() => checkActiveTabReady());
+      chrome.tabs.onActivated.addListener(() => {
+        checkActiveTabReady();
+        refreshErrorsFromActiveTab();
+      });
     }
     if (chrome?.tabs?.onUpdated) {
       chrome.tabs.onUpdated.addListener((_id, info, tab) => {
-        if (info.status === 'complete' && tab && tab.active) checkActiveTabReady();
+        if (!tab || !tab.active) return;
+        if (info.status === 'loading') {
+          // Nouvelle navigation sur l'onglet actif : on vide la liste,
+          // la nouvelle page renverra ses erreurs au fur et à mesure.
+          STATE.consoleErrors = [];
+          updateErrorsBadges();
+          renderConsoleErrorsList();
+        } else if (info.status === 'complete') {
+          checkActiveTabReady();
+          refreshErrorsFromActiveTab();
+        }
       });
     }
   });
+
+  // Demande au content script bridge de l'onglet actif l'ensemble de ses
+  // erreurs et reconstruit la liste côté side panel. Utile au démarrage
+  // et à chaque changement d'onglet.
+  async function refreshErrorsFromActiveTab() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab || !tab.id) return;
+      let resp = null;
+      try {
+        resp = await chrome.tabs.sendMessage(tab.id, { type: 'biaif:get-errors' });
+      } catch (_) { /* content script absent (chrome://, page neuve...) */ }
+      // On reconstruit la liste depuis zéro avec ce que renvoie le bridge.
+      STATE.consoleErrors = [];
+      if (resp && Array.isArray(resp.errors)) {
+        for (const err of resp.errors) onConsoleError(err);
+      } else {
+        updateErrorsBadges();
+        renderConsoleErrorsList();
+      }
+    } catch (_) { /* ignore */ }
+  }
 
   async function checkActiveTabReady() {
     try {

@@ -19,6 +19,7 @@
   window.__BIAIF_ERROR_BRIDGE__ = true;
 
   const seen = new Set();
+  const errors = [];                     // payloads complets (pour replay)
   const ERROR_KINDS = new Set(['console.error', 'error', 'unhandledrejection']);
 
   window.addEventListener('__biaif_page_error__', (e) => {
@@ -27,22 +28,29 @@
     const key = (d.kind || '') + '|' + (d.msg || '') + '|' + (d.file || '') + ':' + (d.line || 0);
     if (seen.has(key)) return;
     seen.add(key);
+    const payload = {
+      msg: d.msg || '',
+      file: d.file || null,
+      line: d.line || null,
+      col: d.col || null,
+      stack: d.stack || null,
+      kind: d.kind || 'error',
+      url: window.location.href,
+      ts: Date.now(),
+      key,
+    };
+    errors.push(payload);
     try {
-      const p = chrome.runtime.sendMessage({
-        type: 'biaif:console-error',
-        error: {
-          msg: d.msg || '',
-          file: d.file || null,
-          line: d.line || null,
-          col: d.col || null,
-          stack: d.stack || null,
-          kind: d.kind || 'error',
-          url: window.location.href,
-          ts: Date.now(),
-          key,
-        },
-      });
+      const p = chrome.runtime.sendMessage({ type: 'biaif:console-error', error: payload });
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (_) { /* SW idle, ignore */ }
+  });
+
+  // Replay : la side panel demande la liste complète des erreurs de la
+  // page courante (ex. au changement d'onglet ou après ouverture).
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (!msg || msg.type !== 'biaif:get-errors') return;
+    sendResponse({ errors: errors.slice() });
+    return false;
   });
 })();
