@@ -1816,9 +1816,19 @@
 
       card.querySelector('.seg-del').addEventListener('click', (e) => {
         const i = Number(e.currentTarget.dataset.i);
+        const dem = STATE.demandes[i];
+        const preview = (dem?.text || '').replace(/\{\{ref:\d+\}\}/g, '…').trim().slice(0, 60) || '(vide)';
+        if (!confirm(`Supprimer la demande #${i + 1} ?\n\n${preview}`)) return;
+        // Si on était en édition de cette demande, sortir d'abord
+        if (STATE.editingDemandeIdx === i) exitEditMode({ silent: true });
+        // Re-mappe l'index d'édition si on supprime une demande avant
+        if (typeof STATE.editingDemandeIdx === 'number' && STATE.editingDemandeIdx > i) {
+          STATE.editingDemandeIdx--;
+        }
         STATE.demandes.splice(i, 1);
         renderSegments();
         persist();
+        setStatus(`Demande #${i + 1} supprimée.`, 'info');
       });
       REFS.segments.appendChild(card);
     });
