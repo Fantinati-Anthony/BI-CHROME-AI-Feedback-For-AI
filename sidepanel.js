@@ -500,12 +500,7 @@
       const newIdx = dem.refs.length - 1;
       const cur = (dem.text || '').replace(/\s+$/, '');
       dem.text = (cur + (cur ? ' ' : '') + `{{ref:${newIdx}}} `).replace(/\s{2,}/g, ' ');
-      renderSegments();
-      // Si on était en édition, replace la quick-tools dans le segment
-      // ré-rendu (le DOM a été remplacé)
-      if (typeof STATE.editingDemandeIdx === 'number') {
-        relocateQuickToolsToSegment(STATE.editingDemandeIdx);
-      }
+      renderSegments(); // gère aussi la relocation de quick-tools en édition
       persist();
       return true;
     }
@@ -513,6 +508,7 @@
     const absIdx = STATE.currentDemande.refs.length - 1;
     appendChipToEditor(absIdx, ref);
     rememberPageUrl();
+    updateMasterBtnLabel();
     return true;
   }
 
@@ -1187,11 +1183,8 @@
     if (STATE.armed) return;
     if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
     STATE.armed = true;
-    if (REFS.masterBtn) {
-      REFS.masterBtn.classList.add('armed');
-      const lbl = REFS.masterBtn.querySelector('.master-label');
-      if (lbl) lbl.textContent = 'Suivant';
-    }
+    if (REFS.masterBtn) REFS.masterBtn.classList.add('armed');
+    updateMasterBtnLabel();
     if (REFS.stopBtn) REFS.stopBtn.hidden = false;
     if (REFS.sessionInfo) REFS.sessionInfo.textContent = 'Session active — parlez puis cliquez les éléments';
     updateArmedUi();
@@ -1212,11 +1205,8 @@
     if (!STATE.armed) return;
     if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
     STATE.armed = false;
-    if (REFS.masterBtn) {
-      REFS.masterBtn.classList.remove('armed');
-      const lbl = REFS.masterBtn.querySelector('.master-label');
-      if (lbl) lbl.textContent = 'Démarrer';
-    }
+    if (REFS.masterBtn) REFS.masterBtn.classList.remove('armed');
+    updateMasterBtnLabel();
     if (REFS.stopBtn) REFS.stopBtn.hidden = true;
     if (REFS.sessionInfo) REFS.sessionInfo.textContent = 'Session arrêtée';
     stopTimer();
@@ -1268,8 +1258,7 @@
     // Active mic ET picker comme un Démarrer ciblé
     if (!STATE.micActive) startMic();
     if (!STATE.pickerActive) sendBg({ type: 'biaif:picker-enable' });
-    renderSegments();
-    relocateQuickToolsToSegment(idx);
+    renderSegments(); // se charge de re-loger la barre dans le segment édité
     updateArmedUi();
     setTimeout(() => {
       const card = document.querySelector(`.biaif-segment[data-i="${idx}"]`);
@@ -1286,8 +1275,7 @@
     STATE.dictationTarget = 'current';
     // Désactive le picker si on n'est pas en mode live, sinon on le laisse actif
     if (!STATE.armed && STATE.pickerActive) sendBg({ type: 'biaif:picker-disable' });
-    relocateQuickToolsToTop();
-    renderSegments();
+    renderSegments(); // ramène la barre sous .session-bar
     updateArmedUi();
     if (!opts || !opts.silent) setStatus('Mode édition terminé.', 'info');
   }
@@ -1590,6 +1578,7 @@
     });
     STATE.currentDemande.text = text;
     STATE.currentDemande.refs = newRefs;
+    updateMasterBtnLabel();
   }
 
   function walkEditorNodes(root, cb) {
@@ -1689,8 +1678,13 @@
   function nextVoiceSegment() { finalizeDemande(); }
 
   // Rend l'historique des demandes (ex-renderSegments).
+  // Important : .biaif-quick-tools peut être physiquement DANS un segment
+  // (mode édition) — on la détache avant le rebuild puis on la remet à sa
+  // place pour ne jamais la perdre.
   function renderSegments() {
     if (!REFS.segments) return;
+    const qt = document.querySelector('.biaif-quick-tools');
+    if (qt && qt.parentNode) qt.parentNode.removeChild(qt);
     REFS.segments.innerHTML = '';
     if (REFS.segmentsCount) REFS.segmentsCount.textContent = String(STATE.demandes.length);
     if (!STATE.demandes.length) {
@@ -1825,6 +1819,54 @@
       });
       REFS.segments.appendChild(card);
     });
+
+    // Réattache la barre d'outils détachée au début : dans le segment édité
+    // si on est en édition, sinon sous .session-bar (place d'origine).
+    if (qt) {
+      if (typeof STATE.editingDemandeIdx === 'number') {
+        const card = document.querySelector(`.biaif-segment[data-i="${STATE.editingDemandeIdx}"]`);
+        if (card) {
+          const header = card.querySelector('header');
+          if (header && header.nextSibling) header.parentNode.insertBefore(qt, header.nextSibling);
+          else card.appendChild(qt);
+        } else {
+          attachQuickToolsAtTop(qt);
+        }
+      } else {
+        attachQuickToolsAtTop(qt);
+      }
+    }
+    updateMasterBtnLabel();
+  }
+
+  function attachQuickToolsAtTop(qt) {
+    const sessionBar = document.querySelector('.session-bar');
+    if (sessionBar && sessionBar.parentNode) {
+      sessionBar.parentNode.insertBefore(qt, sessionBar.nextSibling);
+    } else {
+      document.querySelector('.biaif-root')?.appendChild(qt);
+    }
+  }
+
+  // Met à jour le label du bouton master selon l'état :
+  // - Inactif : "Démarrer"
+  // - Armé + demande vide : "Nouveau segment"
+  // - Armé + demande avec contenu : "Suivant"
+  // - En édition d'un segment historique : "Terminer"
+  function updateMasterBtnLabel() {
+    if (!REFS.masterBtn) return;
+    const lbl = REFS.masterBtn.querySelector('.master-label');
+    if (!lbl) return;
+    if (typeof STATE.editingDemandeIdx === 'number') {
+      lbl.textContent = 'Terminer';
+      return;
+    }
+    if (!STATE.armed) {
+      lbl.textContent = 'Démarrer';
+      return;
+    }
+    const hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
+    lbl.textContent = hasContent ? 'Suivant' : 'Nouveau segment';
   }
 
   // Rend un texte (avec tokens {{ref:N}}) + ses refs[] en mixant text nodes et chips.
