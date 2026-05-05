@@ -35,7 +35,8 @@
         "content/element-selector.js",
         "content/screenshot.js",
         "content/screenshot-editor.js",
-        "content/main.js"
+        "content/main.js",
+        "content/inject.js"
       ]
     }
   ],
