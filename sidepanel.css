@@ -65,7 +65,6 @@ html, body {
    visibles (Vider/Copier/.MD toujours accessibles). */
 .biaif-root.is-editing-segment .session-bar,
 .biaif-root.is-editing-segment .biaif-buffer-preview,
-.biaif-root.is-editing-segment .biaif-interim,
 .biaif-root.is-editing-segment .demande-zone,
 .biaif-root.is-editing-segment .segments-title,
 .biaif-root.is-editing-segment .biaif-segment:not(.is-editing) {
@@ -163,9 +162,6 @@ html, body {
 }
 .biaif-buffer-preview.armed { color: var(--accent-blue); }
 .biaif-buffer-preview[hidden] { display: none; }
-.biaif-interim {
-  font-size: 12px; color: var(--text-main); min-height: 16px;
-}
 
 /* ============== Quick Tools row (Micro / Sélecteur / Capture) ============== */
 .biaif-quick-tools {
@@ -259,6 +255,23 @@ html, body {
   color: var(--text-muted);
   font-style: italic;
   pointer-events: none;
+}
+
+/* Voix en direct : ghost text inline pendant que SpeechRecognition
+   produit du texte interim. Remplacé par le final transcript via
+   clearInterimGhost + appendVoiceTo*. */
+.voice-interim-ghost {
+  color: var(--accent-blue);
+  font-style: italic;
+  opacity: 0.7;
+  user-select: none;
+  pointer-events: none;
+  white-space: pre-wrap;
+  animation: voice-interim-pulse 1.4s ease-in-out infinite;
+}
+@keyframes voice-interim-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.85; }
 }
 .demande-refs-strip {
   display: flex; flex-wrap: wrap; gap: 4px;

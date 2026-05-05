@@ -1064,8 +1064,8 @@
     if (srWatchdog) { clearInterval(srWatchdog); srWatchdog = null; }
   }
 
-  function setSrIndicator(text) {
-    if (REFS.interim) REFS.interim.textContent = text || '';
+  function setSrIndicator(_text) {
+    /* Ex-affichage in-band ; remplacé par voice-interim-ghost dans l'éditeur */
   }
 
   async function startMic() {
@@ -1117,18 +1117,18 @@
       const lbl = REFS.micBtn.querySelector('.label');
       if (lbl) lbl.textContent = active ? 'Micro ✓' : 'Micro';
     }
-    if (!active && REFS.interim) REFS.interim.textContent = '';
+    if (!active) clearInterimGhost();
   }
 
   function onVoiceInterim(text) {
     STATE.currentInterim = text || '';
-    if (REFS.interim) REFS.interim.textContent = text || '';
+    renderInterimGhost(text || '');
   }
 
   function onVoiceTranscript(text) {
     if (!text) return;
     STATE.currentInterim = '';
-    if (REFS.interim) REFS.interim.textContent = '';
+    clearInterimGhost();
     // Priorité : segment en édition > dictation target classique > éditeur live
     if (typeof STATE.editingDemandeIdx === 'number') {
       appendVoiceToDemande(STATE.editingDemandeIdx, text);
@@ -1137,6 +1137,49 @@
     } else {
       appendVoiceToEditor(text);
     }
+  }
+
+  // Renvoie le contenteditable actif (segment édité ou éditeur live).
+  function getActiveEditable() {
+    if (typeof STATE.editingDemandeIdx === 'number') {
+      return document.querySelector(`.demande-text[data-i="${STATE.editingDemandeIdx}"]`);
+    }
+    return REFS.demandeEditor;
+  }
+
+  // Affiche le texte interim (live transcript) comme un span "ghost"
+  // non-éditable à la fin de l'éditeur actif. Mis à jour à chaque tick
+  // de l'API SpeechRecognition. Effacé quand le final transcript arrive.
+  function renderInterimGhost(text) {
+    const target = getActiveEditable();
+    if (!target) return;
+    let ghost = target.querySelector('.voice-interim-ghost');
+    if (!text) {
+      if (ghost) ghost.remove();
+      return;
+    }
+    if (!ghost) {
+      ghost = document.createElement('span');
+      ghost.className = 'voice-interim-ghost';
+      ghost.contentEditable = 'false';
+      target.appendChild(ghost);
+    } else if (ghost.parentNode !== target) {
+      // Si on a changé de cible (édition d'un segment p.ex.), déplace le ghost
+      ghost.remove();
+      target.appendChild(ghost);
+    }
+    // Espace de liaison si le contenu précédent ne se termine pas par un séparateur
+    const prev = ghost.previousSibling;
+    let prefix = '';
+    if (prev) {
+      const last = prev.nodeType === Node.TEXT_NODE ? prev.textContent.slice(-1)
+                 : prev.nodeType === Node.ELEMENT_NODE ? ' ' : '';
+      if (last && !/\s/.test(last)) prefix = ' ';
+    }
+    ghost.textContent = prefix + text;
+  }
+  function clearInterimGhost() {
+    document.querySelectorAll('.voice-interim-ghost').forEach((g) => g.remove());
   }
 
   // Append du texte voix à une demande finalisée. Si la .demande-text
@@ -1252,6 +1295,7 @@
   function enterEditMode(idx) {
     if (idx == null || idx === STATE.editingDemandeIdx) return;
     if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
+    clearInterimGhost();
     STATE.editingDemandeIdx = idx;
     STATE.dictationTarget = idx;
     STATE.modalTarget = 'current';
@@ -1271,6 +1315,7 @@
 
   function exitEditMode(opts) {
     if (STATE.editingDemandeIdx === null) return;
+    clearInterimGhost();
     STATE.editingDemandeIdx = null;
     STATE.dictationTarget = 'current';
     // Désactive le picker si on n'est pas en mode live, sinon on le laisse actif
@@ -2296,7 +2341,7 @@
     STATE.lastShot = null;
     STATE.lastShotMode = null;
     if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
-    if (REFS.interim) REFS.interim.textContent = '';
+    clearInterimGhost();
     MIC.finalTranscript = '';
     renderDemandeRefsStrip();
     renderSegments();
