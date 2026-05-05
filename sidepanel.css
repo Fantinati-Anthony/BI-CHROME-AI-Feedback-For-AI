@@ -57,7 +57,7 @@ html, body {
 /* États "désarmé" : avant Démarrer, on cache les outils et la zone de
    saisie (sauf si elle contient déjà du contenu pré-existant). Focus
    visuel sur le bouton Démarrer + l'historique. */
-.biaif-root:not(.is-armed) .biaif-quick-tools { display: none; }
+.biaif-quick-tools.is-hidden { display: none !important; }
 .demande-zone.is-locked { display: none; }
 
 /* ============== Session bar (Démarrer / Suivant / Stop) ============== */
@@ -348,18 +348,23 @@ html, body {
   flex: 1; font-size: 10px; color: var(--text-muted);
   display: flex; align-items: center; gap: 6px;
 }
-.seg-mic-btn {
-  margin-left: auto;
+.seg-mic-btn,
+.seg-add-btn {
   background: var(--bg-app); border: 1px solid var(--border-card);
   color: var(--text-muted);
   cursor: pointer; padding: 3px 6px; border-radius: 4px;
   display: inline-flex; align-items: center; justify-content: center;
   transition: all 0.15s;
 }
+.seg-mic-btn { margin-left: auto; }
 .seg-mic-btn:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
 .seg-mic-btn.active {
   color: #000; background: var(--accent-blue); border-color: var(--accent-blue);
   box-shadow: 0 0 8px rgba(14, 165, 183, 0.5);
+}
+.seg-add-btn:hover {
+  color: var(--accent-purple); border-color: var(--accent-purple);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.35);
 }
 .seg-del {
   background: transparent; border: none; color: var(--text-muted);

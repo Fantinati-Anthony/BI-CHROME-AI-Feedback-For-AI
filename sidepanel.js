@@ -44,6 +44,9 @@
     dictationTarget: 'current',
     // Erreurs JS captées sur la page active (dédoublonnées par key).
     consoleErrors: [],
+    // Cible de la modale "Ajouter" : 'current' (demande en cours) ou
+    // index numérique d'une demande historique.
+    modalTarget: 'current',
   };
 
   // État du drag-and-drop manuel des chips.
@@ -276,16 +279,13 @@
       if (!ta) return;
       const text = (ta.value || '').trim();
       if (!text) { setStatus('Entrez du texte avant d\'ajouter.', 'info'); return; }
-      // Insère à la position du curseur dans l'éditeur de la demande en cours
-      if (REFS.demandeEditor) {
-        REFS.demandeEditor.focus();
-        insertTextAtSelection(REFS.demandeEditor, text);
-        syncCurrentDemandeFromEditor();
-        persist();
-      }
+      const targetMsg = typeof STATE.modalTarget === 'number'
+        ? `Texte ajouté à la demande #${STATE.modalTarget + 1}.`
+        : 'Texte ajouté au segment.';
+      addTextToTarget(text);
       ta.value = '';
       closeCaptureModal();
-      setStatus('Texte ajouté au segment.', 'success');
+      setStatus(targetMsg, 'success');
     });
     // Modal : Élément → active picker + ferme modale
     const activatePickerBtn = document.querySelector('[data-act="activate-picker-from-modal"]');
@@ -518,11 +518,68 @@
     if (!m) return;
     m.removeAttribute('hidden');
     if (tab) switchModalTab(tab);
+    updateModalTitle();
     renderConsoleErrorsList();
   }
   function closeCaptureModal() {
     const m = document.getElementById('capture-modal');
     if (m) m.setAttribute('hidden', '');
+    // Reset la cible : les actions hors modale ré-utilisent 'current'
+    STATE.modalTarget = 'current';
+    updateModalTitle();
+  }
+  function updateModalTitle() {
+    const t = document.querySelector('.capture-modal-title');
+    if (!t) return;
+    if (typeof STATE.modalTarget === 'number') {
+      t.textContent = `Ajouter à la demande #${STATE.modalTarget + 1}`;
+    } else {
+      t.textContent = 'Ajouter au segment';
+    }
+  }
+
+  // Helper unifié : pousse une ref dans la cible courante (current demande
+  // ou demande finalisée si modalTarget est numérique). Insère un chip à
+  // l'endroit approprié + rend l'UI + persiste.
+  function addRefToTarget(ref) {
+    if (typeof STATE.modalTarget === 'number') {
+      const dem = STATE.demandes[STATE.modalTarget];
+      if (!dem) return false;
+      dem.refs = dem.refs || [];
+      dem.refs.push(ref);
+      const newIdx = dem.refs.length - 1;
+      // Append le token au texte
+      dem.text = (dem.text || '').replace(/\s+$/, '');
+      dem.text = (dem.text + (dem.text ? ' ' : '') + `{{ref:${newIdx}}}`).trim();
+      renderSegments();
+      persist();
+      return true;
+    }
+    STATE.currentDemande.refs.push(ref);
+    const absIdx = STATE.currentDemande.refs.length - 1;
+    appendChipToEditor(absIdx, ref);
+    rememberPageUrl();
+    return true;
+  }
+
+  // Append du texte à la cible courante (éditeur ou .demande-text d'une
+  // demande historique selon modalTarget).
+  function addTextToTarget(text) {
+    if (!text) return;
+    if (typeof STATE.modalTarget === 'number') {
+      const dem = STATE.demandes[STATE.modalTarget];
+      if (!dem) return;
+      dem.text = ((dem.text || '') + (dem.text && !/\s$/.test(dem.text) ? ' ' : '') + text).trim();
+      renderSegments();
+      persist();
+      return;
+    }
+    if (REFS.demandeEditor) {
+      REFS.demandeEditor.focus();
+      insertTextAtSelection(REFS.demandeEditor, text);
+      syncCurrentDemandeFromEditor();
+      persist();
+    }
   }
   function switchModalTab(name) {
     document.querySelectorAll('.modal-tab').forEach((t) => {
@@ -749,9 +806,7 @@
           fileName: file.name,
           ts: Date.now(),
         };
-        STATE.currentDemande.refs.push(ref);
-        const absIdx = STATE.currentDemande.refs.length - 1;
-        appendChipToEditor(absIdx, ref);
+        addRefToTarget(ref);
         count++;
       } catch (e) {
         console.warn('[BIAIF] file read failed', e?.message || e);
@@ -1281,6 +1336,8 @@
   function updateArmedUi() {
     const root = document.querySelector('.biaif-root');
     if (root) root.classList.toggle('is-armed', !!STATE.armed);
+    const qt = document.querySelector('.biaif-quick-tools');
+    if (qt) qt.classList.toggle('is-hidden', !STATE.armed);
     const dz = document.querySelector('.demande-zone');
     if (dz) {
       const hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
@@ -1352,12 +1409,13 @@
       return;
     }
 
-    // Cas normal : nouvelle ref dans la demande en cours.
-    STATE.currentDemande.refs.push(ref);
-    const absIdx = STATE.currentDemande.refs.length - 1;
-    appendChipToEditor(absIdx, ref);
-    rememberPageUrl();
-    setStatus(`Référence #${absIdx + 1} ajoutée : ${shortLabel(descriptor)}`, 'success');
+    // Cas normal : route via la cible courante (current demande ou
+    // demande historique selon STATE.modalTarget).
+    addRefToTarget(ref);
+    setStatus(typeof STATE.modalTarget === 'number'
+      ? `Élément ajouté à la demande #${STATE.modalTarget + 1} : ${shortLabel(descriptor)}`
+      : `Référence ajoutée : ${shortLabel(descriptor)}`, 'success');
+    STATE.modalTarget = 'current';
   }
 
   /**
@@ -1698,6 +1756,9 @@
           <button class="seg-mic-btn ${isDictating ? 'active' : ''}" data-i="${origIndex}" title="${isDictating ? 'Dictée active sur cette demande — cliquer pour revenir à la demande en cours' : 'Dicter dans cette demande'}" aria-label="Dicter dans cette demande">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
           </button>
+          <button class="seg-add-btn" data-i="${origIndex}" title="Ajouter une référence à cette demande" aria-label="Ajouter une référence">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+          </button>
           <button class="seg-del" data-i="${origIndex}" title="Supprimer">×</button>
         </header>
         <div class="seg-urlbar">
@@ -1738,6 +1799,11 @@
       });
       textEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.currentTarget.blur(); });
 
+      card.querySelector('.seg-add-btn').addEventListener('click', () => {
+        STATE.modalTarget = origIndex;
+        openCaptureModal('capture');
+        updateModalTitle();
+      });
       card.querySelector('.seg-mic-btn').addEventListener('click', async (e) => {
         const i = Number(e.currentTarget.dataset.i);
         if (STATE.dictationTarget === i) {
@@ -1948,19 +2014,18 @@
     }
     STATE.lastShot = resp.dataUrl;
     STATE.lastShotMode = mode;
-    // Mad-Libs : la capture devient une nouvelle référence, et un chip est
-    // inséré inline dans la demande en cours.
     const ref = {
       type: 'screenshot',
       mode,
       dataUrl: resp.dataUrl,
       ts: Date.now(),
     };
-    STATE.currentDemande.refs.push(ref);
-    const absIdx = STATE.currentDemande.refs.length - 1;
-    appendChipToEditor(absIdx, ref);
-    rememberPageUrl();
-    setStatus(`Capture ${mode} OK — ajoutée comme référence #${absIdx + 1}`, 'success');
+    addRefToTarget(ref);
+    setStatus(typeof STATE.modalTarget === 'number'
+      ? `Capture ${mode} ajoutée à la demande #${STATE.modalTarget + 1}`
+      : `Capture ${mode} OK — ajoutée comme référence`, 'success');
+    // La capture est terminée : on remet la cible à 'current'
+    STATE.modalTarget = 'current';
   }
 
   function renderShotPreview() { /* no-op : preview-block supprimé */ }
