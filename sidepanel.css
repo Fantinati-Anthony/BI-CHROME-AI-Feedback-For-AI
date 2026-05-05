@@ -570,6 +570,14 @@ html, body {
   background: rgba(78, 201, 176, 0.1);
 }
 
+/* GitHub Copilot button — Copilot brand purple */
+.seg-action-btn--copilot { color: #8957e5; }
+.seg-action-btn--copilot svg { color: #8957e5; }
+.seg-action-btn--copilot:hover {
+  color: #8957e5; border-color: #8957e5;
+  background: rgba(137, 87, 229, 0.1);
+}
+
 /* Segment en cours d'édition : bordure cyan, halo, fond légèrement bleuté */
 .biaif-segment.is-editing {
   border-color: var(--accent-blue);

@@ -1,12 +1,10 @@
 /**
  * BIAIF VS Code Bridge
  *
- * Démarre un serveur HTTP local sur 127.0.0.1:<port> (défaut 51473).
- * Accepte les requêtes POST /inject depuis l'extension Chrome BIAIF et :
- *   1. Écrit le prompt markdown dans le presse-papier (Ctrl+V dans Claude Code).
- *   2. Sauvegarde chaque image en fichier PNG temporaire.
- *   3. Affiche une notification avec des actions rapides.
- *   4. Tente de coller directement dans le terminal actif (Claude Code CLI).
+ * Serveur HTTP local sur 127.0.0.1:<port> (défaut 51473).
+ * POST /inject  { target, text, images[] }
+ *   target = 'vscode'  → clipboard + temp files + notification
+ *   target = 'copilot' → GitHub Copilot Chat (texte pré-rempli + pièces jointes)
  */
 
 const vscode = require('vscode');
@@ -15,9 +13,9 @@ const path   = require('path');
 const fs     = require('fs');
 const os     = require('os');
 
-let server      = null;
-let statusBar   = null;
-let lastImages  = [];   // paths of last received images (for showLastImages command)
+let server    = null;
+let statusBar = null;
+let lastImages = [];
 
 // ---------------------------------------------------------------------------
 // Activation
@@ -30,13 +28,15 @@ function activate(context) {
       else        { startBridge(context); }
     }),
     vscode.commands.registerCommand('biaif.showLastImages', () => {
-      if (!lastImages.length) { vscode.window.showInformationMessage('BIAIF : aucune image reçue pour l\'instant.'); return; }
+      if (!lastImages.length) {
+        vscode.window.showInformationMessage('BIAIF : aucune image reçue pour l\'instant.');
+        return;
+      }
       lastImages.forEach((p) => {
         if (fs.existsSync(p)) vscode.commands.executeCommand('vscode.open', vscode.Uri.file(p));
       });
     }),
   );
-
   const cfg = vscode.workspace.getConfiguration('biaif');
   if (cfg.get('autoStart', true)) startBridge(context);
 }
@@ -47,11 +47,9 @@ function activate(context) {
 
 function startBridge(context) {
   if (server) return;
-
   const port = Number(vscode.workspace.getConfiguration('biaif').get('bridgePort', 51473));
 
   server = http.createServer((req, res) => {
-    // CORS — allow requests from the Chrome extension and localhost
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -66,11 +64,13 @@ function startBridge(context) {
 
     if (req.method === 'POST' && req.url === '/inject') {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      req.on('data', (c) => { body += c; });
       req.on('end', async () => {
         try {
           const payload = JSON.parse(body);
-          const result  = await handleInject(payload);
+          const result  = payload.target === 'copilot'
+            ? await handleInjectCopilot(payload)
+            : await handleInjectVscode(payload);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
         } catch (e) {
@@ -86,20 +86,14 @@ function startBridge(context) {
 
   server.on('error', (e) => {
     server = null;
-    if (e.code === 'EADDRINUSE') {
-      vscode.window.showWarningMessage(
-        'BIAIF Bridge : port ' + port + ' déjà utilisé. Changez `biaif.bridgePort` dans les paramètres.',
-      );
-    } else {
-      vscode.window.showErrorMessage('BIAIF Bridge erreur : ' + e.message);
-    }
+    const msg = e.code === 'EADDRINUSE'
+      ? 'BIAIF Bridge : port ' + port + ' déjà utilisé. Changez `biaif.bridgePort`.'
+      : 'BIAIF Bridge erreur : ' + e.message;
+    vscode.window.showWarningMessage(msg);
     _updateStatusBar(false);
   });
 
-  server.listen(port, '127.0.0.1', () => {
-    _updateStatusBar(true, port);
-  });
-
+  server.listen(port, '127.0.0.1', () => { _updateStatusBar(true, port); });
   if (context) context.subscriptions.push({ dispose: stopBridge });
 }
 
@@ -111,63 +105,151 @@ function stopBridge() {
 }
 
 // ---------------------------------------------------------------------------
-// Injection handler
+// Shared: save images to temp dir
 // ---------------------------------------------------------------------------
 
-async function handleInject(payload) {
-  const { text, images } = payload;
+function _saveImages(images) {
   const cfg     = vscode.workspace.getConfiguration('biaif');
   const tmpBase = cfg.get('tempDir', '') || path.join(os.tmpdir(), 'biaif-inject');
-
-  // 1. Write text to clipboard
-  if (text) {
-    await vscode.env.clipboard.writeText(text);
-  }
-
-  // 2. Save images to temp directory
   if (!fs.existsSync(tmpBase)) fs.mkdirSync(tmpBase, { recursive: true });
-  const now = Date.now();
-  const savedPaths = [];
 
+  const now   = Date.now();
+  const saved = [];
   for (let i = 0; i < (images || []).length; i++) {
     const dataUrl = images[i];
     const comma   = dataUrl.indexOf(',');
     if (comma < 0) continue;
-    const buf      = Buffer.from(dataUrl.slice(comma + 1), 'base64');
-    const filePath = path.join(tmpBase, 'biaif-' + now + '-' + (i + 1) + '.png');
-    fs.writeFileSync(filePath, buf);
-    savedPaths.push(filePath);
+    const buf  = Buffer.from(dataUrl.slice(comma + 1), 'base64');
+    const file = path.join(tmpBase, 'biaif-' + now + '-' + (i + 1) + '.png');
+    fs.writeFileSync(file, buf);
+    saved.push(file);
   }
+  lastImages = saved;
+  return { saved, tmpBase };
+}
 
-  lastImages = savedPaths;
+// ---------------------------------------------------------------------------
+// Target: VS Code generic (Claude Code CLI / any terminal)
+// ---------------------------------------------------------------------------
 
-  // 3. Build notification message
-  const imgPart = savedPaths.length
-    ? ' + ' + savedPaths.length + ' image(s) sauvegardée(s)'
-    : '';
-  const msg = 'BIAIF : prompt dans le presse-papier' + imgPart + '.';
+async function handleInjectVscode(payload) {
+  const { text, images } = payload;
+  if (text) await vscode.env.clipboard.writeText(text);
 
+  const { saved, tmpBase } = _saveImages(images);
+
+  const imgPart = saved.length ? ' + ' + saved.length + ' image(s) sauvegardée(s)' : '';
   const actions = ['Coller dans terminal'];
-  if (savedPaths.length) actions.push('Ouvrir images');
+  if (saved.length) actions.push('Ouvrir images');
 
-  const choice = await vscode.window.showInformationMessage(msg, ...actions);
+  const choice = await vscode.window.showInformationMessage(
+    'BIAIF : prompt dans le presse-papier' + imgPart + '.', ...actions,
+  );
 
-  // 4. Coller dans terminal (Claude Code CLI ou autre)
   if (choice === 'Coller dans terminal') {
-    const terminal = vscode.window.activeTerminal
-      || vscode.window.createTerminal({ name: 'BIAIF' });
-    terminal.show(true);
-    if (text) terminal.sendText(text, false); // false = no auto newline, user confirms
+    const term = vscode.window.activeTerminal || vscode.window.createTerminal({ name: 'BIAIF' });
+    term.show(true);
+    if (text) term.sendText(text, false);
+  }
+  if (choice === 'Ouvrir images') {
+    for (const p of saved) await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(p));
   }
 
-  // 5. Ouvrir images dans VS Code
-  if (choice === 'Ouvrir images') {
-    for (const p of savedPaths) {
-      await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(p));
+  return { ok: true, text: !!text, images: saved.length, tmpDir: tmpBase };
+}
+
+// ---------------------------------------------------------------------------
+// Target: GitHub Copilot Chat
+// ---------------------------------------------------------------------------
+
+async function handleInjectCopilot(payload) {
+  const { text, images } = payload;
+  const { saved, tmpBase } = _saveImages(images);
+
+  // ── 1. Inject text into Copilot Chat ────────────────────────────────────
+  // Try each command in order, stop at first success.
+  // isPartialQuery: true → text appears in the input but is NOT auto-sent.
+  let textMethod = null;
+
+  const chatCandidates = [
+    // VS Code Chat API (1.90+) — works with Copilot since it's the panel host
+    () => vscode.commands.executeCommand('workbench.action.chat.open', {
+            query: text, isPartialQuery: true }),
+    // GitHub Copilot specific (older versions)
+    () => vscode.commands.executeCommand('github.copilot.chat.open', { message: text }),
+    // Copilot inline chat
+    () => vscode.commands.executeCommand('inlineChat.start', { query: text }),
+  ];
+
+  for (const attempt of chatCandidates) {
+    try { await attempt(); textMethod = attempt; break; } catch (_) {}
+  }
+
+  // Fallback: clipboard + focus panel
+  if (!textMethod) {
+    if (text) await vscode.env.clipboard.writeText(text);
+    const focusCandidates = [
+      'workbench.panel.chat.view.copilot.focus',
+      'github.copilot.chat.focus',
+      'workbench.action.chat.open',
+    ];
+    for (const cmd of focusCandidates) {
+      try { await vscode.commands.executeCommand(cmd); break; } catch (_) {}
     }
   }
 
-  return { ok: true, text: !!text, images: savedPaths.length, tmpDir: tmpBase };
+  // ── 2. Attach images ────────────────────────────────────────────────────
+  const attached = [];
+  for (const filePath of saved) {
+    const uri = vscode.Uri.file(filePath);
+
+    // VS Code Chat attachment commands (1.94+ or Copilot extension)
+    const attachCandidates = [
+      () => vscode.commands.executeCommand('workbench.action.chat.attachFile', uri),
+      () => vscode.commands.executeCommand('workbench.action.chat.attachContext',
+              { uri, kind: 'file' }),
+      () => vscode.commands.executeCommand('github.copilot.chat.attachFile', uri),
+    ];
+
+    let ok = false;
+    for (const attempt of attachCandidates) {
+      try { await attempt(); ok = true; break; } catch (_) {}
+    }
+
+    if (ok) {
+      attached.push(filePath);
+    } else {
+      // Fallback: open file in editor (user drags the tab/thumbnail to chat)
+      try { await vscode.commands.executeCommand('vscode.open', uri); } catch (_) {}
+    }
+  }
+
+  // ── 3. Notification ─────────────────────────────────────────────────────
+  const notAttached = saved.length - attached.length;
+  let msg = 'BIAIF → Copilot : texte pré-rempli';
+  if (attached.length)   msg += ', ' + attached.length + ' image(s) jointe(s)';
+  if (notAttached > 0)   msg += ' (' + notAttached + ' image(s) ouverte(s) — glissez-les dans le chat)';
+  msg += '.';
+
+  const actions = notAttached > 0 ? ['Aide'] : [];
+  const choice  = await vscode.window.showInformationMessage(msg, ...actions);
+
+  if (choice === 'Aide') {
+    vscode.window.showInformationMessage(
+      'Pour attacher une image au chat Copilot : glissez le fichier depuis l\'Explorateur ' +
+      '(ou depuis l\'onglet ouvert) dans le champ texte du chat. ' +
+      'Les images sont dans : ' + tmpBase,
+      { modal: true },
+    );
+  }
+
+  return {
+    ok: true,
+    text: !!text,
+    textMethod: textMethod ? 'command' : 'clipboard',
+    images: { total: saved.length, attached: attached.length, opened: notAttached },
+    tmpDir: tmpBase,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -179,21 +261,15 @@ function _updateStatusBar(active, port) {
     statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 90);
     statusBar.command = 'biaif.toggleBridge';
   }
-  if (active) {
-    statusBar.text        = '$(plug) BIAIF';
-    statusBar.tooltip     = 'BIAIF Bridge actif — port ' + port + '\nCliquer pour désactiver';
-    statusBar.color       = '#4ec9b0';
-    statusBar.show();
-  } else {
-    statusBar.text        = '$(circle-slash) BIAIF';
-    statusBar.tooltip     = 'BIAIF Bridge inactif\nCliquer pour activer';
-    statusBar.color       = undefined;
-    statusBar.show();
-  }
+  statusBar.text    = active ? '$(plug) BIAIF'          : '$(circle-slash) BIAIF';
+  statusBar.tooltip = active
+    ? 'BIAIF Bridge actif — port ' + port + '\nCliquer pour désactiver'
+    : 'BIAIF Bridge inactif\nCliquer pour activer';
+  statusBar.color   = active ? '#4ec9b0' : undefined;
+  statusBar.show();
 }
 
 // ---------------------------------------------------------------------------
 
 function deactivate() { stopBridge(); }
-
 module.exports = { activate, deactivate };
