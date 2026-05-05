@@ -192,6 +192,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  // Sidepanel → active tab : inject text + images into external editor
+  if (msg.type === MSG.INJECT_TO_EDITOR) {
+    sendToActiveTabContent(msg).then(function (resp) { sendResponse(resp); });
+    return true;
+  }
+
   // Content script → sidepanel : forward capture progress
   if (msg.type === MSG.CAPTURE_PROGRESS) {
     chrome.runtime.sendMessage(msg).catch(() => {});

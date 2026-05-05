@@ -108,6 +108,10 @@
       pageTag +
       '<div class="demande-text ' + (dem.text ? '' : 'demande-text-empty') + '" contenteditable="true" spellcheck="true" data-i="' + origIndex + '" role="textbox" aria-multiline="true" aria-label="Texte de la demande ' + num + '" data-placeholder="(demande vide)"></div>' +
       '<div class="seg-actions">' +
+        '<button class="seg-action-btn seg-action-btn--inject" data-act="seg-inject" data-i="' + origIndex + '" aria-label="Injecter dans Claude Code (texte + images)" title="Injecter texte + images dans l\'éditeur Claude Code">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m16 6-4 4-4-4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>' +
+          'Injecter' +
+        '</button>' +
         '<button class="seg-action-btn" data-act="seg-copy" data-i="' + origIndex + '" aria-label="Copier le prompt de cette demande" title="Copier le prompt">' +
           '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>' +
           'Copier' +
@@ -142,6 +146,10 @@
       if (STATE.editingDemandeIdx !== origIndex && window.BIAIFSession) window.BIAIFSession.enterEditMode(origIndex);
     });
 
+    card.querySelector('[data-act="seg-inject"]').addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (window.BIAIFExport) window.BIAIFExport.injectDemande(Number(e.currentTarget.dataset.i));
+    });
     card.querySelector('[data-act="seg-copy"]').addEventListener('click', function (e) {
       e.stopPropagation();
       if (window.BIAIFExport) window.BIAIFExport.copyPromptForDemande(Number(e.currentTarget.dataset.i));

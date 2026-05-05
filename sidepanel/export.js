@@ -170,6 +170,60 @@
   }
 
   // -----------------------------------------------------------------------
+  // Inject into Claude.ai editor (drag-and-drop simulation)
+  // -----------------------------------------------------------------------
+  async function injectDemande(idx) {
+    var dem = STATE.demandes[idx];
+    if (!dem) return;
+    var text   = buildPromptForDemande(idx);
+    var images = (dem.refs || []).filter(function (r) { return r.type === 'screenshot' && r.dataUrl; }).map(function (r) { return r.dataUrl; });
+    var total  = (text ? 1 : 0) + images.length;
+
+    if (!total) { _toast('Rien à injecter dans cette demande.', 'info'); return; }
+
+    _toast('Injection en cours dans l\'éditeur Claude Code…', 'info');
+    _updateProgress(0, total, 'Connexion à l\'éditeur…');
+
+    try {
+      var resp = await new Promise(function (resolve, reject) {
+        chrome.runtime.sendMessage({
+          type: window.BIAIF.MSG.INJECT_TO_EDITOR,
+          text: text,
+          images: images,
+        }, function (r) {
+          if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+          else resolve(r || {});
+        });
+      });
+      _updateProgress(total, total, 'Terminé');
+      setTimeout(_hideProgress, 1200);
+      if (resp.error) {
+        _toast('Injection impossible : ' + resp.error + ' — assurez-vous d\'être sur l\'onglet Claude Code.', 'error');
+      } else {
+        _toast('Demande #' + (idx + 1) + ' injectée' + (images.length ? ' + ' + images.length + ' image(s)' : '') + '.', 'success');
+      }
+    } catch (e) {
+      _hideProgress();
+      _toast('Injection échouée : ' + (e && e.message || String(e)), 'error');
+    }
+  }
+
+  function _updateProgress(current, total, label) {
+    var el  = document.getElementById('capture-progress');
+    var bar = el && el.querySelector('.capture-progress-bar');
+    var lbl = el && el.querySelector('.capture-progress-label');
+    if (!el) return;
+    el.hidden = false;
+    if (bar) bar.style.width = (total > 0 ? Math.round((current / total) * 100) : 0) + '%';
+    if (lbl) lbl.textContent = label || '';
+  }
+
+  function _hideProgress() {
+    var el = document.getElementById('capture-progress');
+    if (el) { el.hidden = true; var bar = el.querySelector('.capture-progress-bar'); if (bar) bar.style.width = '0%'; }
+  }
+
+  // -----------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------
   function _downloadFile(name, blob) {
@@ -202,6 +256,7 @@
     copyPromptForDemande: copyPromptForDemande,
     downloadBundle: downloadBundle,
     downloadDemande: downloadDemande,
+    injectDemande: injectDemande,
   };
 
 })(window);

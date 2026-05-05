@@ -554,6 +554,14 @@ html, body {
 }
 .seg-action-btn svg { color: var(--accent-blue); }
 
+/* Inject button — purple accent to distinguish from copy/download */
+.seg-action-btn--inject { color: var(--accent-purple); }
+.seg-action-btn--inject svg { color: var(--accent-purple); }
+.seg-action-btn--inject:hover {
+  color: var(--accent-purple); border-color: var(--accent-purple);
+  background: var(--accent-purple-50);
+}
+
 /* Segment en cours d'édition : bordure cyan, halo, fond légèrement bleuté */
 .biaif-segment.is-editing {
   border-color: var(--accent-blue);

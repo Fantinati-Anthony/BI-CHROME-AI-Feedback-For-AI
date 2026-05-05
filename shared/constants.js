@@ -41,6 +41,8 @@
     CONTEXT_ADD_IMAGE: 'biaif:context-add-image',
     // CustomEvent name (MAIN world → isolated world bridge)
     PAGE_ERROR_EVENT:  '__biaif_page_error__',
+    // Inject into external editor (Claude.ai)
+    INJECT_TO_EDITOR:  'biaif:inject-to-editor',
   });
 
 })(typeof window !== 'undefined' ? window : self);
