@@ -38,6 +38,9 @@
     // remplace la ref ciblée au lieu d'en créer une nouvelle.
     // { demKey: 'current' | <number>, refIndex: <number> }
     replacingRef: null,
+    // Cible de la dictée vocale : 'current' (éditeur) ou index d'une demande
+    // historique. Par défaut 'current'.
+    dictationTarget: 'current',
   };
 
   // Mic test (live audio level meter, separate from SpeechRecognition stream)
@@ -254,6 +257,16 @@
       const editType = btn.dataset.editType;
       editRef(demKey, refIdx, editType);
     });
+
+    // Délégation : positionne le tooltip d'un chip (position fixed +
+    // largeur = sidebar) à chaque mouseover, pour éviter tout débordement.
+    document.addEventListener('mouseover', (e) => {
+      const chip = e.target.closest('.ref-chip');
+      if (!chip) return;
+      positionRefTooltip(chip);
+    });
+    window.addEventListener('scroll', repositionVisibleTooltip, true);
+    window.addEventListener('resize', repositionVisibleTooltip);
 
     // Click on status zone : route to the right action based on data-action.
     REFS.status.addEventListener('click', async () => {
@@ -709,7 +722,22 @@
     if (!text) return;
     STATE.currentInterim = '';
     if (REFS.interim) REFS.interim.textContent = '';
-    appendVoiceToEditor(text);
+    if (typeof STATE.dictationTarget === 'number') {
+      appendVoiceToDemande(STATE.dictationTarget, text);
+    } else {
+      appendVoiceToEditor(text);
+    }
+  }
+
+  // Append du texte voix à une demande finalisée (à la fin de son texte
+  // actuel). Re-rend l'historique.
+  function appendVoiceToDemande(idx, text) {
+    const dem = STATE.demandes[idx];
+    if (!dem || !text) return;
+    const sep = dem.text && !/\s$/.test(dem.text) ? ' ' : '';
+    dem.text = (dem.text || '') + sep + text;
+    renderSegments();
+    persist();
   }
 
   /**
@@ -958,6 +986,18 @@
 
     span.innerHTML = labelHtml;
     span.appendChild(tip);
+    // Drag-and-drop : la chip peut être réordonnée à l'intérieur du même
+    // éditeur (en cours ou historique). Le navigateur gère le move dans un
+    // contenteditable; le sync se fait via l'event input/blur derrière.
+    span.draggable = true;
+    span.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+      span.classList.add('is-dragging');
+    });
+    span.addEventListener('dragend', () => {
+      span.classList.remove('is-dragging');
+    });
     return span;
   }
 
@@ -1140,10 +1180,14 @@
       card.className = 'biaif-segment';
       const dt = new Date(dem.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       const refsCount = (dem.refs || []).length;
+      const isDictating = STATE.dictationTarget === origIndex;
       card.innerHTML = `
         <header>
           <span class="seg-num">#${num}</span>
           <span class="seg-meta">${dt} · ${refsCount} réf${refsCount > 1 ? 's' : ''}</span>
+          <button class="seg-mic-btn ${isDictating ? 'active' : ''}" data-i="${origIndex}" title="${isDictating ? 'Dictée active sur cette demande — cliquer pour revenir à la demande en cours' : 'Dicter dans cette demande'}" aria-label="Dicter dans cette demande">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          </button>
           <button class="seg-del" data-i="${origIndex}" title="Supprimer">×</button>
         </header>
         <div class="demande-text ${dem.text ? '' : 'demande-text-empty'}"
@@ -1180,6 +1224,22 @@
       });
       textEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.currentTarget.blur(); });
 
+      card.querySelector('.seg-mic-btn').addEventListener('click', async (e) => {
+        const i = Number(e.currentTarget.dataset.i);
+        if (STATE.dictationTarget === i) {
+          STATE.dictationTarget = 'current';
+        } else {
+          STATE.dictationTarget = i;
+          if (!STATE.micActive) await startMic();
+        }
+        renderSegments();
+        setStatus(
+          STATE.dictationTarget === 'current'
+            ? 'Dictée → Demande en cours'
+            : `Dictée → Demande #${STATE.dictationTarget + 1}`,
+          'info'
+        );
+      });
       card.querySelector('.seg-del').addEventListener('click', (e) => {
         const i = Number(e.currentTarget.dataset.i);
         STATE.demandes.splice(i, 1);
@@ -1210,6 +1270,46 @@
     if (!root.childNodes.length) {
       // Empty — le placeholder CSS prend le relais via :empty
     }
+  }
+
+  // Positionne un tooltip rich (position: fixed) en l'ancrant à la sidebar
+  // entière (pleine largeur moins padding), au-dessus de la chip si possible,
+  // sinon en dessous. Évite tout débordement horizontal/vertical.
+  function positionRefTooltip(chip) {
+    const tip = chip.querySelector('.ref-tooltip');
+    if (!tip) return;
+    const root = document.querySelector('.biaif-root');
+    if (!root) return;
+    const rRect = root.getBoundingClientRect();
+    const cRect = chip.getBoundingClientRect();
+    const padding = 8;
+    const gap = 6;
+    tip.classList.remove('is-below');
+    tip.style.left = (rRect.left + padding) + 'px';
+    tip.style.right = 'auto';
+    tip.style.width = Math.max(160, rRect.width - padding * 2) + 'px';
+    tip.style.maxWidth = 'none';
+    // Tente d'abord au-dessus de la chip (utilise bottom = pas besoin de connaître la hauteur)
+    tip.style.top = 'auto';
+    tip.style.bottom = (window.innerHeight - cRect.top + gap) + 'px';
+    // Mémorise la chip courante pour le repositionnement scroll/resize
+    REFS.activeTooltipChip = chip;
+    // Si le tooltip remonte hors viewport, flip dessous
+    requestAnimationFrame(() => {
+      const tRect = tip.getBoundingClientRect();
+      if (tRect.top < 4) {
+        tip.classList.add('is-below');
+        tip.style.bottom = 'auto';
+        tip.style.top = (cRect.bottom + gap) + 'px';
+      }
+      // Flèche : recentrer sur la chip horizontalement
+      const arrowLeft = Math.max(8, Math.min(tip.offsetWidth - 8, cRect.left + cRect.width / 2 - tRect.left));
+      tip.style.setProperty('--arrow-left', arrowLeft + 'px');
+    });
+  }
+  function repositionVisibleTooltip() {
+    if (!REFS.activeTooltipChip || !REFS.activeTooltipChip.matches(':hover')) return;
+    positionRefTooltip(REFS.activeTooltipChip);
   }
 
   // Point d'entrée unique pour le bouton "Modifier" des tooltips de chip.
