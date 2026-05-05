@@ -334,78 +334,77 @@ html, body {
 .demande-text:focus { background: rgba(139, 92, 246, 0.06); border-left-color: var(--accent-blue); }
 .demande-text-empty { color: var(--text-muted); font-style: italic; }
 
-/* Tooltip rich au survol d'un ref-chip (preview + bouton Modifier).
-   Position: fixed pour ne JAMAIS être clippé ni déborder hors de la sidebar.
-   Le placement (top/left/width) est calculé en JS depuis le rect de la chip. */
-.ref-chip { position: relative; }
-.ref-tooltip {
-  position: fixed;
+/* Chip : pliée par défaut (pill inline). Au clic, .expanded devient un
+   bloc 100% qui inclut un panneau de détails en dessous du label.
+   Aucun overlay, aucun risque de débordement. */
+.ref-chip-header {
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.ref-chip-toggle {
+  font-size: 9px; color: var(--accent-blue); margin-left: 2px;
+  transition: transform 0.15s;
+}
+.ref-chip--screenshot .ref-chip-toggle { color: var(--accent-purple); }
+.ref-chip.expanded .ref-chip-toggle { transform: rotate(180deg); }
+
+.ref-details {
   display: none;
   flex-direction: column; gap: 6px;
-  padding: 8px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 8px;
-  box-shadow: 0 8px 22px rgba(0,0,0,0.5);
-  z-index: 200;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--accent-blue-100);
   font-family: inherit; font-size: 11px; font-weight: 400;
   color: var(--text-main); text-transform: none; letter-spacing: 0;
   white-space: normal; line-height: 1.4;
   user-select: text;
-  pointer-events: auto;
 }
-/* Bridge invisible pour ne pas perdre le :hover en bougeant vers le tooltip */
-.ref-tooltip::before {
-  content: ''; position: absolute;
-  left: 0; right: 0; top: 100%; height: 10px;
-}
-.ref-tooltip.is-below::before { top: auto; bottom: 100%; }
-/* Petite flèche qui pointe vers la chip (position horizontale dynamique via --arrow-left) */
-.ref-tooltip::after {
-  content: ''; position: absolute;
-  left: var(--arrow-left, 50%); transform: translateX(-50%);
-  border: 5px solid transparent;
-}
-.ref-tooltip:not(.is-below)::after { top: 100%; border-top-color: var(--border-card); }
-.ref-tooltip.is-below::after        { bottom: 100%; border-bottom-color: var(--border-card); }
+.ref-chip--screenshot .ref-details { border-top-color: rgba(139, 92, 246, 0.25); }
 
-.ref-chip:hover > .ref-tooltip,
-.ref-chip:focus-within > .ref-tooltip {
-  display: flex;
+.ref-chip.expanded {
+  display: block;
+  width: 100%;
+  margin: 4px 0;
+  padding: 8px 10px;
+  white-space: normal;
+  cursor: default;
+  border-radius: 8px;
 }
-.ref-tooltip-img {
-  display: block; width: 100%; max-height: 120px;
+.ref-chip.expanded .ref-details { display: flex; }
+
+.ref-details-img {
+  display: block; width: 100%; max-height: 200px;
   object-fit: contain; border-radius: 4px;
   border: 1px solid var(--border-card); background: #000;
 }
-.ref-tooltip-meta {
-  font-size: 10px; color: var(--text-muted);
+.ref-details-meta {
+  display: block;
+  font-size: 11px; color: var(--text-muted);
   word-break: break-word;
 }
-.ref-tooltip-meta .t-key {
-  display: inline-block; min-width: 50px;
-  font-weight: 600; color: var(--text-muted); text-transform: uppercase;
-  letter-spacing: 0.4px; font-size: 9px;
-  margin-right: 4px;
+.ref-details-meta .t-key {
+  display: inline-block; min-width: 56px;
+  font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.4px;
+  font-size: 9px; margin-right: 4px;
 }
-.ref-tooltip-selector code {
+.ref-details-selector code {
   display: block;
-  font-family: 'Inter', monospace; font-size: 10px;
+  font-family: 'Inter', monospace; font-size: 11px;
   color: var(--accent-blue); background: var(--bg-app);
-  padding: 4px 6px; border-radius: 4px;
+  padding: 6px 8px; border-radius: 4px;
   word-break: break-all;
 }
-.ref-tooltip-btn {
+.ref-details-btn {
   background: var(--accent-blue); color: #000;
   border: none; border-radius: 6px;
-  padding: 6px 10px; font-family: inherit; font-size: 11px; font-weight: 600;
+  padding: 8px 10px; font-family: inherit; font-size: 11px; font-weight: 600;
   cursor: pointer; transition: opacity 0.15s, transform 0.15s;
   align-self: stretch;
 }
-.ref-chip--screenshot .ref-tooltip-btn {
+.ref-chip--screenshot .ref-details-btn {
   background: var(--accent-purple); color: #fff;
 }
-.ref-tooltip-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.ref-details-btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
 /* ============== Footer (Vider / Copier / .MD) ============== */
 .biaif-footer {

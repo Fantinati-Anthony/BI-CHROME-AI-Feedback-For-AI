@@ -43,6 +43,9 @@
     dictationTarget: 'current',
   };
 
+  // État du drag-and-drop manuel des chips.
+  const DRAG = { chip: null, sourceContainer: null };
+
   // Mic test (live audio level meter, separate from SpeechRecognition stream)
   let micTest = null;
 
@@ -243,9 +246,9 @@
     });
     if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', () => hideReloadModal());
 
-    // Délégation : "Modifier" dans le tooltip d'un chip de ref.
+    // Délégation : "Modifier" dans le panneau d'un chip déplié.
     document.addEventListener('click', (e) => {
-      const btn = e.target.closest('.ref-tooltip-btn');
+      const btn = e.target.closest('.ref-details-btn');
       if (!btn) return;
       e.stopPropagation();
       e.preventDefault();
@@ -258,15 +261,78 @@
       editRef(demKey, refIdx, editType);
     });
 
-    // Délégation : positionne le tooltip d'un chip (position fixed +
-    // largeur = sidebar) à chaque mouseover, pour éviter tout débordement.
-    document.addEventListener('mouseover', (e) => {
+    // Click sur un chip → toggle expanded (un seul à la fois). Mais clics
+    // À L'INTÉRIEUR du panneau de détails (.ref-details) ne replient pas,
+    // pour permettre la sélection de texte / preview / etc.
+    document.addEventListener('click', (e) => {
       const chip = e.target.closest('.ref-chip');
-      if (!chip) return;
-      positionRefTooltip(chip);
+      if (chip) {
+        // Le bouton Modifier est géré par le listener au-dessus
+        if (e.target.closest('.ref-details-btn')) return;
+        // Clic dans le corps des détails : laisser passer (sélection / preview)
+        if (e.target.closest('.ref-details')) return;
+        e.stopPropagation();
+        const wasExpanded = chip.classList.contains('expanded');
+        document.querySelectorAll('.ref-chip.expanded').forEach((c) => {
+          c.classList.remove('expanded');
+          c.draggable = true;
+        });
+        if (!wasExpanded) {
+          chip.classList.add('expanded');
+          chip.draggable = false; // pas de drag pendant l'expansion
+        }
+        return;
+      }
+      // Click hors d'un chip : on referme tout
+      document.querySelectorAll('.ref-chip.expanded').forEach((c) => {
+        c.classList.remove('expanded');
+        c.draggable = true;
+      });
     });
-    window.addEventListener('scroll', repositionVisibleTooltip, true);
-    window.addEventListener('resize', repositionVisibleTooltip);
+
+    // Drag-and-drop manuel des chips : on autorise le drop n'importe où dans
+    // le MÊME container éditable que la source (l'éditeur courant ou la même
+    // .demande-text de l'historique). On utilise caretRangeFromPoint pour
+    // insérer la chip exactement à la position du curseur de la souris.
+    document.addEventListener('dragover', (e) => {
+      if (!DRAG.chip) return;
+      const editable = e.target.closest('.demande-editor, .demande-text');
+      if (!editable || editable !== DRAG.sourceContainer) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+    document.addEventListener('drop', (e) => {
+      if (!DRAG.chip) return;
+      const editable = e.target.closest('.demande-editor, .demande-text');
+      if (!editable || editable !== DRAG.sourceContainer) return;
+      e.preventDefault();
+      let range = null;
+      if (document.caretRangeFromPoint) range = document.caretRangeFromPoint(e.clientX, e.clientY);
+      else if (document.caretPositionFromPoint) {
+        const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+        if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); range.collapse(true); }
+      }
+      if (!range || !editable.contains(range.startContainer)) {
+        // Fallback : append à la fin du container
+        editable.appendChild(DRAG.chip);
+      } else {
+        DRAG.chip.remove();
+        range.insertNode(DRAG.chip);
+      }
+      // Re-sync du modèle pour ce container.
+      if (editable === REFS.demandeEditor) {
+        syncCurrentDemandeFromEditor();
+        renderDemandeRefsStrip();
+      } else {
+        const idx = Number(editable.dataset.i);
+        const dem = STATE.demandes[idx];
+        if (dem) syncDemandeFromTextEl(editable, dem);
+      }
+      persist();
+      DRAG.chip.classList.remove('is-dragging');
+      DRAG.chip = null;
+      DRAG.sourceContainer = null;
+    });
 
     // Click on status zone : route to the right action based on data-action.
     REFS.status.addEventListener('click', async () => {
@@ -729,14 +795,21 @@
     }
   }
 
-  // Append du texte voix à une demande finalisée (à la fin de son texte
-  // actuel). Re-rend l'historique.
+  // Append du texte voix à une demande finalisée. Si la .demande-text
+  // correspondante est en focus (curseur dedans), insère à la position
+  // du curseur ; sinon append à la fin du modèle puis re-render.
   function appendVoiceToDemande(idx, text) {
     const dem = STATE.demandes[idx];
     if (!dem || !text) return;
-    const sep = dem.text && !/\s$/.test(dem.text) ? ' ' : '';
-    dem.text = (dem.text || '') + sep + text;
-    renderSegments();
+    const textEl = document.querySelector(`.demande-text[data-i="${idx}"]`);
+    if (textEl) {
+      insertTextAtSelection(textEl, text);
+      syncDemandeFromTextEl(textEl, dem);
+    } else {
+      const sep = dem.text && !/\s$/.test(dem.text) ? ' ' : '';
+      dem.text = (dem.text || '') + sep + text;
+      renderSegments();
+    }
     persist();
   }
 
@@ -919,10 +992,9 @@
   // ============================================================
 
   // Crée le DOM d'un chip de référence (inline dans l'éditeur).
-  // Crée le DOM d'un chip de référence + tooltip rich au survol.
+  // Crée le DOM d'un chip de référence + panneau de détails inline.
+  // Au clic, le chip s'élargit à 100% et affiche ses détails sous le label.
   // opts : { readOnly?, displayNum?, demKey? }
-  //   demKey === 'current' → ref de la demande en cours (currentDemande.refs)
-  //   demKey === <number>   → ref d'une demande finalisée STATE.demandes[demKey].refs
   function makeChipElement(absIdx, ref, opts) {
     opts = opts || {};
     const span = document.createElement('span');
@@ -938,65 +1010,71 @@
       : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>';
     const labelKind = isShot ? 'capture' : 'élément';
     const num = opts.displayNum || (absIdx + 1);
-    const labelHtml = `${icon}<span class="ref-chip-label">${labelKind} #${num}</span>`;
 
-    // Tooltip rich (rendu hover ou focus-within)
-    const tip = document.createElement('span');
-    tip.className = 'ref-tooltip';
-    tip.contentEditable = 'false';
+    const header = document.createElement('span');
+    header.className = 'ref-chip-header';
+    header.innerHTML = `${icon}<span class="ref-chip-label">${labelKind} #${num}</span><span class="ref-chip-toggle" aria-hidden="true">▾</span>`;
+
+    const details = document.createElement('span');
+    details.className = 'ref-details';
     if (isShot) {
       const img = document.createElement('img');
-      img.className = 'ref-tooltip-img';
+      img.className = 'ref-details-img';
       img.src = ref.dataUrl || '';
       img.alt = 'capture #' + num;
-      tip.appendChild(img);
-      const meta = document.createElement('div');
-      meta.className = 'ref-tooltip-meta';
+      details.appendChild(img);
+      const meta = document.createElement('span');
+      meta.className = 'ref-details-meta';
       meta.textContent = `Mode : ${ref.mode || 'visible'}`;
-      tip.appendChild(meta);
+      details.appendChild(meta);
       const btn = document.createElement('button');
-      btn.className = 'ref-tooltip-btn';
+      btn.className = 'ref-details-btn';
       btn.type = 'button';
       btn.dataset.editType = 'screenshot';
       btn.textContent = '✏ Re-annoter';
-      tip.appendChild(btn);
+      details.appendChild(btn);
     } else {
-      const meta = document.createElement('div');
-      meta.className = 'ref-tooltip-meta';
+      const meta = document.createElement('span');
+      meta.className = 'ref-details-meta';
       const lines = [];
       if (ref?.tag)             lines.push(`<span class="t-key">tag</span> &lt;${escapeHtml(ref.tag)}&gt;`);
       if (ref?.id)              lines.push(`<span class="t-key">id</span> #${escapeHtml(ref.id)}`);
       if (ref?.classes?.length) lines.push(`<span class="t-key">classes</span> ${escapeHtml(ref.classes.join(' '))}`);
-      if (ref?.text)            lines.push(`<span class="t-key">texte</span> « ${escapeHtml(ref.text.slice(0, 80))}${ref.text.length > 80 ? '…' : ''} »`);
+      if (ref?.text)            lines.push(`<span class="t-key">texte</span> « ${escapeHtml(ref.text.slice(0, 120))}${ref.text.length > 120 ? '…' : ''} »`);
       meta.innerHTML = lines.join('<br>') || '<em>Pas de détails</em>';
-      tip.appendChild(meta);
+      details.appendChild(meta);
       if (ref?.selector) {
-        const sel = document.createElement('div');
-        sel.className = 'ref-tooltip-selector';
+        const sel = document.createElement('span');
+        sel.className = 'ref-details-selector';
         sel.innerHTML = '<code>' + escapeHtml(ref.selector) + '</code>';
-        tip.appendChild(sel);
+        details.appendChild(sel);
       }
       const btn = document.createElement('button');
-      btn.className = 'ref-tooltip-btn';
+      btn.className = 'ref-details-btn';
       btn.type = 'button';
       btn.dataset.editType = 'element';
       btn.textContent = '⌖ Re-piquer';
-      tip.appendChild(btn);
+      details.appendChild(btn);
     }
 
-    span.innerHTML = labelHtml;
-    span.appendChild(tip);
+    span.appendChild(header);
+    span.appendChild(details);
+
     // Drag-and-drop : la chip peut être réordonnée à l'intérieur du même
-    // éditeur (en cours ou historique). Le navigateur gère le move dans un
-    // contenteditable; le sync se fait via l'event input/blur derrière.
+    // éditeur. Désactivé quand le chip est "expanded".
     span.draggable = true;
     span.addEventListener('dragstart', (e) => {
+      if (span.classList.contains('expanded')) { e.preventDefault(); return; }
+      DRAG.chip = span;
+      DRAG.sourceContainer = span.closest('.demande-editor, .demande-text');
       e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', '');
+      try { e.dataTransfer.setData('text/plain', '__biaif_chip__'); } catch (_) {}
       span.classList.add('is-dragging');
     });
     span.addEventListener('dragend', () => {
       span.classList.remove('is-dragging');
+      DRAG.chip = null;
+      DRAG.sourceContainer = null;
     });
     return span;
   }
@@ -1018,19 +1096,12 @@
     persist();
   }
 
-  // Append du texte voix à la fin de l'éditeur (fusionne avec le dernier
-  // text node si possible, ajoute un espace de transition).
+  // Append du texte voix dans l'éditeur courant à la position du curseur.
+  // Si le curseur n'est pas dans l'éditeur, append à la fin.
   function appendVoiceToEditor(text) {
     const ed = REFS.demandeEditor;
     if (!ed || !text) return;
-    const last = ed.lastChild;
-    if (last && last.nodeType === Node.TEXT_NODE) {
-      last.textContent += (last.textContent && !/\s$/.test(last.textContent) ? ' ' : '') + text;
-    } else if (last && last.nodeType === Node.ELEMENT_NODE) {
-      ed.appendChild(document.createTextNode(' ' + text));
-    } else {
-      ed.appendChild(document.createTextNode(text));
-    }
+    insertTextAtSelection(ed, text);
     syncCurrentDemandeFromEditor();
     persist();
   }
@@ -1272,44 +1343,57 @@
     }
   }
 
-  // Positionne un tooltip rich (position: fixed) en l'ancrant à la sidebar
-  // entière (pleine largeur moins padding), au-dessus de la chip si possible,
-  // sinon en dessous. Évite tout débordement horizontal/vertical.
-  function positionRefTooltip(chip) {
-    const tip = chip.querySelector('.ref-tooltip');
-    if (!tip) return;
-    const root = document.querySelector('.biaif-root');
-    if (!root) return;
-    const rRect = root.getBoundingClientRect();
-    const cRect = chip.getBoundingClientRect();
-    const padding = 8;
-    const gap = 6;
-    tip.classList.remove('is-below');
-    tip.style.left = (rRect.left + padding) + 'px';
-    tip.style.right = 'auto';
-    tip.style.width = Math.max(160, rRect.width - padding * 2) + 'px';
-    tip.style.maxWidth = 'none';
-    // Tente d'abord au-dessus de la chip (utilise bottom = pas besoin de connaître la hauteur)
-    tip.style.top = 'auto';
-    tip.style.bottom = (window.innerHeight - cRect.top + gap) + 'px';
-    // Mémorise la chip courante pour le repositionnement scroll/resize
-    REFS.activeTooltipChip = chip;
-    // Si le tooltip remonte hors viewport, flip dessous
-    requestAnimationFrame(() => {
-      const tRect = tip.getBoundingClientRect();
-      if (tRect.top < 4) {
-        tip.classList.add('is-below');
-        tip.style.bottom = 'auto';
-        tip.style.top = (cRect.bottom + gap) + 'px';
+  // Helper utilisé par le drag-drop : reconstruit dem.text/refs depuis le DOM
+  // d'une .demande-text donnée.
+  function syncDemandeFromTextEl(textEl, dem) {
+    const oldRefs = dem.refs || [];
+    const newRefs = [];
+    let txt = '';
+    for (const node of textEl.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) txt += node.textContent;
+      else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.classList && node.classList.contains('ref-chip')) {
+          const oldIdx = Number(node.dataset.ref);
+          const ref = oldRefs[oldIdx];
+          if (ref) {
+            newRefs.push(ref);
+            txt += `{{ref:${newRefs.length - 1}}}`;
+            node.dataset.ref = String(newRefs.length - 1);
+          }
+        } else if (node.tagName === 'BR') txt += '\n';
+        else txt += node.textContent;
       }
-      // Flèche : recentrer sur la chip horizontalement
-      const arrowLeft = Math.max(8, Math.min(tip.offsetWidth - 8, cRect.left + cRect.width / 2 - tRect.left));
-      tip.style.setProperty('--arrow-left', arrowLeft + 'px');
-    });
+    }
+    dem.text = txt.replace(/\s+/g, ' ').trim();
+    dem.refs = newRefs;
   }
-  function repositionVisibleTooltip() {
-    if (!REFS.activeTooltipChip || !REFS.activeTooltipChip.matches(':hover')) return;
-    positionRefTooltip(REFS.activeTooltipChip);
+
+  // Insère du texte à la position du curseur dans un container contenteditable.
+  // Si le curseur n'y est pas, append à la fin.
+  function insertTextAtSelection(container, text) {
+    if (!container || !text) return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && container.contains(sel.anchorNode)) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const node = document.createTextNode(text);
+      range.insertNode(node);
+      // Place le curseur après le texte inséré
+      range.setStartAfter(node);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+    // Fallback : append à la fin
+    const last = container.lastChild;
+    if (last && last.nodeType === Node.TEXT_NODE) {
+      last.textContent += (last.textContent && !/\s$/.test(last.textContent) ? ' ' : '') + text;
+    } else if (last && last.nodeType === Node.ELEMENT_NODE) {
+      container.appendChild(document.createTextNode(' ' + text));
+    } else {
+      container.appendChild(document.createTextNode(text));
+    }
   }
 
   // Point d'entrée unique pour le bouton "Modifier" des tooltips de chip.
