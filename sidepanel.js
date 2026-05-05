@@ -819,6 +819,7 @@
       updateSortToggleLabel();
       renderDemandeEditor();
       renderSegments();
+      updateArmedUi();
     } catch (e) {
       console.warn('[BIAIF] hydrate failed', e?.message || e);
     }
@@ -1205,6 +1206,7 @@
     }
     if (REFS.stopBtn) REFS.stopBtn.hidden = false;
     if (REFS.sessionInfo) REFS.sessionInfo.textContent = 'Session active — parlez puis cliquez les éléments';
+    updateArmedUi();
     startTimer();
     updateBufferPreview();
     if (!STATE.pickerActive) {
@@ -1237,7 +1239,22 @@
     if ((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length) {
       finalizeDemande();
     }
+    updateArmedUi();
     setStatus(`Session arrêtée — ${STATE.demandes.length} demande(s) capturée(s).`, 'info');
+  }
+
+  // Reflète l'état armed de la session sur l'UI : montre/cache les
+  // quick-tools et la zone de demande. La zone de demande reste visible
+  // si elle contient déjà du contenu (édition d'une demande pré-existante
+  // après un reload de la sidebar).
+  function updateArmedUi() {
+    const root = document.querySelector('.biaif-root');
+    if (root) root.classList.toggle('is-armed', !!STATE.armed);
+    const dz = document.querySelector('.demande-zone');
+    if (dz) {
+      const hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
+      dz.classList.toggle('is-locked', !STATE.armed && !hasContent);
+    }
   }
 
   function startTimer() {
@@ -1605,6 +1622,7 @@
     if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
     renderDemandeRefsStrip();
     renderSegments();
+    updateArmedUi();
     persist();
     setStatus(`Demande #${STATE.demandes.length} finalisée.`, 'success');
   }
@@ -2116,7 +2134,7 @@
   function clearAll() {
     if (!confirm('Effacer la session ? (Toutes les demandes finalisées et la demande en cours seront perdues)')) return;
     STATE.demandes = [];
-    STATE.currentDemande = { text: '', refs: [] };
+    STATE.currentDemande = { text: '', refs: [], pageUrl: null };
     STATE.currentInterim = '';
     STATE.lastShot = null;
     STATE.lastShotMode = null;
@@ -2125,6 +2143,7 @@
     MIC.finalTranscript = '';
     renderDemandeRefsStrip();
     renderSegments();
+    updateArmedUi();
     persist();
     setStatus('Tout effacé.', 'info');
   }

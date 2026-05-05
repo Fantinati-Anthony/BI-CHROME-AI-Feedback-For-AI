@@ -54,6 +54,12 @@ html, body {
   gap: 10px;
 }
 
+/* États "désarmé" : avant Démarrer, on cache les outils et la zone de
+   saisie (sauf si elle contient déjà du contenu pré-existant). Focus
+   visuel sur le bouton Démarrer + l'historique. */
+.biaif-root:not(.is-armed) .biaif-quick-tools { display: none; }
+.demande-zone.is-locked { display: none; }
+
 /* ============== Session bar (Démarrer / Suivant / Stop) ============== */
 .session-bar { display: flex; gap: 8px; }
 .session-main {
