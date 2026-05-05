@@ -12,6 +12,7 @@ const http   = require('http');
 const path   = require('path');
 const fs     = require('fs');
 const os     = require('os');
+const cp     = require('child_process');
 
 let server    = null;
 let statusBar = null;
@@ -160,96 +161,103 @@ async function handleInjectVscode(payload) {
 
 // ---------------------------------------------------------------------------
 // Target: GitHub Copilot Chat
+// Stratégie : clipboard → focus panel → Ctrl+V natif → images
 // ---------------------------------------------------------------------------
 
 async function handleInjectCopilot(payload) {
   const { text, images } = payload;
   const { saved, tmpBase } = _saveImages(images);
 
-  // ── 1. Inject text into Copilot Chat ────────────────────────────────────
-  // Try each command in order, stop at first success.
-  // isPartialQuery: true → text appears in the input but is NOT auto-sent.
-  let textMethod = null;
+  // ── 1. Texte dans le presse-papier ──────────────────────────────────────
+  if (text) await vscode.env.clipboard.writeText(text);
 
-  const chatCandidates = [
-    // VS Code Chat API (1.90+) — works with Copilot since it's the panel host
-    () => vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: text, isPartialQuery: true }),
-    // GitHub Copilot specific (older versions)
-    () => vscode.commands.executeCommand('github.copilot.chat.open', { message: text }),
-    // Copilot inline chat
-    () => vscode.commands.executeCommand('inlineChat.start', { query: text }),
+  // ── 2. Focus le panel Copilot Chat ──────────────────────────────────────
+  const focusCandidates = [
+    'workbench.panel.chat.view.copilot.focus',
+    'github.copilot.chat.focus',
+    'workbench.action.chat.open',
+    'workbench.view.extension.github-copilot-chat',
   ];
-
-  for (const attempt of chatCandidates) {
-    try { await attempt(); textMethod = attempt; break; } catch (_) {}
+  for (const cmd of focusCandidates) {
+    try { await vscode.commands.executeCommand(cmd); break; } catch (_) {}
   }
 
-  // Fallback: clipboard + focus panel
-  if (!textMethod) {
-    if (text) await vscode.env.clipboard.writeText(text);
-    const focusCandidates = [
-      'workbench.panel.chat.view.copilot.focus',
-      'github.copilot.chat.focus',
-      'workbench.action.chat.open',
-    ];
-    for (const cmd of focusCandidates) {
-      try { await vscode.commands.executeCommand(cmd); break; } catch (_) {}
-    }
-  }
+  // ── 3. Attendre que le champ soit prêt, puis coller ─────────────────────
+  // 400 ms laisse VS Code le temps d'ouvrir le panel et de focus l'input.
+  await _sleep(400);
+  await _simulatePaste();
 
-  // ── 2. Attach images ────────────────────────────────────────────────────
+  // ── 4. Images : essaie attachment API, sinon ouvre pour drag manuel ─────
   const attached = [];
   for (const filePath of saved) {
     const uri = vscode.Uri.file(filePath);
-
-    // VS Code Chat attachment commands (1.94+ or Copilot extension)
-    const attachCandidates = [
-      () => vscode.commands.executeCommand('workbench.action.chat.attachFile', uri),
-      () => vscode.commands.executeCommand('workbench.action.chat.attachContext',
-              { uri, kind: 'file' }),
-      () => vscode.commands.executeCommand('github.copilot.chat.attachFile', uri),
-    ];
-
     let ok = false;
-    for (const attempt of attachCandidates) {
+    for (const attempt of [
+      () => vscode.commands.executeCommand('workbench.action.chat.attachFile', uri),
+      () => vscode.commands.executeCommand('workbench.action.chat.attachContext', { uri, kind: 'file' }),
+      () => vscode.commands.executeCommand('github.copilot.chat.attachFile', uri),
+    ]) {
       try { await attempt(); ok = true; break; } catch (_) {}
     }
-
-    if (ok) {
-      attached.push(filePath);
-    } else {
-      // Fallback: open file in editor (user drags the tab/thumbnail to chat)
-      try { await vscode.commands.executeCommand('vscode.open', uri); } catch (_) {}
-    }
+    if (ok) attached.push(filePath);
+    else { try { await vscode.commands.executeCommand('vscode.open', uri); } catch (_) {} }
   }
 
-  // ── 3. Notification ─────────────────────────────────────────────────────
+  // ── 5. Notification résultat ─────────────────────────────────────────────
   const notAttached = saved.length - attached.length;
-  let msg = 'BIAIF → Copilot : texte pré-rempli';
-  if (attached.length)   msg += ', ' + attached.length + ' image(s) jointe(s)';
-  if (notAttached > 0)   msg += ' (' + notAttached + ' image(s) ouverte(s) — glissez-les dans le chat)';
-  msg += '.';
+  let msg = 'BIAIF → Copilot : texte collé dans le chat';
+  if (attached.length) msg += ', ' + attached.length + ' image(s) jointe(s)';
+  if (notAttached > 0) msg += ' (' + notAttached + ' image(s) ouverte(s) — glissez dans le chat)';
 
-  const actions = notAttached > 0 ? ['Aide'] : [];
-  const choice  = await vscode.window.showInformationMessage(msg, ...actions);
-
+  const choice = await vscode.window.showInformationMessage(msg, ...(notAttached > 0 ? ['Aide'] : []));
   if (choice === 'Aide') {
     vscode.window.showInformationMessage(
-      'Pour attacher une image au chat Copilot : glissez le fichier depuis l\'Explorateur ' +
-      '(ou depuis l\'onglet ouvert) dans le champ texte du chat. ' +
-      'Les images sont dans : ' + tmpBase,
+      'Glissez les fichiers images depuis l\'Explorateur (ou l\'onglet ouvert) vers le champ Copilot Chat.\nDossier : ' + tmpBase,
       { modal: true },
     );
   }
 
   return {
     ok: true,
-    text: !!text,
-    textMethod: textMethod ? 'command' : 'clipboard',
+    textMethod: 'clipboard+paste',
     images: { total: saved.length, attached: attached.length, opened: notAttached },
     tmpDir: tmpBase,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Native paste simulation (fallback when VS Code Chat API is unavailable)
+//
+// Simulates Ctrl+V at the OS level so text lands in whatever input has focus.
+// Works on Linux (xdotool), macOS (osascript), Windows (PowerShell).
+// Requires the chat panel to already be focused before calling.
+// ---------------------------------------------------------------------------
+
+function _sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+async function _simulatePaste() {
+  const platform = process.platform;
+  try {
+    if (platform === 'linux') {
+      // xdotool must be installed: sudo apt install xdotool
+      cp.execSync('xdotool key ctrl+v', { timeout: 2000 });
+
+    } else if (platform === 'darwin') {
+      cp.execSync(
+        'osascript -e \'tell application "System Events" to keystroke "v" using command down\'',
+        { timeout: 2000 },
+      );
+
+    } else if (platform === 'win32') {
+      cp.execSync(
+        'powershell -command "Add-Type -AssemblyName System.Windows.Forms; ' +
+        '[System.Windows.Forms.SendKeys]::SendWait(\\"^v\\")"',
+        { timeout: 3000 },
+      );
+    }
+  } catch (_) {
+    // Native tool unavailable — clipboard fallback already done, user pastes manually
+  }
 }
 
 // ---------------------------------------------------------------------------
