@@ -202,7 +202,7 @@ html, body {
 
 /* ============== Settings popover (anchored to mini footer) ============== */
 .settings-popover {
-  position: fixed; bottom: 36px; left: 12px; right: 12px;
+  position: fixed; bottom: 120px; left: 12px; right: 12px;
   background: var(--bg-card); border: 1px solid var(--border-card);
   border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
   z-index: 998; padding: 12px; display: flex; flex-direction: column; gap: 10px;
@@ -413,14 +413,41 @@ html, body {
 }
 .ref-details-btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
-/* ============== Footer (Vider / Copier / .MD) ============== */
-.biaif-footer {
-  display: flex; gap: 8px;
-  padding: 10px 0 4px;
+/* ============== Sticky bottom action bar ==============
+   Contient : .biaif-quick-tools (Micro/Sélecteur/Capture/Erreurs),
+   .biaif-footer (icones debug/micro/shortcuts + Vider/Copier/.MD),
+   .biaif-status. Toujours collée au bas du panneau, débord aux bords. */
+.biaif-footer-area {
+  position: sticky; bottom: 0;
+  margin-top: auto; /* pousse vers le bas si l'historique est court */
+  margin-left: calc(var(--pad-md) * -1);
+  margin-right: calc(var(--pad-md) * -1);
+  margin-bottom: calc(var(--pad-md) * -1);
+  padding: 10px var(--pad-md) 8px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-app) 35%, var(--bg-app) 100%);
   border-top: 1px solid var(--border-card);
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 10;
+}
+
+.biaif-footer {
+  display: flex; gap: 6px; align-items: center;
+}
+.footer-spacer { flex: 1; }
+.footer-icon-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  color: var(--text-muted);
+  cursor: pointer; padding: 0; border-radius: 6px;
+  transition: all 0.15s;
+}
+.footer-icon-btn:hover {
+  color: var(--accent-blue); border-color: var(--accent-blue);
+  background: var(--bg-card-hover);
 }
 .btn-secondary, .btn-primary {
-  flex: 1; padding: 9px; border-radius: var(--radius-sm); border: none;
+  flex: 1; padding: 8px 10px; border-radius: var(--radius-sm); border: none;
   font-family: inherit; font-weight: 600; font-size: 12px; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 6px;
   transition: all 0.15s;
@@ -430,25 +457,9 @@ html, body {
 .btn-primary { background: linear-gradient(180deg, #12c1d6, #0ea5b7); color: #000; box-shadow: 0 2px 10px rgba(14, 165, 183, 0.25); }
 .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
 
-/* ============== Mini footer band (debug + version) ============== */
-.biaif-mini-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding-top: 4px;
-  font-size: 10px; color: var(--text-muted);
-}
-.mini-footer-left { display: flex; align-items: center; gap: 4px; }
-.mini-footer-btn {
-  display: flex; align-items: center; gap: 4px;
-  background: transparent; border: none; color: var(--text-muted);
-  font-family: inherit; font-size: 10px; cursor: pointer; padding: 2px 4px;
-  border-radius: 4px; transition: color 0.15s, background 0.15s;
-}
-.mini-footer-btn:hover { color: var(--text-main); background: var(--bg-card); }
-.mini-footer-version { font-weight: 500; letter-spacing: 0.4px; }
-
 /* ============== Logs panel (overlay) ============== */
 .biaif-logs-panel {
-  position: fixed; bottom: 36px; left: 12px; right: 12px;
+  position: fixed; bottom: 120px; left: 12px; right: 12px;
   background: var(--bg-card); border: 1px solid var(--border-card);
   border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
   z-index: 999; max-height: 280px; display: flex; flex-direction: column;
