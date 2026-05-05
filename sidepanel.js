@@ -183,30 +183,59 @@
       persist();
     });
 
-    // Shot tools
+    // Shot tools (boutons de la modale capture)
     REFS.shotButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
+        closeCaptureModal();
         runShotMode(btn.dataset.shot);
-        closeCaptureMenu();
       });
     });
 
-    // Capture dropdown toggle
+    // Capture modal : ouverture, fermeture, dropzone, file input
     const captureToggle = document.querySelector('[data-act="capture-toggle"]');
-    const captureMenu = document.querySelector('.capture-submenu');
-    if (captureToggle && captureMenu) {
-      captureToggle.addEventListener('click', (e) => {
+    const captureModal = document.getElementById('capture-modal');
+    const captureClose = document.querySelector('[data-act="close-capture-modal"]');
+    const dropzone = document.getElementById('capture-dropzone');
+    const fileInput = document.getElementById('capture-file-input');
+
+    if (captureToggle) captureToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openCaptureModal();
+    });
+    if (captureClose) captureClose.addEventListener('click', () => closeCaptureModal());
+    if (captureModal) captureModal.addEventListener('click', (e) => {
+      if (e.target === captureModal) closeCaptureModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && captureModal && !captureModal.hasAttribute('hidden')) closeCaptureModal();
+    });
+
+    if (fileInput) fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files || []);
+      handleCaptureFiles(files);
+      e.target.value = ''; // reset pour pouvoir re-déposer la même image
+    });
+    if (dropzone) {
+      ['dragenter', 'dragover'].forEach((evt) => {
+        dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('is-dragover');
+        });
+      });
+      ['dragleave', 'dragend'].forEach((evt) => {
+        dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('is-dragover');
+        });
+      });
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
         e.stopPropagation();
-        const open = !captureMenu.hasAttribute('hidden');
-        if (open) closeCaptureMenu();
-        else openCaptureMenu();
-      });
-      document.addEventListener('click', (e) => {
-        if (captureMenu.hasAttribute('hidden')) return;
-        if (!e.target.closest('.tool-capture-wrap')) closeCaptureMenu();
-      });
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeCaptureMenu();
+        dropzone.classList.remove('is-dragover');
+        const files = Array.from(e.dataTransfer?.files || []).filter((f) => f.type.startsWith('image/'));
+        if (files.length) handleCaptureFiles(files);
       });
     }
     // Sort toggle
@@ -375,19 +404,53 @@
     refreshMicDevices();
   }
 
-  function openCaptureMenu() {
-    const toggle = document.querySelector('[data-act="capture-toggle"]');
-    const menu = document.querySelector('.capture-submenu');
-    if (!toggle || !menu) return;
-    menu.removeAttribute('hidden');
-    toggle.setAttribute('aria-expanded', 'true');
+  function openCaptureModal() {
+    const m = document.getElementById('capture-modal');
+    if (m) m.removeAttribute('hidden');
   }
-  function closeCaptureMenu() {
-    const toggle = document.querySelector('[data-act="capture-toggle"]');
-    const menu = document.querySelector('.capture-submenu');
-    if (!toggle || !menu) return;
-    menu.setAttribute('hidden', '');
-    toggle.setAttribute('aria-expanded', 'false');
+  function closeCaptureModal() {
+    const m = document.getElementById('capture-modal');
+    if (m) m.setAttribute('hidden', '');
+  }
+
+  // Lit chaque fichier image en dataUrl, l'ajoute comme ref de la demande en
+  // cours et insère un chip dans l'éditeur. Ferme la modale après le 1er
+  // ajout pour que l'utilisateur voie son chip.
+  async function handleCaptureFiles(files) {
+    if (!files || !files.length) return;
+    let count = 0;
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        const ref = {
+          type: 'screenshot',
+          mode: 'fichier',
+          dataUrl,
+          fileName: file.name,
+          ts: Date.now(),
+        };
+        STATE.currentDemande.refs.push(ref);
+        const absIdx = STATE.currentDemande.refs.length - 1;
+        appendChipToEditor(absIdx, ref);
+        count++;
+      } catch (e) {
+        console.warn('[BIAIF] file read failed', e?.message || e);
+      }
+    }
+    if (count) {
+      closeCaptureModal();
+      setStatus(`${count} image${count > 1 ? 's' : ''} ajoutée${count > 1 ? 's' : ''} comme référence${count > 1 ? 's' : ''}.`, 'success');
+    }
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(file);
+    });
   }
 
   function openMicPermPage() {
