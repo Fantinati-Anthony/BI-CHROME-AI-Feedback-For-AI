@@ -1371,14 +1371,16 @@
   // après un reload de la sidebar).
   function updateArmedUi() {
     const root = document.querySelector('.biaif-root');
-    if (root) root.classList.toggle('is-armed', !!STATE.armed);
+    if (root) {
+      root.classList.toggle('is-armed', !!STATE.armed);
+      root.classList.toggle('is-editing-segment', typeof STATE.editingDemandeIdx === 'number');
+    }
     const qt = document.querySelector('.biaif-quick-tools');
     const editing = typeof STATE.editingDemandeIdx === 'number';
     if (qt) qt.classList.toggle('is-hidden', !STATE.armed && !editing);
     const dz = document.querySelector('.demande-zone');
     if (dz) {
       const hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
-      // Cachée si pas armé ET vide, OU si on édite un segment historique
       dz.classList.toggle('is-locked', editing || (!STATE.armed && !hasContent));
     }
   }
@@ -1392,21 +1394,19 @@
   // .demande-zone, focalise le texte du segment.
   function enterEditMode(idx) {
     if (idx == null || idx === STATE.editingDemandeIdx) return;
-    // Sortie d'un éventuel mode édition précédent
     if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
     STATE.editingDemandeIdx = idx;
     STATE.dictationTarget = idx;
-    STATE.modalTarget = 'current'; // Plus utilisé en mode édition
-    // Démarre le micro si éteint pour fluidifier la dictée
+    STATE.modalTarget = 'current';
+    // Active mic ET picker comme un Démarrer ciblé
     if (!STATE.micActive) startMic();
-    // Re-render pour faire apparaître le bouton "Terminer" et marquer
-    // le segment .is-editing
+    if (!STATE.pickerActive) sendBg({ type: 'biaif:picker-enable' });
     renderSegments();
-    // Déplace la barre d'outils dans le segment ciblé
     relocateQuickToolsToSegment(idx);
     updateArmedUi();
-    // Focus le texte pour que la voix s'insère au bon endroit
     setTimeout(() => {
+      const card = document.querySelector(`.biaif-segment[data-i="${idx}"]`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
       const textEl = document.querySelector(`.demande-text[data-i="${idx}"]`);
       if (textEl) textEl.focus();
     }, 30);
@@ -1417,7 +1417,8 @@
     if (STATE.editingDemandeIdx === null) return;
     STATE.editingDemandeIdx = null;
     STATE.dictationTarget = 'current';
-    // Replace la barre d'outils sous la session-bar
+    // Désactive le picker si on n'est pas en mode live, sinon on le laisse actif
+    if (!STATE.armed && STATE.pickerActive) sendBg({ type: 'biaif:picker-disable' });
     relocateQuickToolsToTop();
     renderSegments();
     updateArmedUi();
