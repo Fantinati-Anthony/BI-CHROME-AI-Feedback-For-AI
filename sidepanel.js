@@ -157,7 +157,7 @@
   // Taille du texte des segments (CSS variable --seg-text-size scopée
   // sur .biaif-segments-wrap). Bornes 10..20 px.
   function bumpSegFontSize(delta) {
-    const next = Math.max(10, Math.min(20, (STATE.segFontSize || 13) + delta));
+    const next = Math.max(8, Math.min(16, (STATE.segFontSize || 13) + delta));
     if (next === STATE.segFontSize) return;
     STATE.segFontSize = next;
     applySegFontSize();
@@ -168,8 +168,8 @@
     if (wrap) wrap.style.setProperty('--seg-text-size', (STATE.segFontSize || 13) + 'px');
     const fontDown = document.querySelector('[data-act="seg-font-down"]');
     const fontUp = document.querySelector('[data-act="seg-font-up"]');
-    if (fontDown) fontDown.disabled = STATE.segFontSize <= 10;
-    if (fontUp)   fontUp.disabled   = STATE.segFontSize >= 20;
+    if (fontDown) fontDown.disabled = STATE.segFontSize <= 8;
+    if (fontUp)   fontUp.disabled   = STATE.segFontSize >= 16;
   }
 
   function cacheRefs() {
@@ -842,7 +842,7 @@
       }
       if (typeof saved.micDeviceId === 'string') STATE.micDeviceId = saved.micDeviceId;
       if (saved.sortOrder === 'asc' || saved.sortOrder === 'desc') STATE.sortOrder = saved.sortOrder;
-      if (typeof saved.segFontSize === 'number' && saved.segFontSize >= 10 && saved.segFontSize <= 20) {
+      if (typeof saved.segFontSize === 'number' && saved.segFontSize >= 8 && saved.segFontSize <= 16) {
         STATE.segFontSize = saved.segFontSize;
       }
       updateSortToggleLabel();
