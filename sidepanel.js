@@ -1687,11 +1687,14 @@
     if (qt && qt.parentNode) qt.parentNode.removeChild(qt);
     REFS.segments.innerHTML = '';
     if (REFS.segmentsCount) REFS.segmentsCount.textContent = String(STATE.demandes.length);
+
     if (!STATE.demandes.length) {
       const emptyEl = document.createElement('div');
       emptyEl.className = 'biaif-empty';
       emptyEl.textContent = 'Aucune demande pour le moment';
       REFS.segments.appendChild(emptyEl);
+      reattachQuickTools(qt);
+      updateMasterBtnLabel();
       return;
     }
 
@@ -1820,23 +1823,24 @@
       REFS.segments.appendChild(card);
     });
 
-    // Réattache la barre d'outils détachée au début : dans le segment édité
-    // si on est en édition, sinon sous .session-bar (place d'origine).
-    if (qt) {
-      if (typeof STATE.editingDemandeIdx === 'number') {
-        const card = document.querySelector(`.biaif-segment[data-i="${STATE.editingDemandeIdx}"]`);
-        if (card) {
-          const header = card.querySelector('header');
-          if (header && header.nextSibling) header.parentNode.insertBefore(qt, header.nextSibling);
-          else card.appendChild(qt);
-        } else {
-          attachQuickToolsAtTop(qt);
-        }
-      } else {
-        attachQuickToolsAtTop(qt);
+    reattachQuickTools(qt);
+    updateMasterBtnLabel();
+  }
+
+  // Replace .biaif-quick-tools (détachée au début de renderSegments) :
+  // dans le segment édité si on est en édition, sinon sous .session-bar.
+  function reattachQuickTools(qt) {
+    if (!qt) return;
+    if (typeof STATE.editingDemandeIdx === 'number') {
+      const card = document.querySelector(`.biaif-segment[data-i="${STATE.editingDemandeIdx}"]`);
+      if (card) {
+        const header = card.querySelector('header');
+        if (header && header.nextSibling) header.parentNode.insertBefore(qt, header.nextSibling);
+        else card.appendChild(qt);
+        return;
       }
     }
-    updateMasterBtnLabel();
+    attachQuickToolsAtTop(qt);
   }
 
   function attachQuickToolsAtTop(qt) {
