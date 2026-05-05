@@ -168,7 +168,48 @@ html, body {
 }
 
 /* ============== Quick Tools row (Micro / Sélecteur / Capture) ============== */
-.biaif-quick-tools { display: flex; gap: 8px; }
+.biaif-quick-tools {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.quick-tools-row { display: flex; gap: 8px; }
+
+/* Sous-ligne contextuelle qui apparaît sous Capture */
+.quick-tools-subline {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  padding: 6px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  animation: subline-fade-in 0.18s ease-out;
+}
+.quick-tools-subline[hidden] { display: none; }
+@keyframes subline-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.subline-btn {
+  flex: 1; min-width: 70px;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  color: var(--text-main);
+  border-radius: 6px;
+  font-family: inherit; font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+}
+.subline-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+.subline-btn svg { flex-shrink: 0; color: var(--accent-blue); }
+
+/* Bouton Capture en mode "ouvert" (sous-ligne déployée) */
+[data-act="capture-toggle"][aria-expanded="true"] {
+  border-color: var(--accent-blue) !important;
+  background: var(--bg-card-hover) !important;
+}
+
 .tool-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 8px 4px; border: 1px solid var(--border-card); border-radius: var(--radius-sm);
@@ -662,181 +703,6 @@ html, body {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.12); }
 }
-
-/* ============== Modale "Ajouter" (onglets Capture / Texte / Élément / Erreurs) ============== */
-.modal-tabs {
-  display: flex; gap: 2px;
-  background: var(--bg-app); border: 1px solid var(--border-card);
-  border-radius: 8px; padding: 3px;
-}
-.modal-tab {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
-  background: transparent; border: none;
-  color: var(--text-muted); font-family: inherit; font-size: 11px; font-weight: 600;
-  padding: 6px 4px; border-radius: 6px; cursor: pointer;
-  transition: all 0.15s;
-}
-.modal-tab:hover { color: var(--text-main); background: rgba(255,255,255,0.04); }
-.modal-tab.active {
-  color: var(--text-inverse); background: var(--accent-blue);
-}
-.modal-tab.active svg { color: var(--text-inverse); }
-.modal-tab svg { color: var(--accent-blue); }
-.modal-tab--errors svg { color: var(--text-muted); }
-.modal-tab--errors .tab-badge {
-  display: inline-block; padding: 0 5px; margin-left: 2px;
-  background: var(--border-card); color: var(--text-muted);
-  border-radius: var(--radius-pill); font-size: 9px; font-weight: 700;
-  font-family: 'Inter', monospace;
-}
-.modal-tab--errors[data-count]:not([data-count="0"]) .tab-badge,
-.modal-tab--errors .tab-badge:not([data-count="0"]) {
-  background: var(--danger); color: #fff;
-}
-.modal-tab--errors:not(.active):has(.tab-badge:not([data-count="0"])) svg { color: var(--danger); }
-
-.modal-section { display: flex; flex-direction: column; gap: 10px; }
-.modal-section[hidden] { display: none; }
-.modal-section-hint {
-  margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;
-}
-.modal-text-input {
-  width: 100%; min-height: 100px; resize: vertical;
-  background: var(--bg-app); border: 1px solid var(--border-card);
-  color: var(--text-main); padding: 8px 10px; border-radius: var(--radius-sm);
-  font-family: inherit; font-size: 12px; line-height: 1.4;
-  outline: none; transition: border-color 0.15s;
-}
-.modal-text-input:focus { border-color: var(--accent-blue); }
-.modal-text-input::placeholder { color: var(--text-muted); }
-
-/* Liste des erreurs */
-.errors-list {
-  display: flex; flex-direction: column; gap: 6px;
-  max-height: 280px; overflow-y: auto;
-}
-.errors-empty { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 12px 0; text-align: center; }
-.error-row {
-  background: var(--bg-app); border: 1px solid var(--border-card);
-  border-left: 3px solid var(--danger);
-  border-radius: 6px; padding: 8px 10px;
-  display: flex; flex-direction: column; gap: 6px;
-}
-.error-row-head {
-  display: flex; align-items: center; gap: 6px; font-size: 10px;
-}
-.error-row-num {
-  background: rgba(255, 69, 58, 0.15); color: var(--danger);
-  padding: 1px 7px; border-radius: var(--radius-pill);
-  font-family: 'Inter', monospace; font-weight: 700;
-}
-.error-row-where {
-  color: var(--text-muted); font-family: 'Inter', monospace; font-size: 10px;
-  word-break: break-all;
-}
-.error-row-msg {
-  font-size: 12px; color: var(--text-main); line-height: 1.4;
-  word-break: break-word;
-}
-.error-row-actions { display: flex; gap: 6px; }
-.error-row-actions button { flex: 1; padding: 6px; font-size: 11px; }
-
-.errors-actions {
-  display: flex; gap: 6px; padding-top: 6px;
-  border-top: 1px solid var(--border-card);
-}
-
-/* ============== Segment drag handle + drop target (fusion) ============== */
-.seg-drag-handle {
-  background: transparent; border: none; color: var(--text-muted);
-  cursor: grab; padding: 0 4px;
-  font-size: 11px; line-height: 1; letter-spacing: -2px;
-  user-select: none;
-}
-.seg-drag-handle:hover { color: var(--accent-blue); }
-.seg-drag-handle:active { cursor: grabbing; }
-.biaif-segment.is-dragging-seg { opacity: 0.4; }
-.biaif-segment.is-drop-target {
-  border-color: var(--accent-blue);
-  background: var(--accent-blue-50);
-  box-shadow: 0 0 0 2px var(--accent-blue-50);
-}
-
-/* ============== Capture modal (4 big buttons + drop zone) ============== */
-.biaif-capture-modal {
-  position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center; padding: 16px;
-}
-.biaif-capture-modal[hidden] { display: none; }
-.capture-modal-content {
-  background: var(--bg-card); border: 1px solid var(--border-card);
-  border-radius: 12px; padding: 16px;
-  width: 100%; max-width: 420px;
-  display: flex; flex-direction: column; gap: 14px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-  max-height: calc(100vh - 32px); overflow-y: auto;
-}
-.capture-modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-}
-.capture-modal-title {
-  margin: 0; font-size: 14px; font-weight: 700; color: var(--text-main);
-}
-.capture-modal-close {
-  background: transparent; border: none; color: var(--text-muted);
-  font-size: 22px; line-height: 1; cursor: pointer; padding: 0 6px;
-  border-radius: 4px; transition: all 0.15s;
-}
-.capture-modal-close:hover { color: var(--danger); background: rgba(255, 69, 58, 0.1); }
-
-.capture-modal-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-}
-.capture-big-btn {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  padding: 18px 12px;
-  background: var(--bg-app); border: 1px solid var(--border-card);
-  border-radius: 10px; color: var(--text-main);
-  font-family: inherit; cursor: pointer; transition: all 0.15s;
-  text-align: center;
-}
-.capture-big-btn:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--accent-blue);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(14, 165, 183, 0.15);
-}
-.capture-big-btn svg { color: var(--accent-blue); margin-bottom: 4px; }
-.capture-big-label { font-size: 13px; font-weight: 600; }
-.capture-big-hint { font-size: 10px; color: var(--text-muted); }
-
-.capture-modal-divider {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 10px; color: var(--text-muted); text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.capture-modal-divider::before,
-.capture-modal-divider::after {
-  content: ''; flex: 1; height: 1px; background: var(--border-card);
-}
-
-.capture-dropzone {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  padding: 20px 12px;
-  background: var(--bg-app); border: 2px dashed var(--border-card);
-  border-radius: 10px; color: var(--text-muted);
-  cursor: pointer; transition: all 0.15s;
-}
-.capture-dropzone:hover,
-.capture-dropzone.is-dragover {
-  border-color: var(--accent-purple);
-  background: var(--accent-purple-50);
-  color: var(--accent-purple);
-}
-.capture-dropzone svg { color: var(--accent-purple); }
-.dropzone-title { font-size: 13px; font-weight: 600; color: var(--text-main); }
-.dropzone-hint { font-size: 11px; }
 
 /* ============== Reload modal (full sidebar overlay) ============== */
 .biaif-reload-modal {
