@@ -1271,16 +1271,18 @@
   // après un reload de la sidebar).
   function updateArmedUi() {
     const root = document.querySelector('.biaif-root');
+    const editing = typeof STATE.editingDemandeIdx === 'number';
+    const hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
+    const empty = !STATE.armed && !editing && !STATE.demandes.length && !hasContent;
     if (root) {
       root.classList.toggle('is-armed', !!STATE.armed);
-      root.classList.toggle('is-editing-segment', typeof STATE.editingDemandeIdx === 'number');
+      root.classList.toggle('is-editing-segment', editing);
+      root.classList.toggle('is-empty-state', empty);
     }
     const qt = document.querySelector('.biaif-quick-tools');
-    const editing = typeof STATE.editingDemandeIdx === 'number';
     if (qt) qt.classList.toggle('is-hidden', !STATE.armed && !editing);
     const dz = document.querySelector('.demande-zone');
     if (dz) {
-      const hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
       dz.classList.toggle('is-locked', editing || (!STATE.armed && !hasContent));
     }
   }
@@ -1740,6 +1742,7 @@
       REFS.segments.appendChild(emptyEl);
       reattachQuickTools(qt);
       updateMasterBtnLabel();
+      updateArmedUi();
       return;
     }
 
@@ -1880,6 +1883,7 @@
 
     reattachQuickTools(qt);
     updateMasterBtnLabel();
+    updateArmedUi();
   }
 
   // Replace .biaif-quick-tools (détachée au début de renderSegments) :

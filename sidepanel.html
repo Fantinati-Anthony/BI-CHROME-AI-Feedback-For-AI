@@ -104,6 +104,37 @@
 
     <div class="biaif-buffer-preview" hidden></div>
 
+    <!-- État vide : message d'accueil quand pas d'historique et pas de session -->
+    <div class="biaif-empty-state">
+      <div class="empty-state-orb"></div>
+      <div class="empty-state-verbs">
+        <span class="empty-state-verb empty-state-verb--blue">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          Parlez
+        </span>
+        <span class="empty-state-verb empty-state-verb--purple">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          Ciblez
+        </span>
+        <span class="empty-state-verb empty-state-verb--pink">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+          Capturez
+        </span>
+        <span class="empty-state-verb empty-state-verb--amber">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M5.6 5.6l2.1 2.1"/><path d="M16.3 16.3l2.1 2.1"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="M5.6 18.4l2.1-2.1"/><path d="M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="4"/></svg>
+          Imaginez
+        </span>
+      </div>
+      <h2 class="empty-state-tagline">
+        Vos besoins, vos idées, vos retours —<br>
+        <span class="empty-state-tagline-em">transmis naturellement à votre IA.</span>
+      </h2>
+      <p class="empty-state-cta">
+        Cliquez <strong>Démarrer</strong> pour amorcer un premier segment.<br>
+        Parlez, cliquez les éléments, capturez. L'IA recevra le tout, structuré.
+      </p>
+    </div>
+
     <!-- Demande en cours : éditeur texte + références inline -->
     <div class="demande-zone">
       <div class="demande-header">
