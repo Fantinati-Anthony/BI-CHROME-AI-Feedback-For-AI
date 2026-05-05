@@ -1787,6 +1787,16 @@
              contenteditable="true" spellcheck="true"
              data-i="${origIndex}"
              data-placeholder="(demande vide)"></div>
+        <div class="seg-actions">
+          <button class="seg-action-btn" data-act="seg-copy" data-i="${origIndex}" title="Copier le prompt de cette demande">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Copier
+          </button>
+          <button class="seg-action-btn" data-act="seg-download" data-i="${origIndex}" title="Télécharger .MD + captures de cette demande">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            .MD
+          </button>
+        </div>
       `;
       // Rendu du texte avec chips read-only
       const textEl = card.querySelector('.demande-text');
@@ -1817,6 +1827,14 @@
       });
       textEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.currentTarget.blur(); });
 
+      card.querySelector('[data-act="seg-copy"]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        copyPromptForDemande(Number(e.currentTarget.dataset.i));
+      });
+      card.querySelector('[data-act="seg-download"]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        downloadDemande(Number(e.currentTarget.dataset.i));
+      });
       card.querySelector('.seg-edit-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         const i = Number(e.currentTarget.dataset.i);
@@ -2297,6 +2315,46 @@
     } catch (e) {
       setStatus('Copie impossible : ' + e.message, 'error');
     }
+  }
+
+  // Construit le markdown pour UNE seule demande (utilisé par les
+  // boutons Copier / .MD par segment).
+  function buildPromptForDemande(idx) {
+    const all = STATE.demandes;
+    const single = all[idx];
+    if (!single) return '';
+    STATE.demandes = [single];
+    try {
+      return buildPrompt({ inlineImages: false });
+    } finally {
+      STATE.demandes = all;
+    }
+  }
+  async function copyPromptForDemande(idx) {
+    const text = buildPromptForDemande(idx);
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus(`Prompt de la demande #${idx + 1} copié.`, 'success');
+    } catch (e) {
+      setStatus('Copie impossible : ' + e.message, 'error');
+    }
+  }
+  async function downloadDemande(idx) {
+    const dem = STATE.demandes[idx];
+    if (!dem) return;
+    const text = buildPromptForDemande(idx);
+    downloadFile(`biaif-demande-${idx + 1}.md`, new Blob([text], { type: 'text/markdown' }));
+    let imgCount = 0;
+    const refs = dem.refs || [];
+    for (let ri = 0; ri < refs.length; ri++) {
+      const r = refs[ri];
+      if (r.type !== 'screenshot' || !r.dataUrl) continue;
+      const blob = await dataUrlToBlob(r.dataUrl);
+      downloadFile(`biaif-demande-${idx + 1}-ref${ri + 1}.png`, blob);
+      imgCount++;
+    }
+    setStatus(`Demande #${idx + 1} téléchargée${imgCount ? ` (+ ${imgCount} capture${imgCount > 1 ? 's' : ''})` : ''}.`, 'success');
   }
 
   async function downloadBundle() {

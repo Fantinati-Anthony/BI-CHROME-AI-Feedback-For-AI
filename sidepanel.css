@@ -71,8 +71,12 @@ html, body {
 .biaif-root.is-empty-state .biaif-segments-wrap {
   display: none !important;
 }
-.biaif-root.is-empty-state .session-bar { margin-top: auto; }
-.biaif-root.is-empty-state .biaif-empty-state { margin-bottom: auto; }
+.biaif-root.is-empty-state .session-bar {
+  order: 2; margin-top: 0; margin-bottom: auto;
+}
+.biaif-root.is-empty-state .biaif-empty-state {
+  order: 1; margin-top: auto; margin-bottom: 0;
+}
 .biaif-root.is-empty-state .biaif-footer-area { margin-top: 0; }
 
 /* Orb pulsant en haut du hero : signature visuelle "AI" */
@@ -526,6 +530,26 @@ html, body {
   padding-right: 10px;
 }
 .seg-edit-btn svg { flex-shrink: 0; }
+
+/* Actions par segment : Copier / .MD à la fin de chaque carte */
+.seg-actions {
+  display: flex; gap: 4px; justify-content: flex-end;
+  padding-top: 4px; margin-top: 2px;
+  border-top: 1px dashed var(--border-card);
+}
+.seg-action-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: transparent; border: 1px solid var(--border-card);
+  color: var(--text-muted);
+  font-family: inherit; font-size: 10px; font-weight: 600;
+  padding: 3px 8px; border-radius: var(--radius-pill);
+  cursor: pointer; transition: all 0.15s;
+}
+.seg-action-btn:hover {
+  color: var(--accent-blue); border-color: var(--accent-blue);
+  background: var(--accent-blue-50);
+}
+.seg-action-btn svg { color: var(--accent-blue); }
 
 /* Segment en cours d'édition : bordure cyan, halo, fond légèrement bleuté */
 .biaif-segment.is-editing {
