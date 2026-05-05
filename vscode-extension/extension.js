@@ -12,6 +12,7 @@ const http   = require('http');
 const path   = require('path');
 const fs     = require('fs');
 const os     = require('os');
+const cp     = require('child_process');
 
 let server    = null;
 let statusBar = null;
@@ -185,9 +186,11 @@ async function handleInjectCopilot(payload) {
     try { await attempt(); textMethod = attempt; break; } catch (_) {}
   }
 
-  // Fallback: clipboard + focus panel
+  // Fallback: clipboard + focus panel + native Ctrl+V simulation
   if (!textMethod) {
     if (text) await vscode.env.clipboard.writeText(text);
+
+    // Focus the Copilot Chat input (try several command IDs)
     const focusCandidates = [
       'workbench.panel.chat.view.copilot.focus',
       'github.copilot.chat.focus',
@@ -196,6 +199,11 @@ async function handleInjectCopilot(payload) {
     for (const cmd of focusCandidates) {
       try { await vscode.commands.executeCommand(cmd); break; } catch (_) {}
     }
+
+    // Give VS Code time to focus the chat input, then simulate Ctrl+V
+    // so the text lands directly in the field without user interaction.
+    await _sleep(400);
+    await _simulatePaste();
   }
 
   // ── 2. Attach images ────────────────────────────────────────────────────
@@ -250,6 +258,41 @@ async function handleInjectCopilot(payload) {
     images: { total: saved.length, attached: attached.length, opened: notAttached },
     tmpDir: tmpBase,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Native paste simulation (fallback when VS Code Chat API is unavailable)
+//
+// Simulates Ctrl+V at the OS level so text lands in whatever input has focus.
+// Works on Linux (xdotool), macOS (osascript), Windows (PowerShell).
+// Requires the chat panel to already be focused before calling.
+// ---------------------------------------------------------------------------
+
+function _sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+async function _simulatePaste() {
+  const platform = process.platform;
+  try {
+    if (platform === 'linux') {
+      // xdotool must be installed: sudo apt install xdotool
+      cp.execSync('xdotool key ctrl+v', { timeout: 2000 });
+
+    } else if (platform === 'darwin') {
+      cp.execSync(
+        'osascript -e \'tell application "System Events" to keystroke "v" using command down\'',
+        { timeout: 2000 },
+      );
+
+    } else if (platform === 'win32') {
+      cp.execSync(
+        'powershell -command "Add-Type -AssemblyName System.Windows.Forms; ' +
+        '[System.Windows.Forms.SendKeys]::SendWait(\\"^v\\")"',
+        { timeout: 3000 },
+      );
+    }
+  } catch (_) {
+    // Native tool unavailable — clipboard fallback already done, user pastes manually
+  }
 }
 
 // ---------------------------------------------------------------------------

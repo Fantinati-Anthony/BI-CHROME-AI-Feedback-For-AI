@@ -1,7 +1,7 @@
 {
   "name": "biaif-vscode-bridge",
   "displayName": "BIAIF Bridge",
-  "description": "Reçoit les prompts et captures de l'extension Chrome BIAIF et les injecte dans Claude Code.",
+  "description": "Reçoit les prompts et captures de l'extension Chrome BIAIF et les injecte dans Claude Code / GitHub Copilot Chat. Linux : nécessite xdotool pour la simulation de touche (sudo apt install xdotool).",
   "version": "0.4.0",
   "publisher": "biaif",
   "engines": { "vscode": "^1.80.0" },
