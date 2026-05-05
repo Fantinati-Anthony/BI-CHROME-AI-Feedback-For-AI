@@ -559,6 +559,14 @@ html, body {
   background: var(--accent-purple-50);
 }
 
+/* VS Code button — VS Code teal brand color */
+.seg-action-btn--vscode { color: #4ec9b0; }
+.seg-action-btn--vscode svg { color: #4ec9b0; }
+.seg-action-btn--vscode:hover {
+  color: #4ec9b0; border-color: #4ec9b0;
+  background: rgba(78, 201, 176, 0.1);
+}
+
 /* Segment en cours d'édition : bordure cyan, halo, fond légèrement bleuté */
 .biaif-segment.is-editing {
   border-color: var(--accent-blue);
