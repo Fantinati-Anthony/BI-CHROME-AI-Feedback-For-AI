@@ -297,13 +297,30 @@ html, body {
   flex: 1; font-size: 10px; color: var(--text-muted);
   display: flex; align-items: center; gap: 6px;
 }
-.seg-del {
+.seg-mic-btn {
   margin-left: auto;
+  background: var(--bg-app); border: 1px solid var(--border-card);
+  color: var(--text-muted);
+  cursor: pointer; padding: 3px 6px; border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.seg-mic-btn:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
+.seg-mic-btn.active {
+  color: #000; background: var(--accent-blue); border-color: var(--accent-blue);
+  box-shadow: 0 0 8px rgba(14, 165, 183, 0.5);
+}
+.seg-del {
   background: transparent; border: none; color: var(--text-muted);
   cursor: pointer; padding: 2px 6px; border-radius: 4px;
   font-size: 14px; line-height: 1; transition: all 0.15s;
 }
 .seg-del:hover { background: rgba(255, 69, 58, 0.12); color: var(--danger); }
+
+/* Chip draggable : feedback visuel pendant le drag */
+.ref-chip[draggable="true"] { cursor: grab; }
+.ref-chip[draggable="true"]:active { cursor: grabbing; }
+.ref-chip.is-dragging { opacity: 0.4; }
 
 .demande-text {
   font-size: 13px; color: var(--text-main); line-height: 1.5;
@@ -317,40 +334,41 @@ html, body {
 .demande-text:focus { background: rgba(139, 92, 246, 0.06); border-left-color: var(--accent-blue); }
 .demande-text-empty { color: var(--text-muted); font-style: italic; }
 
-/* Tooltip rich au survol d'un ref-chip (preview + bouton Modifier) */
+/* Tooltip rich au survol d'un ref-chip (preview + bouton Modifier).
+   Position: fixed pour ne JAMAIS être clippé ni déborder hors de la sidebar.
+   Le placement (top/left/width) est calculé en JS depuis le rect de la chip. */
 .ref-chip { position: relative; }
 .ref-tooltip {
-  position: absolute;
-  bottom: 100%; /* pas de gap : la souris doit pouvoir transiter sans perdre le :hover */
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 4px;
-  z-index: 100;
-  min-width: 200px; max-width: 260px;
+  position: fixed;
+  display: none;
+  flex-direction: column; gap: 6px;
   padding: 8px;
   background: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: 8px;
   box-shadow: 0 8px 22px rgba(0,0,0,0.5);
-  display: none;
-  flex-direction: column; gap: 6px;
+  z-index: 200;
   font-family: inherit; font-size: 11px; font-weight: 400;
   color: var(--text-main); text-transform: none; letter-spacing: 0;
   white-space: normal; line-height: 1.4;
   user-select: text;
   pointer-events: auto;
 }
-/* Bridge invisible pour ne pas perdre le :hover entre chip et tooltip */
+/* Bridge invisible pour ne pas perdre le :hover en bougeant vers le tooltip */
 .ref-tooltip::before {
-  content: '';
-  position: absolute; top: 100%; left: 0; right: 0; height: 6px;
+  content: ''; position: absolute;
+  left: 0; right: 0; top: 100%; height: 10px;
 }
-/* Petite flèche sous le tooltip pointant le chip */
+.ref-tooltip.is-below::before { top: auto; bottom: 100%; }
+/* Petite flèche qui pointe vers la chip (position horizontale dynamique via --arrow-left) */
 .ref-tooltip::after {
-  content: '';
-  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  border: 5px solid transparent; border-top-color: var(--border-card);
+  content: ''; position: absolute;
+  left: var(--arrow-left, 50%); transform: translateX(-50%);
+  border: 5px solid transparent;
 }
+.ref-tooltip:not(.is-below)::after { top: 100%; border-top-color: var(--border-card); }
+.ref-tooltip.is-below::after        { bottom: 100%; border-bottom-color: var(--border-card); }
+
 .ref-chip:hover > .ref-tooltip,
 .ref-chip:focus-within > .ref-tooltip {
   display: flex;
