@@ -34,6 +34,10 @@
     sortOrder: 'desc',
     lang: 'fr-FR',
     micDeviceId: '',
+    // Mode "remplacement" : si non-null, le prochain pick d'élément
+    // remplace la ref ciblée au lieu d'en créer une nouvelle.
+    // { demKey: 'current' | <number>, refIndex: <number> }
+    replacingRef: null,
   };
 
   // Mic test (live audio level meter, separate from SpeechRecognition stream)
@@ -235,6 +239,21 @@
       }
     });
     if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', () => hideReloadModal());
+
+    // Délégation : "Modifier" dans le tooltip d'un chip de ref.
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.ref-tooltip-btn');
+      if (!btn) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const chip = btn.closest('.ref-chip');
+      if (!chip) return;
+      const refIdx = Number(chip.dataset.ref);
+      const demKeyRaw = chip.dataset.demKey;
+      const demKey = demKeyRaw === 'current' ? 'current' : (demKeyRaw === undefined ? 'current' : Number(demKeyRaw));
+      const editType = btn.dataset.editType;
+      editRef(demKey, refIdx, editType);
+    });
 
     // Click on status zone : route to the right action based on data-action.
     REFS.status.addEventListener('click', async () => {
@@ -788,7 +807,6 @@
 
   function onElementPicked(msg) {
     const descriptor = msg.descriptor || { selector: '?', tag: null, id: null, classes: [], text: null, outerHTML: null };
-    // Pousse l'élément comme nouvelle référence et insère un chip inline.
     const ref = {
       type: 'element',
       selector: descriptor.selector || '?',
@@ -801,6 +819,29 @@
       metadata: msg.metadata || null,
       ts: Date.now(),
     };
+
+    // Mode remplacement : on remplace la ref ciblée et on désactive le picker.
+    if (STATE.replacingRef) {
+      const { demKey, refIndex } = STATE.replacingRef;
+      STATE.replacingRef = null;
+      const target = demKey === 'current' ? STATE.currentDemande : STATE.demandes[demKey];
+      if (target && target.refs && target.refs[refIndex]) {
+        target.refs[refIndex] = ref;
+        if (demKey === 'current') {
+          renderDemandeEditor();
+        } else {
+          renderSegments();
+        }
+        persist();
+        setStatus(`Référence #${refIndex + 1} mise à jour : ${shortLabel(descriptor)}`, 'success');
+      }
+      // On désactive le picker uniquement si la session est inactive,
+      // sinon on le laisse actif (l'utilisateur est en flow de session).
+      if (!STATE.armed) sendBg({ type: 'biaif:picker-disable' });
+      return;
+    }
+
+    // Cas normal : nouvelle ref dans la demande en cours.
     STATE.currentDemande.refs.push(ref);
     const absIdx = STATE.currentDemande.refs.length - 1;
     appendChipToEditor(absIdx, ref);
@@ -850,22 +891,73 @@
   // ============================================================
 
   // Crée le DOM d'un chip de référence (inline dans l'éditeur).
+  // Crée le DOM d'un chip de référence + tooltip rich au survol.
+  // opts : { readOnly?, displayNum?, demKey? }
+  //   demKey === 'current' → ref de la demande en cours (currentDemande.refs)
+  //   demKey === <number>   → ref d'une demande finalisée STATE.demandes[demKey].refs
   function makeChipElement(absIdx, ref, opts) {
+    opts = opts || {};
     const span = document.createElement('span');
     span.className = 'ref-chip ref-chip--' + (ref?.type || 'element');
-    if (opts && opts.readOnly) span.classList.add('ref-chip-readonly');
+    if (opts.readOnly) span.classList.add('ref-chip-readonly');
     span.contentEditable = 'false';
     span.dataset.ref = String(absIdx);
+    if (opts.demKey !== undefined) span.dataset.demKey = String(opts.demKey);
+
     const isShot = ref?.type === 'screenshot';
     const icon = isShot
       ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>'
-      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6L9 6L9 18"/><polyline points="14 8 17 12 14 16"/></svg>';
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>';
     const labelKind = isShot ? 'capture' : 'élément';
-    const num = (opts && opts.displayNum) || (absIdx + 1);
-    span.innerHTML = icon + '<span>' + labelKind + ' #' + num + '</span>';
-    span.title = isShot
-      ? `Capture (${ref.mode || ''})`
-      : `Élément : ${ref?.selector || '?'}`;
+    const num = opts.displayNum || (absIdx + 1);
+    const labelHtml = `${icon}<span class="ref-chip-label">${labelKind} #${num}</span>`;
+
+    // Tooltip rich (rendu hover ou focus-within)
+    const tip = document.createElement('span');
+    tip.className = 'ref-tooltip';
+    tip.contentEditable = 'false';
+    if (isShot) {
+      const img = document.createElement('img');
+      img.className = 'ref-tooltip-img';
+      img.src = ref.dataUrl || '';
+      img.alt = 'capture #' + num;
+      tip.appendChild(img);
+      const meta = document.createElement('div');
+      meta.className = 'ref-tooltip-meta';
+      meta.textContent = `Mode : ${ref.mode || 'visible'}`;
+      tip.appendChild(meta);
+      const btn = document.createElement('button');
+      btn.className = 'ref-tooltip-btn';
+      btn.type = 'button';
+      btn.dataset.editType = 'screenshot';
+      btn.textContent = '✏ Re-annoter';
+      tip.appendChild(btn);
+    } else {
+      const meta = document.createElement('div');
+      meta.className = 'ref-tooltip-meta';
+      const lines = [];
+      if (ref?.tag)             lines.push(`<span class="t-key">tag</span> &lt;${escapeHtml(ref.tag)}&gt;`);
+      if (ref?.id)              lines.push(`<span class="t-key">id</span> #${escapeHtml(ref.id)}`);
+      if (ref?.classes?.length) lines.push(`<span class="t-key">classes</span> ${escapeHtml(ref.classes.join(' '))}`);
+      if (ref?.text)            lines.push(`<span class="t-key">texte</span> « ${escapeHtml(ref.text.slice(0, 80))}${ref.text.length > 80 ? '…' : ''} »`);
+      meta.innerHTML = lines.join('<br>') || '<em>Pas de détails</em>';
+      tip.appendChild(meta);
+      if (ref?.selector) {
+        const sel = document.createElement('div');
+        sel.className = 'ref-tooltip-selector';
+        sel.innerHTML = '<code>' + escapeHtml(ref.selector) + '</code>';
+        tip.appendChild(sel);
+      }
+      const btn = document.createElement('button');
+      btn.className = 'ref-tooltip-btn';
+      btn.type = 'button';
+      btn.dataset.editType = 'element';
+      btn.textContent = '⌖ Re-piquer';
+      tip.appendChild(btn);
+    }
+
+    span.innerHTML = labelHtml;
+    span.appendChild(tip);
     return span;
   }
 
@@ -879,7 +971,7 @@
     } else if (last && last.nodeType === Node.ELEMENT_NODE) {
       ed.appendChild(document.createTextNode(' '));
     }
-    ed.appendChild(makeChipElement(absIdx, ref));
+    ed.appendChild(makeChipElement(absIdx, ref, { demKey: 'current' }));
     ed.appendChild(document.createTextNode(' '));
     syncCurrentDemandeFromEditor();
     renderDemandeRefsStrip();
@@ -957,7 +1049,7 @@
       if (m.index > last) ed.appendChild(document.createTextNode(text.slice(last, m.index)));
       const idx = Number(m[1]);
       const ref = refs[idx];
-      if (ref) ed.appendChild(makeChipElement(idx, ref));
+      if (ref) ed.appendChild(makeChipElement(idx, ref, { demKey: 'current' }));
       last = m.index + m[0].length;
     }
     if (last < text.length) ed.appendChild(document.createTextNode(text.slice(last)));
@@ -1058,11 +1150,10 @@
              contenteditable="true" spellcheck="true"
              data-i="${origIndex}"
              data-placeholder="(demande vide)"></div>
-        <div class="demande-refs-list"></div>
       `;
       // Rendu du texte avec chips read-only
       const textEl = card.querySelector('.demande-text');
-      renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true });
+      renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true, demKey: origIndex });
       // Édition manuelle : sync sur blur, garder les chips intacts
       textEl.addEventListener('blur', () => {
         // Reconstruit le texte/refs depuis le DOM (chips read-only mais text éditable)
@@ -1089,51 +1180,6 @@
       });
       textEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.currentTarget.blur(); });
 
-      // Liste des refs en dessous (info détaillée pour visu rapide)
-      const refsList = card.querySelector('.demande-refs-list');
-      (dem.refs || []).forEach((ref, i) => {
-        const row = document.createElement('div');
-        row.className = 'demande-ref-row' + (ref.type === 'screenshot' ? ' is-screenshot' : '');
-        if (ref.type === 'screenshot' && ref.dataUrl) {
-          const wrap = document.createElement('div');
-          wrap.className = 'ref-thumb-wrap';
-          const numEl = document.createElement('span');
-          numEl.className = 'ref-thumb-num';
-          numEl.textContent = '#' + (i + 1);
-          const img = document.createElement('img');
-          img.className = 'ref-thumb';
-          img.src = ref.dataUrl;
-          img.alt = 'capture #' + (i + 1);
-          const aBtn = document.createElement('button');
-          aBtn.className = 'ref-annotate';
-          aBtn.title = 'Annoter cette capture';
-          aBtn.textContent = '✏';
-          aBtn.addEventListener('click', () => annotateDemandeRef(origIndex, i));
-          wrap.appendChild(numEl);
-          wrap.appendChild(img);
-          wrap.appendChild(aBtn);
-          row.appendChild(wrap);
-        }
-        const info = document.createElement('div');
-        info.className = 'ref-info';
-        const tag = document.createElement('div');
-        tag.innerHTML = `<span class="ref-num-tag">#${i + 1}</span> ${ref.type === 'screenshot' ? 'capture' : 'élément'}${ref.type === 'screenshot' && ref.mode ? ' (' + escapeHtml(ref.mode) + ')' : ''}`;
-        info.appendChild(tag);
-        if (ref.type !== 'screenshot' && ref.selector) {
-          const sel = document.createElement('div');
-          sel.innerHTML = '<code>' + escapeHtml(ref.selector) + '</code>';
-          info.appendChild(sel);
-        }
-        if (ref.text) {
-          const t = document.createElement('div');
-          t.className = 'ref-text';
-          t.textContent = '« ' + ref.text + ' »';
-          info.appendChild(t);
-        }
-        row.appendChild(info);
-        refsList.appendChild(row);
-      });
-
       card.querySelector('.seg-del').addEventListener('click', (e) => {
         const i = Number(e.currentTarget.dataset.i);
         STATE.demandes.splice(i, 1);
@@ -1153,13 +1199,56 @@
       if (m.index > last) root.appendChild(document.createTextNode(text.slice(last, m.index)));
       const idx = Number(m[1]);
       const ref = refs[idx];
-      if (ref) root.appendChild(makeChipElement(idx, ref, { readOnly: true, displayNum: idx + 1 }));
+      if (ref) root.appendChild(makeChipElement(idx, ref, {
+        readOnly: true,
+        displayNum: idx + 1,
+        demKey: opts ? opts.demKey : undefined,
+      }));
       last = m.index + m[0].length;
     }
     if (last < text.length) root.appendChild(document.createTextNode(text.slice(last)));
     if (!root.childNodes.length) {
       // Empty — le placeholder CSS prend le relais via :empty
     }
+  }
+
+  // Point d'entrée unique pour le bouton "Modifier" des tooltips de chip.
+  // demKey : 'current' (demande en cours) ou index numérique d'une demande finalisée.
+  async function editRef(demKey, refIndex, editType) {
+    const target = demKey === 'current' ? STATE.currentDemande : STATE.demandes[demKey];
+    if (!target || !target.refs || !target.refs[refIndex]) return;
+    const ref = target.refs[refIndex];
+
+    if (editType === 'screenshot' || ref.type === 'screenshot') {
+      // Re-annotation : ouvre l'annotateur sur le dataUrl actuel.
+      if (!ref.dataUrl) { setStatus('Capture indisponible (cache local).', 'error'); return; }
+      setStatus("Annotateur ouvert dans l'onglet actif…", 'info');
+      const resp = await sendBg({ type: 'biaif:annotate', dataUrl: ref.dataUrl });
+      if (!resp) { setStatus('Annotation KO : pas de réponse', 'error'); return; }
+      if (resp.cancelled) { setStatus('Annotation annulée.', 'info'); return; }
+      if (resp.error || !resp.dataUrl) {
+        setStatusError('Annotation KO : ' + decodeContentScriptError(resp.error || 'no result'),
+          isReloadableError(resp.error || '') ? 'reload-active-tab' : null);
+        return;
+      }
+      ref.dataUrl = resp.dataUrl;
+      if (demKey === 'current') renderDemandeEditor();
+      else renderSegments();
+      persist();
+      setStatus(`Référence #${refIndex + 1} : annotation enregistrée.`, 'success');
+      return;
+    }
+
+    // Élément : on arme le mode "remplacement" et on active le picker.
+    STATE.replacingRef = { demKey, refIndex };
+    const resp = await sendBg({ type: 'biaif:picker-enable' });
+    if (resp && resp.error) {
+      STATE.replacingRef = null;
+      setStatusError('Picker KO : ' + decodeContentScriptError(resp.error),
+        isReloadableError(resp.error) ? 'reload-active-tab' : null);
+      return;
+    }
+    setStatus(`Cliquez un élément pour remplacer la référence #${refIndex + 1}…`, 'info');
   }
 
   async function annotateDemandeRef(demIndex, refIndex) {
