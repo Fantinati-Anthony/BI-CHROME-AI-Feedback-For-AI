@@ -47,6 +47,10 @@
     // Cible de la modale "Ajouter" : 'current' (demande en cours) ou
     // index numérique d'une demande historique.
     modalTarget: 'current',
+    // Mode "édition" d'une demande finalisée : si non-null, la barre
+    // d'outils (.biaif-quick-tools) est physiquement déplacée dans le
+    // segment ; voix / pick / capture vont vers ce segment.
+    editingDemandeIdx: null,
   };
 
   // État du drag-and-drop manuel des chips.
@@ -309,7 +313,10 @@
       if (e.target === captureModal) closeCaptureModal();
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && captureModal && !captureModal.hasAttribute('hidden')) closeCaptureModal();
+      if (e.key === 'Escape') {
+        if (captureModal && !captureModal.hasAttribute('hidden')) closeCaptureModal();
+        else if (STATE.editingDemandeIdx !== null) exitEditMode();
+      }
     });
 
     if (fileInput) fileInput.addEventListener('change', (e) => {
@@ -538,20 +545,26 @@
     }
   }
 
-  // Helper unifié : pousse une ref dans la cible courante (current demande
-  // ou demande finalisée si modalTarget est numérique). Insère un chip à
-  // l'endroit approprié + rend l'UI + persiste.
+  // Helper unifié : pousse une ref dans la cible courante. Priorité :
+  // 1) segment en édition (editingDemandeIdx)
+  // 2) modalTarget (clic depuis le bouton + d'un segment historique)
+  // 3) demande en cours (mode live)
   function addRefToTarget(ref) {
-    if (typeof STATE.modalTarget === 'number') {
-      const dem = STATE.demandes[STATE.modalTarget];
+    const idx = activeTargetIdx();
+    if (typeof idx === 'number') {
+      const dem = STATE.demandes[idx];
       if (!dem) return false;
       dem.refs = dem.refs || [];
       dem.refs.push(ref);
       const newIdx = dem.refs.length - 1;
-      // Append le token au texte
-      dem.text = (dem.text || '').replace(/\s+$/, '');
-      dem.text = (dem.text + (dem.text ? ' ' : '') + `{{ref:${newIdx}}}`).trim();
+      const cur = (dem.text || '').replace(/\s+$/, '');
+      dem.text = (cur + (cur ? ' ' : '') + `{{ref:${newIdx}}} `).replace(/\s{2,}/g, ' ');
       renderSegments();
+      // Si on était en édition, replace la quick-tools dans le segment
+      // ré-rendu (le DOM a été remplacé)
+      if (typeof STATE.editingDemandeIdx === 'number') {
+        relocateQuickToolsToSegment(STATE.editingDemandeIdx);
+      }
       persist();
       return true;
     }
@@ -563,14 +576,23 @@
   }
 
   // Append du texte à la cible courante (éditeur ou .demande-text d'une
-  // demande historique selon modalTarget).
+  // demande historique selon modalTarget / editingDemandeIdx).
   function addTextToTarget(text) {
     if (!text) return;
-    if (typeof STATE.modalTarget === 'number') {
-      const dem = STATE.demandes[STATE.modalTarget];
+    const idx = activeTargetIdx();
+    if (typeof idx === 'number') {
+      const dem = STATE.demandes[idx];
       if (!dem) return;
-      dem.text = ((dem.text || '') + (dem.text && !/\s$/.test(dem.text) ? ' ' : '') + text).trim();
-      renderSegments();
+      const textEl = document.querySelector(`.demande-text[data-i="${idx}"]`);
+      if (textEl) {
+        insertTextAtSelection(textEl, text);
+        syncDemandeFromTextEl(textEl, dem);
+      } else {
+        const cur = dem.text || '';
+        const sep = cur && !/\s$/.test(cur) ? ' ' : '';
+        dem.text = (cur + sep + text.replace(/^\s+|\s+$/g, '') + ' ').replace(/\s{2,}/g, ' ');
+        renderSegments();
+      }
       persist();
       return;
     }
@@ -580,6 +602,13 @@
       syncCurrentDemandeFromEditor();
       persist();
     }
+  }
+
+  // Renvoie l'index actif (édition de segment ou modalTarget), sinon null.
+  function activeTargetIdx() {
+    if (typeof STATE.editingDemandeIdx === 'number') return STATE.editingDemandeIdx;
+    if (typeof STATE.modalTarget === 'number') return STATE.modalTarget;
+    return null;
   }
   function switchModalTab(name) {
     document.querySelectorAll('.modal-tab').forEach((t) => {
@@ -1237,7 +1266,10 @@
     if (!text) return;
     STATE.currentInterim = '';
     if (REFS.interim) REFS.interim.textContent = '';
-    if (typeof STATE.dictationTarget === 'number') {
+    // Priorité : segment en édition > dictation target classique > éditeur live
+    if (typeof STATE.editingDemandeIdx === 'number') {
+      appendVoiceToDemande(STATE.editingDemandeIdx, text);
+    } else if (typeof STATE.dictationTarget === 'number') {
       appendVoiceToDemande(STATE.dictationTarget, text);
     } else {
       appendVoiceToEditor(text);
@@ -1255,8 +1287,10 @@
       insertTextAtSelection(textEl, text);
       syncDemandeFromTextEl(textEl, dem);
     } else {
-      const sep = dem.text && !/\s$/.test(dem.text) ? ' ' : '';
-      dem.text = (dem.text || '') + sep + text;
+      const trimmed = text.replace(/^\s+|\s+$/g, '');
+      const cur = dem.text || '';
+      const sep = cur && !/\s$/.test(cur) ? ' ' : '';
+      dem.text = (cur + sep + trimmed + ' ').replace(/\s{2,}/g, ' ').replace(/\s+$/, ' ');
       renderSegments();
     }
     persist();
@@ -1284,6 +1318,7 @@
 
   async function startSession() {
     if (STATE.armed) return;
+    if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
     STATE.armed = true;
     if (REFS.masterBtn) {
       REFS.masterBtn.classList.add('armed');
@@ -1308,6 +1343,7 @@
 
   function stopSession() {
     if (!STATE.armed) return;
+    if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
     STATE.armed = false;
     if (REFS.masterBtn) {
       REFS.masterBtn.classList.remove('armed');
@@ -1337,12 +1373,72 @@
     const root = document.querySelector('.biaif-root');
     if (root) root.classList.toggle('is-armed', !!STATE.armed);
     const qt = document.querySelector('.biaif-quick-tools');
-    if (qt) qt.classList.toggle('is-hidden', !STATE.armed);
+    const editing = typeof STATE.editingDemandeIdx === 'number';
+    if (qt) qt.classList.toggle('is-hidden', !STATE.armed && !editing);
     const dz = document.querySelector('.demande-zone');
     if (dz) {
       const hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
-      dz.classList.toggle('is-locked', !STATE.armed && !hasContent);
+      // Cachée si pas armé ET vide, OU si on édite un segment historique
+      dz.classList.toggle('is-locked', editing || (!STATE.armed && !hasContent));
     }
+  }
+
+  // ============================================================
+  // EDIT MODE — édition d'une demande finalisée
+  // ============================================================
+
+  // Entre en mode édition pour le segment d'index idx. Déplace
+  // physiquement la .biaif-quick-tools dans le segment, masque la
+  // .demande-zone, focalise le texte du segment.
+  function enterEditMode(idx) {
+    if (idx == null || idx === STATE.editingDemandeIdx) return;
+    // Sortie d'un éventuel mode édition précédent
+    if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
+    STATE.editingDemandeIdx = idx;
+    STATE.dictationTarget = idx;
+    STATE.modalTarget = 'current'; // Plus utilisé en mode édition
+    // Démarre le micro si éteint pour fluidifier la dictée
+    if (!STATE.micActive) startMic();
+    // Re-render pour faire apparaître le bouton "Terminer" et marquer
+    // le segment .is-editing
+    renderSegments();
+    // Déplace la barre d'outils dans le segment ciblé
+    relocateQuickToolsToSegment(idx);
+    updateArmedUi();
+    // Focus le texte pour que la voix s'insère au bon endroit
+    setTimeout(() => {
+      const textEl = document.querySelector(`.demande-text[data-i="${idx}"]`);
+      if (textEl) textEl.focus();
+    }, 30);
+    setStatus(`Édition de la demande #${idx + 1} — voix, picker, capture s'y insèrent.`, 'info');
+  }
+
+  function exitEditMode(opts) {
+    if (STATE.editingDemandeIdx === null) return;
+    STATE.editingDemandeIdx = null;
+    STATE.dictationTarget = 'current';
+    // Replace la barre d'outils sous la session-bar
+    relocateQuickToolsToTop();
+    renderSegments();
+    updateArmedUi();
+    if (!opts || !opts.silent) setStatus('Mode édition terminé.', 'info');
+  }
+
+  function relocateQuickToolsToSegment(idx) {
+    const qt = document.querySelector('.biaif-quick-tools');
+    const card = document.querySelector(`.biaif-segment[data-i="${idx}"]`);
+    if (!qt || !card) return;
+    // Insère après le header
+    const header = card.querySelector('header');
+    if (header && header.nextSibling) header.parentNode.insertBefore(qt, header.nextSibling);
+    else card.appendChild(qt);
+  }
+  function relocateQuickToolsToTop() {
+    const qt = document.querySelector('.biaif-quick-tools');
+    const sessionBar = document.querySelector('.session-bar');
+    if (!qt || !sessionBar) return;
+    // Insère juste après .session-bar (sa position d'origine)
+    sessionBar.parentNode.insertBefore(qt, sessionBar.nextSibling);
   }
 
   function startTimer() {
@@ -1409,11 +1505,11 @@
       return;
     }
 
-    // Cas normal : route via la cible courante (current demande ou
-    // demande historique selon STATE.modalTarget).
+    // Cas normal : route via la cible courante (édition / modal / live).
+    const tIdx = activeTargetIdx();
     addRefToTarget(ref);
-    setStatus(typeof STATE.modalTarget === 'number'
-      ? `Élément ajouté à la demande #${STATE.modalTarget + 1} : ${shortLabel(descriptor)}`
+    setStatus(typeof tIdx === 'number'
+      ? `Élément ajouté à la demande #${tIdx + 1} : ${shortLabel(descriptor)}`
       : `Référence ajoutée : ${shortLabel(descriptor)}`, 'success');
     STATE.modalTarget = 'current';
   }
@@ -1692,6 +1788,11 @@
 
   // Suivant : finalise la demande en cours et l'ajoute à l'historique.
   function finalizeDemande() {
+    if (STATE.editingDemandeIdx !== null) {
+      // En édition d'un segment historique : "Suivant" termine l'édition.
+      exitEditMode();
+      return;
+    }
     syncCurrentDemandeFromEditor();
     const { text, refs } = STATE.currentDemande;
     const cleaned = (text || '').replace(/\s+/g, ' ').trim();
@@ -1741,24 +1842,28 @@
       card.className = 'biaif-segment';
       const dt = new Date(dem.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       const refsCount = (dem.refs || []).length;
-      const isDictating = STATE.dictationTarget === origIndex;
+      const isEditing = STATE.editingDemandeIdx === origIndex;
+      if (isEditing) card.classList.add('is-editing');
       card.dataset.i = String(origIndex);
       const pageUrl = dem.url || '';
       const shortUrl = formatPageUrl(pageUrl);
       const urlLine = pageUrl
         ? `<a class="seg-url" href="${escapeHtml(pageUrl)}" target="_blank" rel="noopener" title="${escapeHtml(pageUrl)}">${escapeHtml(shortUrl)}</a>`
         : '<span class="seg-url seg-url-empty">URL inconnue</span>';
+      const editBtnHtml = isEditing
+        ? `<button class="seg-edit-btn is-active" data-i="${origIndex}" title="Terminer l'édition" aria-label="Terminer l'édition">
+             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+             <span>Terminer</span>
+           </button>`
+        : `<button class="seg-edit-btn" data-i="${origIndex}" title="Éditer cette demande (voix, picker, capture s'y insèrent)" aria-label="Éditer cette demande">
+             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+           </button>`;
       card.innerHTML = `
         <header>
           <button class="seg-drag-handle" data-i="${origIndex}" title="Glisser sur une autre demande pour fusionner" aria-label="Poignée de fusion">⋮⋮</button>
           <span class="seg-num">#${num}</span>
           <span class="seg-meta">${dt} · ${refsCount} réf${refsCount > 1 ? 's' : ''}</span>
-          <button class="seg-mic-btn ${isDictating ? 'active' : ''}" data-i="${origIndex}" title="${isDictating ? 'Dictée active sur cette demande — cliquer pour revenir à la demande en cours' : 'Dicter dans cette demande'}" aria-label="Dicter dans cette demande">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-          </button>
-          <button class="seg-add-btn" data-i="${origIndex}" title="Ajouter une référence à cette demande" aria-label="Ajouter une référence">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
-          </button>
+          ${editBtnHtml}
           <button class="seg-del" data-i="${origIndex}" title="Supprimer">×</button>
         </header>
         <div class="seg-urlbar">
@@ -1799,26 +1904,15 @@
       });
       textEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') e.currentTarget.blur(); });
 
-      card.querySelector('.seg-add-btn').addEventListener('click', () => {
-        STATE.modalTarget = origIndex;
-        openCaptureModal('capture');
-        updateModalTitle();
-      });
-      card.querySelector('.seg-mic-btn').addEventListener('click', async (e) => {
+      card.querySelector('.seg-edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
         const i = Number(e.currentTarget.dataset.i);
-        if (STATE.dictationTarget === i) {
-          STATE.dictationTarget = 'current';
-        } else {
-          STATE.dictationTarget = i;
-          if (!STATE.micActive) await startMic();
-        }
-        renderSegments();
-        setStatus(
-          STATE.dictationTarget === 'current'
-            ? 'Dictée → Demande en cours'
-            : `Dictée → Demande #${STATE.dictationTarget + 1}`,
-          'info'
-        );
+        if (STATE.editingDemandeIdx === i) exitEditMode();
+        else enterEditMode(i);
+      });
+      // Clic dans le texte d'un segment hors mode édition → entre en édition.
+      textEl.addEventListener('focus', () => {
+        if (STATE.editingDemandeIdx !== origIndex) enterEditMode(origIndex);
       });
       // Drag handle : initie la fusion. La carte entière est drop target.
       const dragHandle = card.querySelector('.seg-drag-handle');
@@ -1913,31 +2007,71 @@
   }
 
   // Insère du texte à la position du curseur dans un container contenteditable.
-  // Si le curseur n'y est pas, append à la fin.
+  // Si le curseur n'y est pas, append à la fin. Toujours encadré d'espaces si
+  // les voisins en manquent (évite que 2 enregistrements vocaux se collent).
   function insertTextAtSelection(container, text) {
     if (!container || !text) return;
+    const trimmed = text.replace(/\s+$/, '');
+    if (!trimmed) return;
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0 && container.contains(sel.anchorNode)) {
       const range = sel.getRangeAt(0);
+      // Espace avant si le caractère précédent n'est pas un séparateur
+      const prevChar = getCharBeforeRange(range);
+      const needLead = prevChar && !/\s/.test(prevChar);
+      const nextChar = getCharAfterRange(range);
+      const needTrail = !nextChar || !/\s/.test(nextChar);
+      const finalText = (needLead ? ' ' : '') + trimmed + (needTrail ? ' ' : '');
       range.deleteContents();
-      const node = document.createTextNode(text);
+      const node = document.createTextNode(finalText);
       range.insertNode(node);
-      // Place le curseur après le texte inséré
       range.setStartAfter(node);
       range.collapse(true);
       sel.removeAllRanges();
       sel.addRange(range);
       return;
     }
-    // Fallback : append à la fin
+    // Fallback : append à la fin avec séparation propre
+    appendWithSpace(container, trimmed);
+  }
+
+  // Append du texte à la fin d'un container contenteditable, en garantissant
+  // un séparateur d'espace propre des deux côtés.
+  function appendWithSpace(container, text) {
+    if (!container || !text) return;
+    const trimmed = text.replace(/^\s+|\s+$/g, '');
+    if (!trimmed) return;
     const last = container.lastChild;
     if (last && last.nodeType === Node.TEXT_NODE) {
-      last.textContent += (last.textContent && !/\s$/.test(last.textContent) ? ' ' : '') + text;
+      const prevEnd = last.textContent.slice(-1);
+      const needLead = prevEnd && !/\s/.test(prevEnd);
+      last.textContent += (needLead ? ' ' : '') + trimmed + ' ';
     } else if (last && last.nodeType === Node.ELEMENT_NODE) {
-      container.appendChild(document.createTextNode(' ' + text));
+      container.appendChild(document.createTextNode(' ' + trimmed + ' '));
     } else {
-      container.appendChild(document.createTextNode(text));
+      container.appendChild(document.createTextNode(trimmed + ' '));
     }
+  }
+
+  function getCharBeforeRange(range) {
+    try {
+      const r = range.cloneRange();
+      r.collapse(true);
+      r.setStart(range.startContainer, Math.max(0, range.startOffset - 1));
+      return r.toString();
+    } catch (_) { return ''; }
+  }
+  function getCharAfterRange(range) {
+    try {
+      const r = range.cloneRange();
+      r.collapse(false);
+      const node = r.endContainer;
+      if (node.nodeType === Node.TEXT_NODE) {
+        const offset = r.endOffset;
+        return node.textContent.slice(offset, offset + 1);
+      }
+    } catch (_) {}
+    return '';
   }
 
   // Point d'entrée unique pour le bouton "Modifier" des tooltips de chip.
@@ -2020,11 +2154,13 @@
       dataUrl: resp.dataUrl,
       ts: Date.now(),
     };
+    const tIdx = activeTargetIdx();
     addRefToTarget(ref);
-    setStatus(typeof STATE.modalTarget === 'number'
-      ? `Capture ${mode} ajoutée à la demande #${STATE.modalTarget + 1}`
+    setStatus(typeof tIdx === 'number'
+      ? `Capture ${mode} ajoutée à la demande #${tIdx + 1}`
       : `Capture ${mode} OK — ajoutée comme référence`, 'success');
-    // La capture est terminée : on remet la cible à 'current'
+    // Reset modalTarget (l'éditingDemandeIdx reste pour permettre d'autres
+    // captures successives dans le même segment édité)
     STATE.modalTarget = 'current';
   }
 
@@ -2229,6 +2365,7 @@
 
   function clearAll() {
     if (!confirm('Effacer la session ? (Toutes les demandes finalisées et la demande en cours seront perdues)')) return;
+    if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
     STATE.demandes = [];
     STATE.currentDemande = { text: '', refs: [], pageUrl: null };
     STATE.currentInterim = '';

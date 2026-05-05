@@ -348,23 +348,42 @@ html, body {
   flex: 1; font-size: 10px; color: var(--text-muted);
   display: flex; align-items: center; gap: 6px;
 }
-.seg-mic-btn,
-.seg-add-btn {
+/* Bouton "Éditer" / "Terminer" du segment historique */
+.seg-edit-btn {
+  margin-left: auto;
   background: var(--bg-app); border: 1px solid var(--border-card);
   color: var(--text-muted);
-  cursor: pointer; padding: 3px 6px; border-radius: 4px;
-  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 3px 8px; border-radius: var(--radius-pill);
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: inherit; font-size: 10px; font-weight: 600;
   transition: all 0.15s;
 }
-.seg-mic-btn { margin-left: auto; }
-.seg-mic-btn:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
-.seg-mic-btn.active {
-  color: #000; background: var(--accent-blue); border-color: var(--accent-blue);
-  box-shadow: 0 0 8px rgba(14, 165, 183, 0.5);
+.seg-edit-btn:hover {
+  color: var(--accent-blue); border-color: var(--accent-blue);
+  box-shadow: 0 0 8px rgba(14, 165, 183, 0.25);
 }
-.seg-add-btn:hover {
-  color: var(--accent-purple); border-color: var(--accent-purple);
-  box-shadow: 0 0 8px rgba(139, 92, 246, 0.35);
+.seg-edit-btn.is-active {
+  background: linear-gradient(120deg, #06b6d4, #4f46e5, #8b5cf6);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+  padding-right: 10px;
+}
+.seg-edit-btn svg { flex-shrink: 0; }
+
+/* Segment en cours d'édition : bordure cyan, halo, fond légèrement bleuté */
+.biaif-segment.is-editing {
+  border-color: var(--accent-blue);
+  box-shadow:
+    0 0 0 1px var(--accent-blue),
+    0 0 20px rgba(14, 165, 183, 0.18);
+  background: linear-gradient(180deg,
+    rgba(14, 165, 183, 0.08) 0%,
+    rgba(20, 20, 25, 1) 30%,
+    rgba(13, 13, 15, 1) 100%);
+}
+/* La barre d'outils relogée dans le segment édité retrouve un peu de marge */
+.biaif-segment.is-editing > .biaif-quick-tools {
+  margin: 4px 0;
 }
 .seg-del {
   background: transparent; border: none; color: var(--text-muted);
