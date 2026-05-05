@@ -21,6 +21,70 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
+// ---------- chrome.contextMenus : "BIAIF — ..." -------------------------
+
+function setupContextMenus() {
+  if (!chrome.contextMenus) return;
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: 'biaif-element',
+      title: 'BIAIF — Ajouter cet élément (sélecteur)',
+      contexts: ['page', 'frame', 'image', 'link', 'selection'],
+    });
+    chrome.contextMenus.create({
+      id: 'biaif-capture-visible',
+      title: 'BIAIF — Capturer le viewport visible',
+      contexts: ['page', 'frame', 'image', 'link', 'selection'],
+    });
+    chrome.contextMenus.create({
+      id: 'biaif-selection',
+      title: 'BIAIF — Ajouter cette sélection',
+      contexts: ['selection'],
+    });
+    chrome.contextMenus.create({
+      id: 'biaif-image',
+      title: 'BIAIF — Ajouter cette image',
+      contexts: ['image'],
+    });
+  });
+}
+chrome.runtime.onInstalled.addListener(setupContextMenus);
+chrome.runtime.onStartup.addListener(setupContextMenus);
+
+if (chrome.contextMenus) {
+  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    // Ouvre le side panel si possible (gesture user OK)
+    try { if (tab?.id) await chrome.sidePanel.open({ tabId: tab.id }); } catch (_) {}
+
+    if (info.menuItemId === 'biaif-element') {
+      // Active le picker
+      sendToActiveTabContent({ type: 'biaif:command', action: 'picker-enable' });
+      chrome.runtime.sendMessage({
+        type: 'biaif:context-status',
+        msg: 'Sélecteur activé — cliquez l\'élément à référencer.',
+      }).catch(() => {});
+    } else if (info.menuItemId === 'biaif-capture-visible') {
+      chrome.runtime.sendMessage({
+        type: 'biaif:context-shot',
+        mode: 'visible',
+        pageUrl: info.pageUrl || tab?.url || null,
+      }).catch(() => {});
+    } else if (info.menuItemId === 'biaif-selection') {
+      chrome.runtime.sendMessage({
+        type: 'biaif:context-add-text',
+        text: info.selectionText || '',
+        pageUrl: info.pageUrl || tab?.url || null,
+      }).catch(() => {});
+    } else if (info.menuItemId === 'biaif-image') {
+      chrome.runtime.sendMessage({
+        type: 'biaif:context-add-image',
+        srcUrl: info.srcUrl || '',
+        pageUrl: info.pageUrl || tab?.url || null,
+      }).catch(() => {});
+    }
+  });
+}
+
 async function openSidePanelForActive() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

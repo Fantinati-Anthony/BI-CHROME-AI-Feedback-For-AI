@@ -27,7 +27,7 @@
     // Mad-Libs : la demande en cours est un texte avec tokens {{ref:N}} pointant
     // sur des entrées de refs[]. Les refs peuvent être des éléments (sélecteur)
     // ou des captures (dataUrl).
-    currentDemande: { text: '', refs: [] },
+    currentDemande: { text: '', refs: [], pageUrl: null },
     demandes: [],
     lastShot: null,
     lastShotMode: null,
@@ -574,6 +574,11 @@
     });
   }
   function addConsoleErrorToCurrentDemande(idx) {
+    // Conservé sous ce nom pour rétro-compat ; route vers la nouvelle
+    // logique : chaque erreur devient son propre segment.
+    addConsoleErrorAsSegment(idx);
+  }
+  function addConsoleErrorAsSegment(idx) {
     const err = STATE.consoleErrors[idx];
     if (!err) return;
     const ref = {
@@ -586,25 +591,94 @@
       url: err.url || null,
       ts: err.ts || Date.now(),
     };
-    STATE.currentDemande.refs.push(ref);
-    const absIdx = STATE.currentDemande.refs.length - 1;
-    appendChipToEditor(absIdx, ref);
-    // Retire l'erreur de la liste pour ne pas la re-proposer
+    const demande = {
+      id: 'dem-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      ts: Date.now(),
+      text: '{{ref:0}}',
+      refs: [ref],
+      url: err.url || null,
+    };
+    STATE.demandes.push(demande);
     STATE.consoleErrors.splice(idx, 1);
     updateErrorsBadges();
     renderConsoleErrorsList();
-    setStatus(`Erreur ajoutée comme référence #${absIdx + 1}`, 'success');
+    renderSegments();
+    persist();
+    setStatus(`Erreur ajoutée comme demande #${STATE.demandes.length}`, 'success');
   }
   function addAllConsoleErrors() {
     if (!STATE.consoleErrors.length) return;
-    while (STATE.consoleErrors.length) {
-      addConsoleErrorToCurrentDemande(0);
-    }
+    while (STATE.consoleErrors.length) addConsoleErrorAsSegment(0);
   }
   function clearConsoleErrors() {
     STATE.consoleErrors = [];
     updateErrorsBadges();
     renderConsoleErrorsList();
+  }
+
+  // ============================================================
+  // CONTEXT MENU HANDLERS — actions issues du clic droit Chrome
+  // ============================================================
+
+  // Mémorise l'URL de l'onglet sur la demande en cours dès qu'un événement
+  // pertinent survient (pick, capture, ajout via context menu...).
+  async function rememberPageUrl(pageUrlOpt) {
+    try {
+      let url = pageUrlOpt || null;
+      if (!url) {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        url = tab?.url || null;
+      }
+      if (url) STATE.currentDemande.pageUrl = url;
+    } catch (_) {}
+  }
+
+  function addTextFromContext(text, pageUrl) {
+    if (!text) return;
+    if (REFS.demandeEditor) {
+      REFS.demandeEditor.focus();
+      // On insère « text » entre guillemets pour bien repérer la sélection
+      insertTextAtSelection(REFS.demandeEditor, '« ' + text + ' »');
+      syncCurrentDemandeFromEditor();
+      if (pageUrl) STATE.currentDemande.pageUrl = pageUrl;
+      persist();
+    }
+    setStatus('Sélection texte ajoutée au segment courant.', 'success');
+  }
+
+  async function addImageFromContext(srcUrl, pageUrl) {
+    if (!srcUrl) return;
+    setStatus('Téléchargement de l\'image…', 'info');
+    let dataUrl = null;
+    try {
+      const resp = await fetch(srcUrl);
+      const blob = await resp.blob();
+      dataUrl = await readBlobAsDataUrl(blob);
+    } catch (e) {
+      // Fallback : on garde l'URL seulement
+    }
+    const ref = {
+      type: 'screenshot',
+      mode: dataUrl ? 'image' : 'image-url',
+      dataUrl: dataUrl,
+      srcUrl,
+      url: pageUrl || null,
+      ts: Date.now(),
+    };
+    STATE.currentDemande.refs.push(ref);
+    if (pageUrl) STATE.currentDemande.pageUrl = pageUrl;
+    const absIdx = STATE.currentDemande.refs.length - 1;
+    appendChipToEditor(absIdx, ref);
+    setStatus(dataUrl ? 'Image ajoutée comme référence.' : 'Image ajoutée (URL seulement).', 'success');
+  }
+
+  function readBlobAsDataUrl(blob) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = () => rej(r.error);
+      r.readAsDataURL(blob);
+    });
   }
 
   // ============================================================
@@ -683,6 +757,10 @@
       if (msg.type === 'biaif:element-picked') { onElementPicked(msg); return; }
       if (msg.type === 'biaif:picker-state')   { onPickerState(!!msg.active); return; }
       if (msg.type === 'biaif:console-error')  { onConsoleError(msg.error); return; }
+      if (msg.type === 'biaif:context-status') { setStatus(msg.msg, 'info'); return; }
+      if (msg.type === 'biaif:context-shot')   { runShotMode(msg.mode); return; }
+      if (msg.type === 'biaif:context-add-text')  { addTextFromContext(msg.text, msg.pageUrl); return; }
+      if (msg.type === 'biaif:context-add-image') { addImageFromContext(msg.srcUrl, msg.pageUrl); return; }
       if (msg.type === 'biaif:hotkey') {
         if (msg.action === 'toggle-mic')  toggleMic();
         if (msg.action === 'copy-prompt') copyPrompt();
@@ -729,6 +807,7 @@
         STATE.currentDemande = {
           text: saved.currentDemande.text,
           refs: Array.isArray(saved.currentDemande.refs) ? saved.currentDemande.refs : [],
+          pageUrl: saved.currentDemande.pageUrl || null,
         };
       }
       if (typeof saved.lang === 'string') {
@@ -1229,6 +1308,7 @@
     STATE.currentDemande.refs.push(ref);
     const absIdx = STATE.currentDemande.refs.length - 1;
     appendChipToEditor(absIdx, ref);
+    rememberPageUrl();
     setStatus(`Référence #${absIdx + 1} ajoutée : ${shortLabel(descriptor)}`, 'success');
   }
 
@@ -1518,9 +1598,10 @@
       ts: Date.now(),
       text: cleaned,
       refs: refs.slice(),
+      url: STATE.currentDemande.pageUrl || null,
     };
     STATE.demandes.push(demande);
-    STATE.currentDemande = { text: '', refs: [] };
+    STATE.currentDemande = { text: '', refs: [], pageUrl: null };
     if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
     renderDemandeRefsStrip();
     renderSegments();
@@ -1555,6 +1636,11 @@
       const refsCount = (dem.refs || []).length;
       const isDictating = STATE.dictationTarget === origIndex;
       card.dataset.i = String(origIndex);
+      const pageUrl = dem.url || '';
+      const shortUrl = formatPageUrl(pageUrl);
+      const urlLine = pageUrl
+        ? `<a class="seg-url" href="${escapeHtml(pageUrl)}" target="_blank" rel="noopener" title="${escapeHtml(pageUrl)}">${escapeHtml(shortUrl)}</a>`
+        : '<span class="seg-url seg-url-empty">URL inconnue</span>';
       card.innerHTML = `
         <header>
           <button class="seg-drag-handle" data-i="${origIndex}" title="Glisser sur une autre demande pour fusionner" aria-label="Poignée de fusion">⋮⋮</button>
@@ -1565,6 +1651,10 @@
           </button>
           <button class="seg-del" data-i="${origIndex}" title="Supprimer">×</button>
         </header>
+        <div class="seg-urlbar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          ${urlLine}
+        </div>
         <div class="demande-text ${dem.text ? '' : 'demande-text-empty'}"
              contenteditable="true" spellcheck="true"
              data-i="${origIndex}"
@@ -1820,6 +1910,7 @@
     STATE.currentDemande.refs.push(ref);
     const absIdx = STATE.currentDemande.refs.length - 1;
     appendChipToEditor(absIdx, ref);
+    rememberPageUrl();
     setStatus(`Capture ${mode} OK — ajoutée comme référence #${absIdx + 1}`, 'success');
   }
 
@@ -2074,6 +2165,22 @@
     return String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Renvoie une version courte d'une URL pour l'affichage (host + chemin
+  // tronqué). Conserve l'URL complète en title pour le hover.
+  function formatPageUrl(url) {
+    if (!url) return '';
+    try {
+      const u = new URL(url);
+      const host = u.host;
+      let path = u.pathname || '';
+      const search = u.search || '';
+      const full = host + path + (search.length > 30 ? search.slice(0, 30) + '…' : search);
+      return full.length > 60 ? full.slice(0, 60) + '…' : full;
+    } catch (_) {
+      return url.length > 60 ? url.slice(0, 60) + '…' : url;
+    }
   }
 
   function pickFence(s) {

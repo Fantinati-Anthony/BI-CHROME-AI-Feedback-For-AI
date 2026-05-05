@@ -303,6 +303,26 @@ html, body {
 .ref-chip[draggable="true"]:active { cursor: grabbing; }
 .ref-chip.is-dragging { opacity: 0.4; }
 
+.seg-urlbar {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; color: var(--text-muted);
+  padding: 3px 6px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.seg-urlbar svg { flex-shrink: 0; color: var(--accent-blue); }
+.seg-url {
+  color: var(--accent-blue); text-decoration: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0;
+  font-family: 'Inter', monospace; font-size: 10px;
+}
+.seg-url:hover { text-decoration: underline; }
+.seg-url-empty { color: var(--text-muted); font-style: italic; cursor: default; }
+.seg-url-empty:hover { text-decoration: none; }
+
 .demande-text {
   font-size: 13px; color: var(--text-main); line-height: 1.5;
   outline: none; cursor: text;
