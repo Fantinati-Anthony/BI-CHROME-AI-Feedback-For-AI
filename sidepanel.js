@@ -41,10 +41,14 @@
     // Cible de la dictée vocale : 'current' (éditeur) ou index d'une demande
     // historique. Par défaut 'current'.
     dictationTarget: 'current',
+    // Erreurs JS captées sur la page active (dédoublonnées par key).
+    consoleErrors: [],
   };
 
   // État du drag-and-drop manuel des chips.
   const DRAG = { chip: null, sourceContainer: null };
+  // État du drag-and-drop manuel pour fusion de demandes.
+  const SEG_DRAG = { sourceIdx: -1 };
 
   // Mic test (live audio level meter, separate from SpeechRecognition stream)
   let micTest = null;
@@ -200,8 +204,51 @@
 
     if (captureToggle) captureToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      openCaptureModal();
+      openCaptureModal('capture');
     });
+    // Nouveau bouton Erreurs dans .biaif-quick-tools : ouvre la modale sur l'onglet Erreurs.
+    const errorsToolBtn = document.querySelector('[data-act="open-errors"]');
+    if (errorsToolBtn) errorsToolBtn.addEventListener('click', () => openCaptureModal('errors'));
+
+    // Modal tabs
+    document.querySelectorAll('.modal-tab').forEach((t) => {
+      t.addEventListener('click', () => switchModalTab(t.dataset.tab));
+    });
+    // Modal : Texte → ajoute au segment courant
+    const addTextBtn = document.querySelector('[data-act="add-text-from-modal"]');
+    if (addTextBtn) addTextBtn.addEventListener('click', () => {
+      const ta = document.getElementById('modal-text-input');
+      if (!ta) return;
+      const text = (ta.value || '').trim();
+      if (!text) { setStatus('Entrez du texte avant d\'ajouter.', 'info'); return; }
+      // Insère à la position du curseur dans l'éditeur de la demande en cours
+      if (REFS.demandeEditor) {
+        REFS.demandeEditor.focus();
+        insertTextAtSelection(REFS.demandeEditor, text);
+        syncCurrentDemandeFromEditor();
+        persist();
+      }
+      ta.value = '';
+      closeCaptureModal();
+      setStatus('Texte ajouté au segment.', 'success');
+    });
+    // Modal : Élément → active picker + ferme modale
+    const activatePickerBtn = document.querySelector('[data-act="activate-picker-from-modal"]');
+    if (activatePickerBtn) activatePickerBtn.addEventListener('click', async () => {
+      closeCaptureModal();
+      const resp = await sendBg({ type: 'biaif:picker-enable' });
+      if (resp && resp.error) {
+        setStatusError('Picker KO : ' + decodeContentScriptError(resp.error),
+          isReloadableError(resp.error) ? 'reload-active-tab' : null);
+      } else {
+        setStatus('Sélecteur actif — cliquez l\'élément à référencer.', 'info');
+      }
+    });
+    // Modal : Erreurs → tout ajouter / vider
+    const errAddAllBtn = document.querySelector('[data-act="errors-add-all"]');
+    if (errAddAllBtn) errAddAllBtn.addEventListener('click', () => { addAllConsoleErrors(); closeCaptureModal(); });
+    const errClearBtn = document.querySelector('[data-act="errors-clear"]');
+    if (errClearBtn) errClearBtn.addEventListener('click', () => clearConsoleErrors());
     if (captureClose) captureClose.addEventListener('click', () => closeCaptureModal());
     if (captureModal) captureModal.addEventListener('click', (e) => {
       if (e.target === captureModal) closeCaptureModal();
@@ -404,13 +451,149 @@
     refreshMicDevices();
   }
 
-  function openCaptureModal() {
+  function openCaptureModal(tab) {
     const m = document.getElementById('capture-modal');
-    if (m) m.removeAttribute('hidden');
+    if (!m) return;
+    m.removeAttribute('hidden');
+    if (tab) switchModalTab(tab);
+    renderConsoleErrorsList();
   }
   function closeCaptureModal() {
     const m = document.getElementById('capture-modal');
     if (m) m.setAttribute('hidden', '');
+  }
+  function switchModalTab(name) {
+    document.querySelectorAll('.modal-tab').forEach((t) => {
+      const active = t.dataset.tab === name;
+      t.classList.toggle('active', active);
+      t.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('.modal-section').forEach((s) => {
+      if (s.dataset.section === name) s.removeAttribute('hidden');
+      else s.setAttribute('hidden', '');
+    });
+    if (name === 'text') {
+      const ta = document.getElementById('modal-text-input');
+      if (ta) setTimeout(() => ta.focus(), 50);
+    }
+  }
+
+  // ============================================================
+  // CONSOLE ERRORS — captés depuis la page active via content/main.js
+  // ============================================================
+
+  function onConsoleError(err) {
+    if (!err || !err.key) return;
+    if (STATE.consoleErrors.find((e) => e.key === err.key)) return; // dédup
+    STATE.consoleErrors.push(err);
+    updateErrorsBadges();
+    renderConsoleErrorsList();
+  }
+  function updateErrorsBadges() {
+    const n = STATE.consoleErrors.length;
+    const tip = document.querySelector('[data-act="open-errors"] .tool-badge');
+    const tab = document.querySelector('.modal-tab--errors .tab-badge');
+    if (tip) { tip.textContent = String(n); tip.dataset.count = String(n); }
+    if (tab) { tab.textContent = String(n); tab.dataset.count = String(n); }
+    document.querySelector('[data-act="open-errors"]')?.classList.toggle('has-errors', n > 0);
+  }
+  function renderConsoleErrorsList() {
+    const list = document.getElementById('errors-list');
+    const actions = document.querySelector('[data-section="errors"] .errors-actions');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!STATE.consoleErrors.length) {
+      list.innerHTML = '<div class="errors-empty">Aucune erreur détectée pour le moment.</div>';
+      if (actions) actions.setAttribute('hidden', '');
+      return;
+    }
+    if (actions) actions.removeAttribute('hidden');
+    STATE.consoleErrors.forEach((err, i) => {
+      const row = document.createElement('div');
+      row.className = 'error-row';
+      const where = err.file ? `${err.file}:${err.line || '?'}` : '(rejet promesse)';
+      row.innerHTML = `
+        <div class="error-row-head">
+          <span class="error-row-num">#${i + 1}</span>
+          <code class="error-row-where">${escapeHtml(where)}</code>
+        </div>
+        <div class="error-row-msg">${escapeHtml(err.msg || '')}</div>
+        <div class="error-row-actions">
+          <button class="btn-secondary error-row-ignore" data-i="${i}">Ignorer</button>
+          <button class="btn-primary error-row-add" data-i="${i}">Ajouter au segment</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.error-row-add').forEach((btn) => {
+      btn.addEventListener('click', () => addConsoleErrorToCurrentDemande(Number(btn.dataset.i)));
+    });
+    list.querySelectorAll('.error-row-ignore').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.dataset.i);
+        STATE.consoleErrors.splice(idx, 1);
+        updateErrorsBadges();
+        renderConsoleErrorsList();
+      });
+    });
+  }
+  function addConsoleErrorToCurrentDemande(idx) {
+    const err = STATE.consoleErrors[idx];
+    if (!err) return;
+    const ref = {
+      type: 'error',
+      msg: err.msg || '',
+      file: err.file || null,
+      line: err.line || null,
+      col: err.col || null,
+      stack: err.stack || null,
+      url: err.url || null,
+      ts: err.ts || Date.now(),
+    };
+    STATE.currentDemande.refs.push(ref);
+    const absIdx = STATE.currentDemande.refs.length - 1;
+    appendChipToEditor(absIdx, ref);
+    // Retire l'erreur de la liste pour ne pas la re-proposer
+    STATE.consoleErrors.splice(idx, 1);
+    updateErrorsBadges();
+    renderConsoleErrorsList();
+    setStatus(`Erreur ajoutée comme référence #${absIdx + 1}`, 'success');
+  }
+  function addAllConsoleErrors() {
+    if (!STATE.consoleErrors.length) return;
+    while (STATE.consoleErrors.length) {
+      addConsoleErrorToCurrentDemande(0);
+    }
+  }
+  function clearConsoleErrors() {
+    STATE.consoleErrors = [];
+    updateErrorsBadges();
+    renderConsoleErrorsList();
+  }
+
+  // ============================================================
+  // MERGE DEMANDES (drag-and-drop d'une demande sur une autre)
+  // ============================================================
+
+  function mergeDemandes(srcIdx, dstIdx) {
+    if (srcIdx === dstIdx) return;
+    const src = STATE.demandes[srcIdx];
+    const dst = STATE.demandes[dstIdx];
+    if (!src || !dst) return;
+    const offset = (dst.refs || []).length;
+    const shifted = (src.text || '').replace(/\{\{ref:(\d+)\}\}/g, (_, n) => `{{ref:${Number(n) + offset}}}`);
+    dst.text = ((dst.text || '') + (dst.text ? ' ' : '') + shifted).replace(/\s+/g, ' ').trim();
+    dst.refs = [...(dst.refs || []), ...(src.refs || [])];
+    STATE.demandes.splice(srcIdx, 1);
+    // Remappe la cible de dictée si elle pointait sur src ou un index supérieur.
+    if (typeof STATE.dictationTarget === 'number') {
+      if (STATE.dictationTarget === srcIdx) STATE.dictationTarget = (srcIdx < dstIdx) ? dstIdx - 1 : dstIdx;
+      else if (STATE.dictationTarget > srcIdx) STATE.dictationTarget--;
+    }
+    renderSegments();
+    persist();
+    const newDstNum = ((srcIdx < dstIdx) ? dstIdx - 1 : dstIdx) + 1;
+    setStatus(`Demandes fusionnées dans #${newDstNum}.`, 'success');
   }
 
   // Lit chaque fichier image en dataUrl, l'ajoute comme ref de la demande en
@@ -463,6 +646,7 @@
       if (!msg || typeof msg.type !== 'string') return;
       if (msg.type === 'biaif:element-picked') { onElementPicked(msg); return; }
       if (msg.type === 'biaif:picker-state')   { onPickerState(!!msg.active); return; }
+      if (msg.type === 'biaif:console-error')  { onConsoleError(msg.error); return; }
       if (msg.type === 'biaif:hotkey') {
         if (msg.action === 'toggle-mic')  toggleMic();
         if (msg.action === 'copy-prompt') copyPrompt();
@@ -1068,10 +1252,14 @@
     if (opts.demKey !== undefined) span.dataset.demKey = String(opts.demKey);
 
     const isShot = ref?.type === 'screenshot';
+    const isErr = ref?.type === 'error';
+    if (isErr) span.classList.add('ref-chip--error');
     const icon = isShot
       ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>'
+      : isErr
+      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>'
       : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>';
-    const labelKind = isShot ? 'capture' : 'élément';
+    const labelKind = isShot ? 'capture' : isErr ? 'erreur' : 'élément';
     const num = opts.displayNum || (absIdx + 1);
 
     const header = document.createElement('span');
@@ -1096,6 +1284,21 @@
       btn.dataset.editType = 'screenshot';
       btn.textContent = '✏ Re-annoter';
       details.appendChild(btn);
+    } else if (isErr) {
+      const meta = document.createElement('span');
+      meta.className = 'ref-details-meta';
+      const lines = [];
+      if (ref.msg)             lines.push(`<span class="t-key">message</span> ${escapeHtml(ref.msg)}`);
+      if (ref.file)            lines.push(`<span class="t-key">fichier</span> ${escapeHtml(ref.file)}:${ref.line || '?'}${ref.col ? ':' + ref.col : ''}`);
+      if (ref.url)             lines.push(`<span class="t-key">page</span> ${escapeHtml(ref.url)}`);
+      meta.innerHTML = lines.join('<br>');
+      details.appendChild(meta);
+      if (ref.stack) {
+        const sel = document.createElement('span');
+        sel.className = 'ref-details-selector';
+        sel.innerHTML = '<code>' + escapeHtml(ref.stack.slice(0, 800)) + (ref.stack.length > 800 ? '\n…(tronqué)' : '') + '</code>';
+        details.appendChild(sel);
+      }
     } else {
       const meta = document.createElement('span');
       meta.className = 'ref-details-meta';
@@ -1315,8 +1518,10 @@
       const dt = new Date(dem.ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       const refsCount = (dem.refs || []).length;
       const isDictating = STATE.dictationTarget === origIndex;
+      card.dataset.i = String(origIndex);
       card.innerHTML = `
         <header>
+          <button class="seg-drag-handle" data-i="${origIndex}" title="Glisser sur une autre demande pour fusionner" aria-label="Poignée de fusion">⋮⋮</button>
           <span class="seg-num">#${num}</span>
           <span class="seg-meta">${dt} · ${refsCount} réf${refsCount > 1 ? 's' : ''}</span>
           <button class="seg-mic-btn ${isDictating ? 'active' : ''}" data-i="${origIndex}" title="${isDictating ? 'Dictée active sur cette demande — cliquer pour revenir à la demande en cours' : 'Dicter dans cette demande'}" aria-label="Dicter dans cette demande">
@@ -1374,6 +1579,41 @@
           'info'
         );
       });
+      // Drag handle : initie la fusion. La carte entière est drop target.
+      const dragHandle = card.querySelector('.seg-drag-handle');
+      dragHandle.draggable = true;
+      dragHandle.addEventListener('dragstart', (e) => {
+        e.stopPropagation();
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', '__biaif_segment__'); } catch (_) {}
+        SEG_DRAG.sourceIdx = origIndex;
+        card.classList.add('is-dragging-seg');
+      });
+      dragHandle.addEventListener('dragend', () => {
+        SEG_DRAG.sourceIdx = -1;
+        document.querySelectorAll('.biaif-segment.is-dragging-seg, .biaif-segment.is-drop-target')
+          .forEach((c) => c.classList.remove('is-dragging-seg', 'is-drop-target'));
+      });
+      card.addEventListener('dragover', (e) => {
+        if (SEG_DRAG.sourceIdx < 0 || SEG_DRAG.sourceIdx === origIndex) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        card.classList.add('is-drop-target');
+      });
+      card.addEventListener('dragleave', (e) => {
+        // dragleave fire aussi quand on entre dans un enfant ; on vérifie qu'on quitte vraiment la carte
+        if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+        card.classList.remove('is-drop-target');
+      });
+      card.addEventListener('drop', (e) => {
+        if (SEG_DRAG.sourceIdx < 0 || SEG_DRAG.sourceIdx === origIndex) return;
+        e.preventDefault();
+        card.classList.remove('is-drop-target');
+        const src = SEG_DRAG.sourceIdx;
+        SEG_DRAG.sourceIdx = -1;
+        mergeDemandes(src, origIndex);
+      });
+
       card.querySelector('.seg-del').addEventListener('click', (e) => {
         const i = Number(e.currentTarget.dataset.i);
         STATE.demandes.splice(i, 1);
@@ -1626,6 +1866,7 @@
       const r = refs[i];
       if (!r) return `[ref #${i + 1}]`;
       if (r.type === 'screenshot') return `[#${i + 1} capture${r.mode ? ' ' + r.mode : ''}]`;
+      if (r.type === 'error')      return `[#${i + 1} erreur: ${(r.msg || '').slice(0, 80)}]`;
       const lbl = r.selector || r.tag || '?';
       return `[#${i + 1} ${lbl}]`;
     }).replace(/\s+/g, ' ').trim();
@@ -1661,6 +1902,18 @@
             lines.push(`- **#${refNum} — capture (${r.mode || 'visible'})**`);
             if (inlineImages && r.dataUrl) lines.push(`  ![capture #${refNum}](${r.dataUrl})`);
             else                            lines.push(`  📷 Voir \`${fileName}\` (à joindre avec ce prompt).`);
+          } else if (r.type === 'error') {
+            lines.push(`- **#${refNum} — erreur JavaScript**`);
+            if (r.msg)  lines.push(`  - message : ${r.msg}`);
+            if (r.file) lines.push(`  - fichier : \`${r.file}:${r.line || '?'}${r.col ? ':' + r.col : ''}\``);
+            if (r.url)  lines.push(`  - page : ${r.url}`);
+            if (r.stack) {
+              const fence = pickFence(r.stack);
+              lines.push('');
+              lines.push('  ' + fence);
+              r.stack.split('\n').forEach((ln) => lines.push('  ' + ln));
+              lines.push('  ' + fence);
+            }
           } else {
             lines.push(`- **#${refNum} — élément**`);
             if (r.selector)         lines.push(`  - sélecteur : \`${r.selector}\``);
