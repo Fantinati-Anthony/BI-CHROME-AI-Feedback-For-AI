@@ -16,6 +16,7 @@
 
   const OVERLAY_ID = 'biaif-picker-overlay';
   const TAG_ID     = 'biaif-picker-tag';
+  let _rafPending  = false;
 
   const ElementSelector = {
     state: {
@@ -70,26 +71,32 @@
     onMouseMove: function (e) {
       if (!ElementSelector.state.active) return;
       const target = e.target;
-      if (!target || ElementSelector.isOverlayElement(target)) {
-        ElementSelector.overlay.style.display = 'none';
-        ElementSelector.tag.style.display = 'none';
-        return;
-      }
-      ElementSelector.state.lastTarget = target;
+      if (_rafPending) return;
+      _rafPending = true;
+      requestAnimationFrame(function () {
+        _rafPending = false;
+        if (!ElementSelector.state.active) return;
+        if (!target || ElementSelector.isOverlayElement(target)) {
+          ElementSelector.overlay.style.display = 'none';
+          ElementSelector.tag.style.display = 'none';
+          return;
+        }
+        ElementSelector.state.lastTarget = target;
 
-      const rect = target.getBoundingClientRect();
-      ElementSelector.overlay.style.display = 'block';
-      ElementSelector.overlay.style.left   = rect.left + 'px';
-      ElementSelector.overlay.style.top    = rect.top  + 'px';
-      ElementSelector.overlay.style.width  = rect.width  + 'px';
-      ElementSelector.overlay.style.height = rect.height + 'px';
+        const rect = target.getBoundingClientRect();
+        ElementSelector.overlay.style.display = 'block';
+        ElementSelector.overlay.style.left   = rect.left + 'px';
+        ElementSelector.overlay.style.top    = rect.top  + 'px';
+        ElementSelector.overlay.style.width  = rect.width  + 'px';
+        ElementSelector.overlay.style.height = rect.height + 'px';
 
-      const sel = window.BIAIFSelector.getUniqueSelector(target);
-      ElementSelector.tag.textContent = sel;
-      ElementSelector.tag.style.display = 'block';
-      const tagTop = rect.top - 24 < 4 ? rect.bottom + 4 : rect.top - 24;
-      ElementSelector.tag.style.left = Math.max(4, rect.left) + 'px';
-      ElementSelector.tag.style.top  = tagTop + 'px';
+        const sel = window.BIAIFSelector.getUniqueSelector(target);
+        ElementSelector.tag.textContent = sel;
+        ElementSelector.tag.style.display = 'block';
+        const tagTop = rect.top - 24 < 4 ? rect.bottom + 4 : rect.top - 24;
+        ElementSelector.tag.style.left = Math.max(4, rect.left) + 'px';
+        ElementSelector.tag.style.top  = tagTop + 'px';
+      });
     },
 
     onClickCapture: async function (e) {

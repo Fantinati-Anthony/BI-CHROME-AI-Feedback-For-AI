@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BI Chrome AI Feedback",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Capture des feedbacks visuels (sélecteur d'élément CSS) + vocaux (speech-to-text) pour les transmettre à une IA (Claude Code).",
   "permissions": ["activeTab", "storage", "clipboardWrite", "sidePanel", "contextMenus", "scripting"],
   "host_permissions": ["<all_urls>"],
@@ -24,12 +24,13 @@
     {
       "matches": ["<all_urls>"],
       "run_at": "document_start",
-      "js": ["content/error-bridge.js"]
+      "js": ["shared/constants.js", "content/error-bridge.js"]
     },
     {
       "matches": ["<all_urls>"],
       "run_at": "document_idle",
       "js": [
+        "shared/constants.js",
         "content/css-selector.js",
         "content/element-selector.js",
         "content/screenshot.js",

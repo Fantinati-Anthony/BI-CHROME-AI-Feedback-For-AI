@@ -1,14 +1,8 @@
 /**
- * BI Chrome AI Feedback - Service Worker (v0.3)
- *
- * Architecture v0.3 (mono-instance) :
- *   - sidepanel.html : UI + SpeechRecognition (mic est ici directement,
- *     plus d'offscreen). Persistant cross-tab.
- *   - content scripts (par onglet) : picker + screenshot + annotateur.
- *   - SW : route picker / capture-mode / annotate / capture-tab vers
- *     l'onglet actif. Sérialise captureVisibleTab pour respecter le
- *     rate-limit Chrome.
+ * BI Chrome AI Feedback - Service Worker (v0.4)
  */
+
+importScripts('shared/constants.js');
 
 const MIN_CAPTURE_INTERVAL_MS = 1500;
 const MAX_CAPTURE_ATTEMPTS = 3;
@@ -21,7 +15,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
-// ---------- chrome.contextMenus : "BIAIF — ..." -------------------------
+// ---------- chrome.contextMenus ------------------------------------------
 
 function setupContextMenus() {
   if (!chrome.contextMenus) return;
@@ -51,33 +45,33 @@ function setupContextMenus() {
 chrome.runtime.onInstalled.addListener(setupContextMenus);
 chrome.runtime.onStartup.addListener(setupContextMenus);
 
+const MSG = self.BIAIF.MSG;
+
 if (chrome.contextMenus) {
   chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-    // Ouvre le side panel si possible (gesture user OK)
     try { if (tab?.id) await chrome.sidePanel.open({ tabId: tab.id }); } catch (_) {}
 
     if (info.menuItemId === 'biaif-element') {
-      // Active le picker
-      sendToActiveTabContent({ type: 'biaif:command', action: 'picker-enable' });
+      sendToActiveTabContent({ type: MSG.COMMAND, action: 'picker-enable' });
       chrome.runtime.sendMessage({
-        type: 'biaif:context-status',
+        type: MSG.CONTEXT_STATUS,
         msg: 'Sélecteur activé — cliquez l\'élément à référencer.',
       }).catch(() => {});
     } else if (info.menuItemId === 'biaif-capture-visible') {
       chrome.runtime.sendMessage({
-        type: 'biaif:context-shot',
+        type: MSG.CONTEXT_SHOT,
         mode: 'visible',
         pageUrl: info.pageUrl || tab?.url || null,
       }).catch(() => {});
     } else if (info.menuItemId === 'biaif-selection') {
       chrome.runtime.sendMessage({
-        type: 'biaif:context-add-text',
+        type: MSG.CONTEXT_ADD_TEXT,
         text: info.selectionText || '',
         pageUrl: info.pageUrl || tab?.url || null,
       }).catch(() => {});
     } else if (info.menuItemId === 'biaif-image') {
       chrome.runtime.sendMessage({
-        type: 'biaif:context-add-image',
+        type: MSG.CONTEXT_ADD_IMAGE,
         srcUrl: info.srcUrl || '',
         pageUrl: info.pageUrl || tab?.url || null,
       }).catch(() => {});
@@ -146,12 +140,12 @@ async function sendToActiveTabContent(payload) {
 
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'toggle-sidebar') { openSidePanelForActive(); return; }
-  if (command === 'toggle-picker')  {
-    sendToActiveTabContent({ type: 'biaif:command', action: 'toggle-picker' });
+  if (command === 'toggle-picker') {
+    sendToActiveTabContent({ type: MSG.COMMAND, action: 'toggle-picker' });
     return;
   }
   if (command === 'toggle-mic' || command === 'copy-prompt') {
-    chrome.runtime.sendMessage({ type: 'biaif:hotkey', action: command }).catch(() => {});
+    chrome.runtime.sendMessage({ type: MSG.HOTKEY, action: command }).catch(() => {});
   }
 });
 
@@ -161,29 +155,30 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg.type !== 'string') return;
 
   // Sidepanel → active tab : picker
-  if (msg.type === 'biaif:picker-toggle' || msg.type === 'biaif:picker-enable' ||
-      msg.type === 'biaif:picker-disable') {
-    sendToActiveTabContent({ type: 'biaif:command', action: msg.type.replace('biaif:', '') })
+  if (msg.type === MSG.PICKER_TOGGLE || msg.type === MSG.PICKER_ENABLE ||
+      msg.type === MSG.PICKER_DISABLE) {
+    const action = msg.type.replace('biaif:', '');
+    sendToActiveTabContent({ type: MSG.COMMAND, action })
       .then((resp) => sendResponse(resp));
     return true;
   }
 
-  // Sidepanel → active tab : capture manuelle (visible/selection/element/fullpage)
-  if (msg.type === 'biaif:capture-mode') {
-    sendToActiveTabContent({ type: 'biaif:command', action: 'capture-mode', mode: msg.mode })
+  // Sidepanel → active tab : capture manuelle
+  if (msg.type === MSG.CAPTURE_MODE) {
+    sendToActiveTabContent({ type: MSG.COMMAND, action: 'capture-mode', mode: msg.mode })
       .then((resp) => sendResponse(resp));
     return true;
   }
 
-  // Sidepanel → active tab : annotateur (modal dans la page)
-  if (msg.type === 'biaif:annotate') {
-    sendToActiveTabContent({ type: 'biaif:command', action: 'annotate', dataUrl: msg.dataUrl })
+  // Sidepanel → active tab : annotateur
+  if (msg.type === MSG.ANNOTATE) {
+    sendToActiveTabContent({ type: MSG.COMMAND, action: 'annotate', dataUrl: msg.dataUrl })
       .then((resp) => sendResponse(resp));
     return true;
   }
 
-  // Sidepanel → SW : reload active tab (recover from "no content script")
-  if (msg.type === 'biaif:reload-active-tab') {
+  // Sidepanel → SW : reload active tab
+  if (msg.type === MSG.RELOAD_ACTIVE_TAB) {
     (async () => {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -197,8 +192,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // Content script → SW : captureVisibleTab (sérialisée + rate-limit)
-  if (msg.type === 'biaif:capture-tab') {
+  // Content script → sidepanel : forward capture progress
+  if (msg.type === MSG.CAPTURE_PROGRESS) {
+    chrome.runtime.sendMessage(msg).catch(() => {});
+    return;
+  }
+
+  // Content script → SW : captureVisibleTab
+  if (msg.type === MSG.CAPTURE_TAB) {
     const windowId = sender.tab?.windowId;
     capturePromise = capturePromise
       .catch(() => {})
@@ -209,7 +210,4 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       );
     return true;
   }
-
-  // biaif:element-picked / biaif:picker-state passent natif via
-  // chrome.runtime.sendMessage → reçus directement par la side panel.
 });
