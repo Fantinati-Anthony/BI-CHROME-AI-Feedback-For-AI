@@ -20,13 +20,13 @@
   // Pont SW → onglet : on traite les commandes de manière async pour
   // pouvoir renvoyer un dataUrl (capture, annotate).
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (!msg || msg.type !== 'biaif:command') return;
+    if (!msg || msg.type !== window.BIAIF.MSG.COMMAND) return;
 
     const action = msg.action;
 
     // Ping : permet à la side panel de savoir si le content script est chargé.
     if (action === 'ping') {
-      sendResponse({ ok: true, version: '0.4' });
+      sendResponse({ ok: true, version: window.BIAIF.VERSION });
       return;
     }
 
@@ -112,7 +112,7 @@
     if (k === 'f' || k === 'm' || k === 'c') {
       e.preventDefault(); e.stopPropagation();
       const action = k === 'f' ? 'toggle-sidebar' : k === 'm' ? 'toggle-mic' : 'copy-prompt';
-      chrome.runtime.sendMessage({ type: 'biaif:hotkey', action }).catch(() => {});
+      chrome.runtime.sendMessage({ type: window.BIAIF.MSG.HOTKEY, action }).catch(() => {});
     }
   }, true);
 })();

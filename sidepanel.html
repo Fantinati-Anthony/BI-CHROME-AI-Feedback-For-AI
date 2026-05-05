@@ -6,108 +6,129 @@
   <link rel="stylesheet" href="sidepanel.css" />
 </head>
 <body>
+  <!-- Toast notification stack (aria-live region) -->
+  <div id="toast-container" role="region" aria-label="Notifications" aria-live="polite"></div>
+
   <div class="biaif-root">
 
-    <!-- Console Logs (toggled from mini footer) -->
-    <div class="biaif-logs-panel" id="logs-panel" hidden>
+    <!-- ============================================================
+         Console Logs panel (toggled from footer)
+    ============================================================ -->
+    <div class="biaif-logs-panel" id="logs-panel" hidden role="dialog" aria-label="Console Logs" aria-modal="false">
       <div class="logs-header">
         <span>Console Logs</span>
         <div class="logs-header-actions">
-          <button class="btn-secondary" id="clear-logs">Clear</button>
-          <button class="logs-close" id="close-logs" aria-label="Fermer">×</button>
+          <button class="btn-secondary" id="clear-logs" aria-label="Vider les logs">Clear</button>
+          <button class="logs-close" id="close-logs" aria-label="Fermer la console">×</button>
         </div>
       </div>
-      <pre id="logs-container"></pre>
+      <pre id="logs-container" role="log" aria-live="polite"></pre>
     </div>
 
-    <!-- Settings popover (mic / langue) -->
-    <div class="settings-popover" id="settings-popover" hidden>
+    <!-- ============================================================
+         Settings popover
+    ============================================================ -->
+    <div class="settings-popover" id="settings-popover" hidden role="dialog" aria-label="Réglages micro et langue" aria-modal="false">
       <div class="settings-popover-header">Réglages micro / langue</div>
       <div class="settings-group">
-        <label>Langue
-          <select name="lang">
+        <label for="lang-select">Langue
+          <select name="lang" id="lang-select" aria-label="Langue de reconnaissance vocale">
             <option value="fr-FR" selected>🇫🇷 Français</option>
             <option value="en-US">🇺🇸 English</option>
           </select>
         </label>
-        <label>Périphérique
-          <select name="mic-device">
+        <label for="mic-device-select">Périphérique
+          <select name="mic-device" id="mic-device-select" aria-label="Périphérique microphone">
             <option value="">Système par défaut</option>
           </select>
         </label>
         <div class="mic-tools-row">
-          <button class="btn-micro-test" data-act="mic-test">Test Mic</button>
-          <button class="btn-micro-test" data-act="mic-refresh">↻ Actualiser</button>
+          <button class="btn-micro-test" data-act="mic-test" aria-label="Tester le microphone">🔊 Tester</button>
+          <button class="btn-micro-test" data-act="mic-refresh" aria-label="Actualiser la liste des micros">↻ Actualiser</button>
         </div>
-        <div class="biaif-mic-meter" hidden>
-          <div class="biaif-mic-meter-bar"></div>
-          <div class="biaif-mic-meter-label" hidden></div>
+        <div class="biaif-mic-meter" hidden aria-hidden="true">
+          <div class="biaif-mic-meter-bar" role="progressbar" aria-label="Niveau audio" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
       </div>
     </div>
 
-    <!-- Session bar : Démarrer / Suivant + Stop -->
-    <div class="session-bar">
-      <button class="session-main" data-act="master">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+    <!-- ============================================================
+         Session bar
+    ============================================================ -->
+    <div class="session-bar" role="toolbar" aria-label="Contrôles de session">
+      <button class="session-main" data-act="master" aria-label="Démarrer une session de feedback">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
         <span class="master-label">Démarrer</span>
       </button>
       <button class="session-stop" data-act="stop" aria-label="Arrêter la session" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
       </button>
     </div>
 
-    <!-- Quick Tools : ligne principale + sous-ligne contextuelle (capture) -->
-    <div class="biaif-quick-tools">
+    <!-- ============================================================
+         Capture progress bar (full-page)
+    ============================================================ -->
+    <div class="capture-progress" id="capture-progress" hidden role="progressbar" aria-label="Progression de la capture" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+      <div class="capture-progress-bar"></div>
+      <span class="capture-progress-label">Capture en cours…</span>
+    </div>
+
+    <!-- ============================================================
+         Quick Tools
+    ============================================================ -->
+    <div class="biaif-quick-tools" role="toolbar" aria-label="Outils de capture">
       <div class="quick-tools-row">
-        <button class="tool-btn" data-act="mic" aria-label="Démarrer le micro (Alt+⇧+M)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        <button class="tool-btn" data-act="mic" aria-label="Activer le microphone (Alt+⇧+M)" aria-pressed="false" title="Micro (Alt+Shift+M)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
           <span class="label">Micro</span>
         </button>
-        <button class="tool-btn" data-act="picker" aria-label="Sélecteur d'élément (Alt+⇧+E)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+        <button class="tool-btn" data-act="picker" aria-label="Activer le sélecteur d'élément (Alt+⇧+E)" aria-pressed="false" title="Sélecteur (Alt+Shift+E)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
           <span class="label">Sélecteur</span>
         </button>
-        <button class="tool-btn" data-act="capture-toggle" aria-label="Capture d'écran" aria-expanded="false">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/></svg>
+        <button class="tool-btn" data-act="capture-toggle" aria-label="Modes de capture d'écran" aria-expanded="false" title="Capture">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/></svg>
           <span class="label">Capture</span>
         </button>
-        <button class="tool-btn" data-act="open-files" aria-label="Importer des fichiers images" title="Parcourir vos fichiers et ajouter des images">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <button class="tool-btn" data-act="open-files" aria-label="Importer des fichiers images" title="Importer une image">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           <span class="label">Fichier</span>
         </button>
-        <button class="tool-btn tool-btn--errors" data-act="open-errors" aria-label="Erreurs console de la page" title="Ajouter toutes les erreurs JavaScript détectées au segment">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-          <span class="label">Erreurs <span class="tool-badge" data-count="0">0</span></span>
+        <button class="tool-btn tool-btn--errors" data-act="open-errors" aria-label="Erreurs console (0)" title="Ajouter les erreurs JS au segment">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          <span class="label">Erreurs <span class="tool-badge" data-count="0" aria-hidden="true">0</span></span>
         </button>
       </div>
-      <div class="quick-tools-subline" hidden>
-        <button class="subline-btn" data-shot="visible" title="Capture du viewport visible">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+
+      <!-- Capture subline: radio-style mode picker -->
+      <div class="quick-tools-subline" hidden role="group" aria-label="Mode de capture">
+        <button class="subline-btn" data-shot="visible" aria-label="Capturer le viewport visible" title="Viewport visible">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
           <span>Visible</span>
         </button>
-        <button class="subline-btn" data-shot="selection" title="Dessiner un rectangle pour cropper">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h4"/><path d="M17 3h4v4"/><path d="M21 17v4h-4"/><path d="M7 21H3v-4"/><path d="M3 11v2"/><path d="M11 3h2"/><path d="M11 21h2"/><path d="M21 11v2"/></svg>
+        <button class="subline-btn" data-shot="selection" aria-label="Dessiner une zone de capture" title="Sélection rectangulaire">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h4"/><path d="M17 3h4v4"/><path d="M21 17v4h-4"/><path d="M7 21H3v-4"/><path d="M3 11v2"/><path d="M11 3h2"/><path d="M11 21h2"/><path d="M21 11v2"/></svg>
           <span>Sélection</span>
         </button>
-        <button class="subline-btn" data-shot="element" title="Capturer un élément cliqué">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        <button class="subline-btn" data-shot="element" aria-label="Capturer un élément cliqué" title="Élément cliqué">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
           <span>Élément</span>
         </button>
-        <button class="subline-btn" data-shot="fullpage" title="Page entière (scroll + stitch)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <button class="subline-btn" data-shot="fullpage" aria-label="Capturer la page entière" title="Page entière (scroll + assemblage)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           <span>Page entière</span>
         </button>
       </div>
-      <input type="file" id="quick-file-input" accept="image/*" multiple hidden>
+
+      <input type="file" id="quick-file-input" accept="image/*" multiple hidden aria-hidden="true">
     </div>
 
-    <div class="biaif-buffer-preview" hidden></div>
-
-    <!-- État vide : message d'accueil quand pas d'historique et pas de session -->
-    <div class="biaif-empty-state">
-      <div class="empty-state-orb"></div>
-      <div class="empty-state-verbs">
+    <!-- ============================================================
+         Empty state hero
+    ============================================================ -->
+    <div class="biaif-empty-state" role="region" aria-label="Bienvenue">
+      <div class="empty-state-orb" aria-hidden="true"></div>
+      <div class="empty-state-verbs" aria-hidden="true">
         <span class="empty-state-verb empty-state-verb--blue">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
           Parlez
@@ -129,81 +150,112 @@
         Vos besoins, vos idées, vos retours —<br>
         <span class="empty-state-tagline-em">transmis naturellement à votre IA.</span>
       </h2>
+      <ol class="empty-state-steps" aria-label="Comment utiliser BIAIF">
+        <li><strong>Démarrer</strong> → active la session (micro + sélecteur)</li>
+        <li><strong>Parlez</strong> ou tapez votre instruction</li>
+        <li><strong>Cliquez un élément</strong> pour l'ajouter comme référence</li>
+        <li><strong>Suivant →</strong> pour passer à la demande suivante</li>
+        <li><strong>Copier</strong> pour coller le prompt dans Claude Code</li>
+      </ol>
     </div>
 
-    <!-- Demande en cours : éditeur texte + références inline -->
-    <div class="demande-zone">
+    <!-- ============================================================
+         Demande en cours
+    ============================================================ -->
+    <div class="demande-zone" role="region" aria-label="Demande en cours">
       <div class="demande-header">
-        <span class="demande-title">Demande en cours</span>
-        <span class="demande-refs-count" data-count="0">0 réf</span>
+        <span class="demande-title" aria-hidden="true">Demande en cours</span>
+        <span class="demande-refs-count" data-count="0" aria-live="polite" aria-label="0 référence">0 réf</span>
       </div>
       <div class="demande-editor"
            contenteditable="true"
            spellcheck="true"
-           data-placeholder="Parlez ou tapez votre demande. Cliquez sur un élément ou capturez pour insérer une référence inline numérotée."></div>
-      <div class="demande-refs-strip"></div>
+           role="textbox"
+           aria-multiline="true"
+           aria-label="Zone de saisie de la demande. Parlez ou tapez votre instruction."
+           data-placeholder="Parlez ou tapez votre demande. Cliquez sur un élément ou capturez pour insérer une référence."></div>
+      <div class="demande-refs-strip" role="list" aria-label="Références de la demande en cours"></div>
     </div>
 
-    <!-- Historique des demandes finalisées -->
+    <!-- ============================================================
+         Historique
+    ============================================================ -->
     <div class="biaif-segments-wrap">
       <div class="segments-title">
-        <span>Historique <span class="segments-count">0</span></span>
+        <span>Historique <span class="segments-count" aria-label="0 demandes">0</span></span>
         <div class="segments-tools">
           <button class="sort-toggle" data-act="sort-toggle" aria-label="Inverser l'ordre des demandes" title="Trier (récent/ancien)">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16l4 4 4-4"/><path d="M7 20V4"/><path d="M21 8l-4-4-4 4"/><path d="M17 4v16"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 16l4 4 4-4"/><path d="M7 20V4"/><path d="M21 8l-4-4-4 4"/><path d="M17 4v16"/></svg>
             <span class="sort-label">Z→A</span>
           </button>
-          <button class="segments-zoom-btn" data-act="seg-font-down" aria-label="Réduire la taille du texte" title="Réduire la taille du texte des segments">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><text x="3" y="17" font-size="13" font-family="Inter,sans-serif" font-weight="700" fill="currentColor" stroke="none">A</text><line x1="13" y1="13" x2="21" y2="13"/></svg>
+          <button class="segments-zoom-btn" data-act="seg-font-down" aria-label="Réduire la taille du texte des demandes">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><text x="3" y="17" font-size="13" font-family="Inter,sans-serif" font-weight="700" fill="currentColor" stroke="none">A</text><line x1="13" y1="13" x2="21" y2="13"/></svg>
           </button>
-          <button class="segments-zoom-btn" data-act="seg-font-up" aria-label="Agrandir la taille du texte" title="Agrandir la taille du texte des segments">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><text x="3" y="17" font-size="13" font-family="Inter,sans-serif" font-weight="700" fill="currentColor" stroke="none">A</text><line x1="13" y1="13" x2="21" y2="13"/><line x1="17" y1="9" x2="17" y2="17"/></svg>
+          <button class="segments-zoom-btn" data-act="seg-font-up" aria-label="Agrandir la taille du texte des demandes">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><text x="3" y="17" font-size="13" font-family="Inter,sans-serif" font-weight="700" fill="currentColor" stroke="none">A</text><line x1="13" y1="13" x2="21" y2="13"/><line x1="17" y1="9" x2="17" y2="17"/></svg>
           </button>
         </div>
       </div>
-      <div class="biaif-segments">
+
+      <!-- History search -->
+      <div class="history-search-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="history-search-icon" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+        <input type="search" id="history-search" class="history-search-input" placeholder="Rechercher dans l'historique…" aria-label="Rechercher dans l'historique des demandes">
+      </div>
+
+      <div class="biaif-segments" role="list" aria-label="Historique des demandes">
         <div class="biaif-empty">Aucune demande pour le moment</div>
       </div>
     </div>
 
-    <!-- Footer actions -->
-    <!-- Sticky bottom action bar : status + actions + icones -->
+    <!-- ============================================================
+         Footer area (sticky)
+    ============================================================ -->
     <div class="biaif-footer-area">
-      <!-- Status bar (au-dessus du footer, masquée si vide) -->
-      <div class="biaif-status" data-kind="info"></div>
+      <div class="biaif-status" role="status" aria-live="polite" data-kind="info"></div>
 
-      <!-- Footer actions : icones (debug/micro/shortcuts) + actions (Vider/Copier/.MD) -->
-      <div class="biaif-footer">
-        <button class="footer-icon-btn" data-act="toggle-logs" aria-label="Console / Logs" title="Console / Logs">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+      <div class="biaif-footer" role="toolbar" aria-label="Actions globales">
+        <button class="footer-icon-btn" data-act="toggle-logs" aria-label="Afficher/masquer la console de logs" title="Console">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
         </button>
-        <button class="footer-icon-btn" data-act="toggle-settings" aria-label="Réglages micro / langue" title="Réglages micro / langue">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        <button class="footer-icon-btn" data-act="toggle-settings" aria-label="Réglages micro et langue" aria-expanded="false" title="Réglages">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         </button>
-        <button class="footer-icon-btn" data-act="open-shortcuts" aria-label="Raccourcis clavier" title="Configurer les raccourcis clavier">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <button class="footer-icon-btn" data-act="open-shortcuts" aria-label="Configurer les raccourcis clavier" title="Raccourcis clavier">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
-        <span class="footer-spacer"></span>
-        <button class="btn-secondary" data-act="clear" title="Vider la session">Vider</button>
-        <button class="btn-primary" data-act="copy" title="Copier le prompt">Copier</button>
-        <button class="btn-primary" data-act="download" title="Télécharger .MD + captures">.MD</button>
+        <span class="footer-spacer" aria-hidden="true"></span>
+        <button class="btn-secondary" data-act="clear" aria-label="Vider toute la session" title="Vider la session (Ctrl+Z pour annuler)">Vider</button>
+        <button class="btn-primary" data-act="copy" aria-label="Copier le prompt formaté (Alt+⇧+C)" title="Copier le prompt (Alt+Shift+C)">Copier</button>
+        <button class="btn-primary" data-act="download" aria-label="Télécharger le prompt Markdown avec les captures" title="Télécharger .MD + captures">.MD</button>
       </div>
     </div>
   </div>
 
-  <!-- Modale plein-écran : la page active doit être rechargée -->
-  <div class="biaif-reload-modal" id="reload-modal" hidden>
+  <!-- ============================================================
+       Reload modal
+  ============================================================ -->
+  <div class="biaif-reload-modal" id="reload-modal" hidden role="dialog" aria-modal="true" aria-labelledby="reload-title" aria-describedby="reload-desc">
     <div class="reload-modal-content">
-      <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="reload-icon"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-      <div class="reload-title">Recharger la page</div>
-      <div class="reload-desc">L'extension n'est pas active sur cet onglet — la page doit être rechargée pour utiliser le sélecteur et les captures.</div>
+      <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="reload-icon" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+      <div class="reload-title" id="reload-title">Recharger la page</div>
+      <div class="reload-desc" id="reload-desc">L'extension n'est pas active sur cet onglet — la page doit être rechargée pour utiliser le sélecteur et les captures.</div>
       <button class="btn-primary reload-btn" data-act="reload-tab-modal">Recharger l'onglet</button>
       <button class="reload-dismiss" data-act="reload-dismiss" type="button">Plus tard</button>
     </div>
   </div>
 
-  <script src="console.js"></script>
+  <!-- Scripts — load order matters: constants → modules → intent-parser → orchestrator -->
+  <script src="shared/constants.js"></script>
+  <script src="sidepanel/toast.js"></script>
+  <script src="sidepanel/undo.js"></script>
+  <script src="sidepanel/storage.js"></script>
+  <script src="sidepanel/export.js"></script>
+  <script src="sidepanel/speech.js"></script>
+  <script src="sidepanel/renderer.js"></script>
+  <script src="sidepanel/session.js"></script>
   <script src="shared/intent-parser.js"></script>
+  <script src="console.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>

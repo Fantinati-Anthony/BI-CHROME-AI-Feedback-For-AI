@@ -166,12 +166,10 @@
         let lastScrollY = -1;
         for (let i = 0; i < sections; i++) {
           this.showLoader('Capture en cours…', i + 1, sections);
+          this.sendProgress(i + 1, sections);
           window.scrollTo(0, i * vpH);
           await this.sleep(this.config.scrollSettleMs);
 
-          // Le navigateur clamp scrollY à scrollH - vpH : si le clamp donne
-          // la même position que la section précédente, on saute pour ne pas
-          // dupliquer la dernière bande dans le canvas.
           const actualY = window.scrollY;
           if (actualY === lastScrollY) continue;
           lastScrollY = actualY;
@@ -281,9 +279,20 @@
     // Service worker bridge
     // -------------------------------------------------------------------
 
+    sendProgress(current, total, label) {
+      try {
+        chrome.runtime.sendMessage({
+          type: window.BIAIF.MSG.CAPTURE_PROGRESS,
+          current: current,
+          total: total,
+          label: label || ('Section ' + current + '/' + total),
+        }).catch(function () {});
+      } catch (_) {}
+    },
+
     requestCapture() {
       return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: 'biaif:capture-tab' }, (resp) => {
+        chrome.runtime.sendMessage({ type: window.BIAIF.MSG.CAPTURE_TAB }, (resp) => {
           if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
           if (!resp || resp.error) return reject(new Error(resp?.error || 'capture failed'));
           resolve(resp.dataUrl);
