@@ -71,6 +71,9 @@ html, body {
 .biaif-root.is-empty-state .biaif-segments-wrap {
   display: none !important;
 }
+.biaif-root.is-empty-state .biaif-footer-area {
+  display: none !important;
+}
 .biaif-root.is-empty-state .session-bar {
   order: 2; margin-top: 0; margin-bottom: auto;
 }
