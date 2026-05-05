@@ -101,7 +101,6 @@
           // la nouvelle page renverra ses erreurs au fur et à mesure.
           STATE.consoleErrors = [];
           updateErrorsBadges();
-          renderConsoleErrorsList();
         } else if (info.status === 'complete') {
           checkActiveTabReady();
           refreshErrorsFromActiveTab();
@@ -127,7 +126,6 @@
         for (const err of resp.errors) onConsoleError(err);
       } else {
         updateErrorsBadges();
-        renderConsoleErrorsList();
       }
     } catch (_) { /* ignore */ }
   }
@@ -250,103 +248,51 @@
     });
 
     // Shot tools (boutons de la modale capture)
+    // Sous-ligne capture : chaque bouton déclenche le mode capture puis ferme la sous-ligne.
     REFS.shotButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        closeCaptureModal();
+        closeCaptureSubline();
         runShotMode(btn.dataset.shot);
       });
     });
 
-    // Capture modal : ouverture, fermeture, dropzone, file input
+    // Bouton "Capture" → toggle de la sous-ligne (au lieu de la modale).
     const captureToggle = document.querySelector('[data-act="capture-toggle"]');
-    const captureModal = document.getElementById('capture-modal');
-    const captureClose = document.querySelector('[data-act="close-capture-modal"]');
-    const dropzone = document.getElementById('capture-dropzone');
-    const fileInput = document.getElementById('capture-file-input');
-
     if (captureToggle) captureToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      openCaptureModal('capture');
+      toggleCaptureSubline();
     });
-    // Nouveau bouton Erreurs dans .biaif-quick-tools : ouvre la modale sur l'onglet Erreurs.
-    const errorsToolBtn = document.querySelector('[data-act="open-errors"]');
-    if (errorsToolBtn) errorsToolBtn.addEventListener('click', () => openCaptureModal('errors'));
+    // Click hors de la sous-ligne → ferme.
+    document.addEventListener('click', (e) => {
+      const subline = document.querySelector('.quick-tools-subline');
+      if (!subline || subline.hasAttribute('hidden')) return;
+      if (e.target.closest('[data-act="capture-toggle"]') || e.target.closest('.quick-tools-subline')) return;
+      closeCaptureSubline();
+    });
 
-    // Modal tabs
-    document.querySelectorAll('.modal-tab').forEach((t) => {
-      t.addEventListener('click', () => switchModalTab(t.dataset.tab));
-    });
-    // Modal : Texte → ajoute au segment courant
-    const addTextBtn = document.querySelector('[data-act="add-text-from-modal"]');
-    if (addTextBtn) addTextBtn.addEventListener('click', () => {
-      const ta = document.getElementById('modal-text-input');
-      if (!ta) return;
-      const text = (ta.value || '').trim();
-      if (!text) { setStatus('Entrez du texte avant d\'ajouter.', 'info'); return; }
-      const targetMsg = typeof STATE.modalTarget === 'number'
-        ? `Texte ajouté à la demande #${STATE.modalTarget + 1}.`
-        : 'Texte ajouté au segment.';
-      addTextToTarget(text);
-      ta.value = '';
-      closeCaptureModal();
-      setStatus(targetMsg, 'success');
-    });
-    // Modal : Élément → active picker + ferme modale
-    const activatePickerBtn = document.querySelector('[data-act="activate-picker-from-modal"]');
-    if (activatePickerBtn) activatePickerBtn.addEventListener('click', async () => {
-      closeCaptureModal();
-      const resp = await sendBg({ type: 'biaif:picker-enable' });
-      if (resp && resp.error) {
-        setStatusError('Picker KO : ' + decodeContentScriptError(resp.error),
-          isReloadableError(resp.error) ? 'reload-active-tab' : null);
-      } else {
-        setStatus('Sélecteur actif — cliquez l\'élément à référencer.', 'info');
-      }
-    });
-    // Modal : Erreurs → tout ajouter / vider
-    const errAddAllBtn = document.querySelector('[data-act="errors-add-all"]');
-    if (errAddAllBtn) errAddAllBtn.addEventListener('click', () => { addAllConsoleErrors(); closeCaptureModal(); });
-    const errClearBtn = document.querySelector('[data-act="errors-clear"]');
-    if (errClearBtn) errClearBtn.addEventListener('click', () => clearConsoleErrors());
-    if (captureClose) captureClose.addEventListener('click', () => closeCaptureModal());
-    if (captureModal) captureModal.addEventListener('click', (e) => {
-      if (e.target === captureModal) closeCaptureModal();
-    });
+    // Bouton "Fichier" → ouvre directement le file picker système.
+    const filesBtn = document.querySelector('[data-act="open-files"]');
+    const fileInput = document.getElementById('quick-file-input');
+    if (filesBtn && fileInput) {
+      filesBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length) handleCaptureFiles(files);
+        e.target.value = '';
+      });
+    }
+
+    // Bouton "Erreurs" → ajoute toutes les erreurs au segment actif (pas de modale).
+    const errorsToolBtn = document.querySelector('[data-act="open-errors"]');
+    if (errorsToolBtn) errorsToolBtn.addEventListener('click', () => addAllConsoleErrors());
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        if (captureModal && !captureModal.hasAttribute('hidden')) closeCaptureModal();
+        const subline = document.querySelector('.quick-tools-subline');
+        if (subline && !subline.hasAttribute('hidden')) closeCaptureSubline();
         else if (STATE.editingDemandeIdx !== null) exitEditMode();
       }
     });
-
-    if (fileInput) fileInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files || []);
-      handleCaptureFiles(files);
-      e.target.value = ''; // reset pour pouvoir re-déposer la même image
-    });
-    if (dropzone) {
-      ['dragenter', 'dragover'].forEach((evt) => {
-        dropzone.addEventListener(evt, (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          dropzone.classList.add('is-dragover');
-        });
-      });
-      ['dragleave', 'dragend'].forEach((evt) => {
-        dropzone.addEventListener(evt, (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          dropzone.classList.remove('is-dragover');
-        });
-      });
-      dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropzone.classList.remove('is-dragover');
-        const files = Array.from(e.dataTransfer?.files || []).filter((f) => f.type.startsWith('image/'));
-        if (files.length) handleCaptureFiles(files);
-      });
-    }
     // Sort toggle
     if (REFS.sortToggle) REFS.sortToggle.addEventListener('click', () => {
       STATE.sortOrder = STATE.sortOrder === 'desc' ? 'asc' : 'desc';
@@ -520,29 +466,24 @@
     refreshMicDevices();
   }
 
-  function openCaptureModal(tab) {
-    const m = document.getElementById('capture-modal');
-    if (!m) return;
-    m.removeAttribute('hidden');
-    if (tab) switchModalTab(tab);
-    updateModalTitle();
-    renderConsoleErrorsList();
+  // Sous-ligne capture (remplace la modale Image).
+  function openCaptureSubline() {
+    const subline = document.querySelector('.quick-tools-subline');
+    const toggle = document.querySelector('[data-act="capture-toggle"]');
+    if (subline) subline.removeAttribute('hidden');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
   }
-  function closeCaptureModal() {
-    const m = document.getElementById('capture-modal');
-    if (m) m.setAttribute('hidden', '');
-    // Reset la cible : les actions hors modale ré-utilisent 'current'
-    STATE.modalTarget = 'current';
-    updateModalTitle();
+  function closeCaptureSubline() {
+    const subline = document.querySelector('.quick-tools-subline');
+    const toggle = document.querySelector('[data-act="capture-toggle"]');
+    if (subline) subline.setAttribute('hidden', '');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
   }
-  function updateModalTitle() {
-    const t = document.querySelector('.capture-modal-title');
-    if (!t) return;
-    if (typeof STATE.modalTarget === 'number') {
-      t.textContent = `Ajouter à la demande #${STATE.modalTarget + 1}`;
-    } else {
-      t.textContent = 'Ajouter au segment';
-    }
+  function toggleCaptureSubline() {
+    const subline = document.querySelector('.quick-tools-subline');
+    if (!subline) return;
+    if (subline.hasAttribute('hidden')) openCaptureSubline();
+    else closeCaptureSubline();
   }
 
   // Helper unifié : pousse une ref dans la cible courante. Priorité :
@@ -610,22 +551,6 @@
     if (typeof STATE.modalTarget === 'number') return STATE.modalTarget;
     return null;
   }
-  function switchModalTab(name) {
-    document.querySelectorAll('.modal-tab').forEach((t) => {
-      const active = t.dataset.tab === name;
-      t.classList.toggle('active', active);
-      t.setAttribute('aria-selected', active ? 'true' : 'false');
-    });
-    document.querySelectorAll('.modal-section').forEach((s) => {
-      if (s.dataset.section === name) s.removeAttribute('hidden');
-      else s.setAttribute('hidden', '');
-    });
-    if (name === 'text') {
-      const ta = document.getElementById('modal-text-input');
-      if (ta) setTimeout(() => ta.focus(), 50);
-    }
-  }
-
   // ============================================================
   // CONSOLE ERRORS — captés depuis la page active via content/main.js
   // ============================================================
@@ -635,97 +560,40 @@
     if (STATE.consoleErrors.find((e) => e.key === err.key)) return; // dédup
     STATE.consoleErrors.push(err);
     updateErrorsBadges();
-    renderConsoleErrorsList();
   }
   function updateErrorsBadges() {
     const n = STATE.consoleErrors.length;
     const tip = document.querySelector('[data-act="open-errors"] .tool-badge');
-    const tab = document.querySelector('.modal-tab--errors .tab-badge');
     if (tip) { tip.textContent = String(n); tip.dataset.count = String(n); }
-    if (tab) { tab.textContent = String(n); tab.dataset.count = String(n); }
     document.querySelector('[data-act="open-errors"]')?.classList.toggle('has-errors', n > 0);
   }
-  function renderConsoleErrorsList() {
-    const list = document.getElementById('errors-list');
-    const actions = document.querySelector('[data-section="errors"] .errors-actions');
-    if (!list) return;
-    list.innerHTML = '';
+  // Click sur le bouton Erreurs : ajoute toutes les erreurs comme refs
+  // au segment actif (édition / demande en cours), puis vide la liste.
+  function addAllConsoleErrors() {
     if (!STATE.consoleErrors.length) {
-      list.innerHTML = '<div class="errors-empty">Aucune erreur détectée pour le moment.</div>';
-      if (actions) actions.setAttribute('hidden', '');
+      setStatus('Aucune erreur détectée sur la page.', 'info');
       return;
     }
-    if (actions) actions.removeAttribute('hidden');
-    STATE.consoleErrors.forEach((err, i) => {
-      const row = document.createElement('div');
-      row.className = 'error-row';
-      const where = err.file ? `${err.file}:${err.line || '?'}` : '(rejet promesse)';
-      row.innerHTML = `
-        <div class="error-row-head">
-          <span class="error-row-num">#${i + 1}</span>
-          <code class="error-row-where">${escapeHtml(where)}</code>
-        </div>
-        <div class="error-row-msg">${escapeHtml(err.msg || '')}</div>
-        <div class="error-row-actions">
-          <button class="btn-secondary error-row-ignore" data-i="${i}">Ignorer</button>
-          <button class="btn-primary error-row-add" data-i="${i}">Ajouter au segment</button>
-        </div>
-      `;
-      list.appendChild(row);
-    });
-    list.querySelectorAll('.error-row-add').forEach((btn) => {
-      btn.addEventListener('click', () => addConsoleErrorToCurrentDemande(Number(btn.dataset.i)));
-    });
-    list.querySelectorAll('.error-row-ignore').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = Number(btn.dataset.i);
-        STATE.consoleErrors.splice(idx, 1);
-        updateErrorsBadges();
-        renderConsoleErrorsList();
-      });
-    });
-  }
-  function addConsoleErrorToCurrentDemande(idx) {
-    // Conservé sous ce nom pour rétro-compat ; route vers la nouvelle
-    // logique : chaque erreur devient son propre segment.
-    addConsoleErrorAsSegment(idx);
-  }
-  function addConsoleErrorAsSegment(idx) {
-    const err = STATE.consoleErrors[idx];
-    if (!err) return;
-    const ref = {
-      type: 'error',
-      msg: err.msg || '',
-      file: err.file || null,
-      line: err.line || null,
-      col: err.col || null,
-      stack: err.stack || null,
-      url: err.url || null,
-      ts: err.ts || Date.now(),
-    };
-    const demande = {
-      id: 'dem-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-      ts: Date.now(),
-      text: '{{ref:0}}',
-      refs: [ref],
-      url: err.url || null,
-    };
-    STATE.demandes.push(demande);
-    STATE.consoleErrors.splice(idx, 1);
-    updateErrorsBadges();
-    renderConsoleErrorsList();
-    renderSegments();
-    persist();
-    setStatus(`Erreur ajoutée comme demande #${STATE.demandes.length}`, 'success');
-  }
-  function addAllConsoleErrors() {
-    if (!STATE.consoleErrors.length) return;
-    while (STATE.consoleErrors.length) addConsoleErrorAsSegment(0);
-  }
-  function clearConsoleErrors() {
+    const count = STATE.consoleErrors.length;
+    const tIdx = activeTargetIdx();
+    for (const err of STATE.consoleErrors) {
+      const ref = {
+        type: 'error',
+        msg: err.msg || '',
+        file: err.file || null,
+        line: err.line || null,
+        col: err.col || null,
+        stack: err.stack || null,
+        url: err.url || null,
+        ts: err.ts || Date.now(),
+      };
+      addRefToTarget(ref);
+    }
     STATE.consoleErrors = [];
     updateErrorsBadges();
-    renderConsoleErrorsList();
+    setStatus(typeof tIdx === 'number'
+      ? `${count} erreur${count > 1 ? 's' : ''} ajoutée${count > 1 ? 's' : ''} à la demande #${tIdx + 1}`
+      : `${count} erreur${count > 1 ? 's' : ''} ajoutée${count > 1 ? 's' : ''} au segment courant`, 'success');
   }
 
   // ============================================================
@@ -842,7 +710,6 @@
       }
     }
     if (count) {
-      closeCaptureModal();
       setStatus(`${count} image${count > 1 ? 's' : ''} ajoutée${count > 1 ? 's' : ''} comme référence${count > 1 ? 's' : ''}.`, 'success');
     }
   }
