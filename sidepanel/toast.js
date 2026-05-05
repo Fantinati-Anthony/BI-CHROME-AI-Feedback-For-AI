@@ -1,11 +1,12 @@
 /**
- * BIAIF Toast Notification System
- * Replaces the ephemeral status bar messages with a proper toast stack.
+ * BIAIF Toast — compact notification bar above footer.
+ * Shows up to 2 toasts; oldest is dismissed when the bar is full.
  */
 (function (window) {
   'use strict';
 
-  let container = null;
+  var MAX_TOASTS = 2;
+  var container  = null;
 
   function ensureContainer() {
     if (container) return container;
@@ -28,24 +29,28 @@
     kind     = kind     || 'info';
     duration = duration !== undefined ? duration : (kind === 'error' ? 6000 : 3000);
 
-    const c = ensureContainer();
+    var c = ensureContainer();
     if (!c) return;
 
-    const toast = document.createElement('div');
+    // Evict oldest toast if bar is full
+    while (c.children.length >= MAX_TOASTS) {
+      dismiss(c.firstElementChild, true);
+    }
+
+    var toast = document.createElement('div');
     toast.className = 'biaif-toast biaif-toast--' + kind;
     toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', 'polite');
 
-    const icons = { success: '✓', error: '✕', info: 'ℹ' };
-    const icon  = icons[kind] || icons.info;
+    var icons = { success: '✓', error: '✕', info: 'ℹ' };
+    var icon  = icons[kind] || icons.info;
 
     toast.innerHTML =
       '<span class="toast-icon" aria-hidden="true">' + icon + '</span>' +
-      '<span class="toast-msg">' + esc(message) + '</span>';
+      '<span class="toast-msg" title="' + esc(message) + '">' + esc(message) + '</span>';
 
-    const closeBtn = document.createElement('button');
+    var closeBtn = document.createElement('button');
     closeBtn.className = 'toast-close';
-    closeBtn.setAttribute('aria-label', 'Fermer la notification');
+    closeBtn.setAttribute('aria-label', 'Fermer');
     closeBtn.textContent = '×';
     closeBtn.addEventListener('click', function () { dismiss(toast); });
     toast.appendChild(closeBtn);
@@ -65,13 +70,17 @@
     return toast;
   }
 
-  function dismiss(toast) {
+  function dismiss(toast, immediate) {
     if (!toast || !toast.parentNode) return;
+    if (immediate) {
+      toast.parentNode.removeChild(toast);
+      return;
+    }
     toast.classList.remove('is-visible');
     toast.classList.add('is-leaving');
     function remove() { if (toast.parentNode) toast.parentNode.removeChild(toast); }
     toast.addEventListener('transitionend', remove, { once: true });
-    setTimeout(remove, 500);
+    setTimeout(remove, 400);
   }
 
   window.BIAIFToast = { show: show };

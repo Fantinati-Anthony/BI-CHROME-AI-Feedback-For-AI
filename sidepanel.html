@@ -6,9 +6,6 @@
   <link rel="stylesheet" href="sidepanel.css" />
 </head>
 <body>
-  <!-- Toast notification stack (aria-live region) -->
-  <div id="toast-container" role="region" aria-label="Notifications" aria-live="polite"></div>
-
   <div class="biaif-root">
 
     <!-- ============================================================
@@ -212,6 +209,9 @@
          Footer area (sticky)
     ============================================================ -->
     <div class="biaif-footer-area">
+      <!-- Toast notification bar (aria-live region) -->
+      <div id="toast-container" role="region" aria-label="Notifications" aria-live="polite"></div>
+
       <div class="biaif-status" role="status" aria-live="polite" data-kind="info"></div>
 
       <div class="biaif-footer" role="toolbar" aria-label="Actions globales">
