@@ -162,6 +162,12 @@ html, body {
   background: var(--accent-purple-50); color: var(--accent-purple);
   border-color: rgba(139, 92, 246, 0.25);
 }
+.ref-chip--error {
+  background: rgba(255, 69, 58, 0.12); color: var(--danger);
+  border-color: rgba(255, 69, 58, 0.3);
+}
+.ref-chip--error .ref-chip-toggle { color: var(--danger); }
+.ref-chip--error .ref-details { border-top-color: rgba(255, 69, 58, 0.25); }
 .ref-chip svg { width: 10px; height: 10px; }
 .ref-chip-readonly { cursor: default; }
 
@@ -448,6 +454,125 @@ html, body {
 .biaif-status { font-size: 10px; color: var(--text-muted); text-align: center; padding-bottom: 4px; min-height: 14px; }
 .biaif-status[data-kind="error"] { color: var(--danger); cursor: pointer; }
 .biaif-status[data-kind="success"] { color: var(--success); }
+
+/* ============== Tool button "Erreurs" (badge dynamique) ============== */
+.tool-btn--errors svg { color: var(--text-muted); }
+.tool-btn--errors.has-errors svg { color: var(--danger); }
+.tool-badge {
+  display: inline-block;
+  margin-left: 4px; padding: 0 6px;
+  background: var(--border-card); color: var(--text-muted);
+  border-radius: var(--radius-pill);
+  font-size: 9px; font-weight: 700;
+  font-family: 'Inter', monospace; line-height: 1.4;
+}
+.tool-btn--errors.has-errors .tool-badge {
+  background: var(--danger); color: #fff;
+  animation: badge-pulse 1.6s ease-in-out infinite;
+}
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+/* ============== Modale "Ajouter" (onglets Capture / Texte / Élément / Erreurs) ============== */
+.modal-tabs {
+  display: flex; gap: 2px;
+  background: var(--bg-app); border: 1px solid var(--border-card);
+  border-radius: 8px; padding: 3px;
+}
+.modal-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+  background: transparent; border: none;
+  color: var(--text-muted); font-family: inherit; font-size: 11px; font-weight: 600;
+  padding: 6px 4px; border-radius: 6px; cursor: pointer;
+  transition: all 0.15s;
+}
+.modal-tab:hover { color: var(--text-main); background: rgba(255,255,255,0.04); }
+.modal-tab.active {
+  color: var(--text-inverse); background: var(--accent-blue);
+}
+.modal-tab.active svg { color: var(--text-inverse); }
+.modal-tab svg { color: var(--accent-blue); }
+.modal-tab--errors svg { color: var(--text-muted); }
+.modal-tab--errors .tab-badge {
+  display: inline-block; padding: 0 5px; margin-left: 2px;
+  background: var(--border-card); color: var(--text-muted);
+  border-radius: var(--radius-pill); font-size: 9px; font-weight: 700;
+  font-family: 'Inter', monospace;
+}
+.modal-tab--errors[data-count]:not([data-count="0"]) .tab-badge,
+.modal-tab--errors .tab-badge:not([data-count="0"]) {
+  background: var(--danger); color: #fff;
+}
+.modal-tab--errors:not(.active):has(.tab-badge:not([data-count="0"])) svg { color: var(--danger); }
+
+.modal-section { display: flex; flex-direction: column; gap: 10px; }
+.modal-section[hidden] { display: none; }
+.modal-section-hint {
+  margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;
+}
+.modal-text-input {
+  width: 100%; min-height: 100px; resize: vertical;
+  background: var(--bg-app); border: 1px solid var(--border-card);
+  color: var(--text-main); padding: 8px 10px; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 12px; line-height: 1.4;
+  outline: none; transition: border-color 0.15s;
+}
+.modal-text-input:focus { border-color: var(--accent-blue); }
+.modal-text-input::placeholder { color: var(--text-muted); }
+
+/* Liste des erreurs */
+.errors-list {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 280px; overflow-y: auto;
+}
+.errors-empty { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 12px 0; text-align: center; }
+.error-row {
+  background: var(--bg-app); border: 1px solid var(--border-card);
+  border-left: 3px solid var(--danger);
+  border-radius: 6px; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.error-row-head {
+  display: flex; align-items: center; gap: 6px; font-size: 10px;
+}
+.error-row-num {
+  background: rgba(255, 69, 58, 0.15); color: var(--danger);
+  padding: 1px 7px; border-radius: var(--radius-pill);
+  font-family: 'Inter', monospace; font-weight: 700;
+}
+.error-row-where {
+  color: var(--text-muted); font-family: 'Inter', monospace; font-size: 10px;
+  word-break: break-all;
+}
+.error-row-msg {
+  font-size: 12px; color: var(--text-main); line-height: 1.4;
+  word-break: break-word;
+}
+.error-row-actions { display: flex; gap: 6px; }
+.error-row-actions button { flex: 1; padding: 6px; font-size: 11px; }
+
+.errors-actions {
+  display: flex; gap: 6px; padding-top: 6px;
+  border-top: 1px solid var(--border-card);
+}
+
+/* ============== Segment drag handle + drop target (fusion) ============== */
+.seg-drag-handle {
+  background: transparent; border: none; color: var(--text-muted);
+  cursor: grab; padding: 0 4px;
+  font-size: 11px; line-height: 1; letter-spacing: -2px;
+  user-select: none;
+}
+.seg-drag-handle:hover { color: var(--accent-blue); }
+.seg-drag-handle:active { cursor: grabbing; }
+.biaif-segment.is-dragging-seg { opacity: 0.4; }
+.biaif-segment.is-drop-target {
+  border-color: var(--accent-blue);
+  background: var(--accent-blue-50);
+  box-shadow: 0 0 0 2px var(--accent-blue-50);
+}
 
 /* ============== Capture modal (4 big buttons + drop zone) ============== */
 .biaif-capture-modal {
