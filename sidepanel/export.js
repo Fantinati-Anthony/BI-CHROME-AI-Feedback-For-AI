@@ -172,6 +172,65 @@
   // -----------------------------------------------------------------------
   // Inject into Claude.ai editor (drag-and-drop simulation)
   // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // Inject into VS Code via local bridge (localhost:VSCODE_BRIDGE_PORT)
+  // -----------------------------------------------------------------------
+  async function injectToVscode(idx) {
+    var dem = STATE.demandes[idx];
+    if (!dem) return;
+
+    var port   = (window.BIAIF && window.BIAIF.VSCODE_BRIDGE_PORT) || 51473;
+    var text   = buildPromptForDemande(idx);
+    var images = (dem.refs || []).filter(function (r) { return r.type === 'screenshot' && r.dataUrl; }).map(function (r) { return r.dataUrl; });
+    var total  = (text ? 1 : 0) + images.length;
+
+    if (!total) { _toast('Rien à envoyer pour cette demande.', 'info'); return; }
+
+    _toast('Connexion au bridge VS Code…', 'info');
+    _updateProgress(0, total, 'Ping bridge…');
+
+    try {
+      // Ping — check bridge is alive (1.5 s timeout)
+      var pingCtrl = new AbortController();
+      var pingTimer = setTimeout(function () { pingCtrl.abort(); }, 1500);
+      try {
+        var pingResp = await fetch('http://127.0.0.1:' + port + '/ping', { signal: pingCtrl.signal });
+        clearTimeout(pingTimer);
+        if (!pingResp.ok) throw new Error('bridge HTTP ' + pingResp.status);
+      } catch (pingErr) {
+        clearTimeout(pingTimer);
+        _hideProgress();
+        _toast(
+          'Bridge VS Code introuvable (port ' + port + '). Installez l\'extension BIAIF dans VS Code et relancez VS Code.',
+          'error',
+          8000,
+        );
+        return;
+      }
+
+      _updateProgress(0, total, 'Envoi en cours…');
+
+      var resp = await fetch('http://127.0.0.1:' + port + '/inject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, images: images }),
+      });
+      var result = await resp.json();
+
+      _updateProgress(total, total, 'Envoyé !');
+      setTimeout(_hideProgress, 1400);
+
+      if (result.error) throw new Error(result.error);
+
+      var detail = images.length ? ' + ' + images.length + ' image(s) dans ' + result.tmpDir : '';
+      _toast('Demande #' + (idx + 1) + ' envoyée à VS Code' + detail + '.', 'success');
+
+    } catch (e) {
+      _hideProgress();
+      _toast('Erreur VS Code bridge : ' + (e && e.message || String(e)), 'error');
+    }
+  }
+
   async function injectDemande(idx) {
     var dem = STATE.demandes[idx];
     if (!dem) return;
@@ -257,6 +316,7 @@
     downloadBundle: downloadBundle,
     downloadDemande: downloadDemande,
     injectDemande: injectDemande,
+    injectToVscode: injectToVscode,
   };
 
 })(window);

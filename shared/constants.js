@@ -43,6 +43,10 @@
     PAGE_ERROR_EVENT:  '__biaif_page_error__',
     // Inject into external editor (Claude.ai)
     INJECT_TO_EDITOR:  'biaif:inject-to-editor',
+    // Inject into VS Code via local bridge
+    INJECT_TO_VSCODE:  'biaif:inject-to-vscode',
   });
+
+  root.BIAIF.VSCODE_BRIDGE_PORT = 51473;
 
 })(typeof window !== 'undefined' ? window : self);
