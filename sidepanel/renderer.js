@@ -112,9 +112,13 @@
           '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m16 6-4 4-4-4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>' +
           'Injecter' +
         '</button>' +
-        '<button class="seg-action-btn seg-action-btn--vscode" data-act="seg-vscode" data-i="' + origIndex + '" aria-label="Envoyer vers VS Code via bridge BIAIF" title="Envoyer dans VS Code (bridge BIAIF)">' +
+        '<button class="seg-action-btn seg-action-btn--vscode" data-act="seg-vscode" data-i="' + origIndex + '" aria-label="Envoyer vers VS Code (bridge BIAIF)" title="VS Code — Claude Code CLI / terminal">' +
           '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>' +
           'VS Code' +
+        '</button>' +
+        '<button class="seg-action-btn seg-action-btn--copilot" data-act="seg-copilot" data-i="' + origIndex + '" aria-label="Injecter dans GitHub Copilot Chat" title="GitHub Copilot Chat — texte pré-rempli + images jointes">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>' +
+          'Copilot' +
         '</button>' +
         '<button class="seg-action-btn" data-act="seg-copy" data-i="' + origIndex + '" aria-label="Copier le prompt de cette demande" title="Copier le prompt">' +
           '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>' +
@@ -157,6 +161,10 @@
     card.querySelector('[data-act="seg-vscode"]').addEventListener('click', function (e) {
       e.stopPropagation();
       if (window.BIAIFExport) window.BIAIFExport.injectToVscode(Number(e.currentTarget.dataset.i));
+    });
+    card.querySelector('[data-act="seg-copilot"]').addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (window.BIAIFExport) window.BIAIFExport.injectToCopilot(Number(e.currentTarget.dataset.i));
     });
     card.querySelector('[data-act="seg-copy"]').addEventListener('click', function (e) {
       e.stopPropagation();

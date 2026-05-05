@@ -172,10 +172,15 @@
   // -----------------------------------------------------------------------
   // Inject into Claude.ai editor (drag-and-drop simulation)
   // -----------------------------------------------------------------------
-  // -----------------------------------------------------------------------
-  // Inject into VS Code via local bridge (localhost:VSCODE_BRIDGE_PORT)
-  // -----------------------------------------------------------------------
+  async function injectToCopilot(idx) {
+    return _injectVscodeBridge(idx, 'copilot', 'Copilot Chat');
+  }
+
   async function injectToVscode(idx) {
+    return _injectVscodeBridge(idx, 'vscode', 'VS Code');
+  }
+
+  async function _injectVscodeBridge(idx, target, label) {
     var dem = STATE.demandes[idx];
     if (!dem) return;
 
@@ -186,12 +191,11 @@
 
     if (!total) { _toast('Rien à envoyer pour cette demande.', 'info'); return; }
 
-    _toast('Connexion au bridge VS Code…', 'info');
+    _toast('Connexion au bridge ' + label + '…', 'info');
     _updateProgress(0, total, 'Ping bridge…');
 
     try {
-      // Ping — check bridge is alive (1.5 s timeout)
-      var pingCtrl = new AbortController();
+      var pingCtrl  = new AbortController();
       var pingTimer = setTimeout(function () { pingCtrl.abort(); }, 1500);
       try {
         var pingResp = await fetch('http://127.0.0.1:' + port + '/ping', { signal: pingCtrl.signal });
@@ -201,19 +205,18 @@
         clearTimeout(pingTimer);
         _hideProgress();
         _toast(
-          'Bridge VS Code introuvable (port ' + port + '). Installez l\'extension BIAIF dans VS Code et relancez VS Code.',
-          'error',
-          8000,
+          'Bridge VS Code introuvable (port ' + port + '). Installez l\'extension BIAIF dans VS Code.',
+          'error', 8000,
         );
         return;
       }
 
-      _updateProgress(0, total, 'Envoi en cours…');
+      _updateProgress(0, total, 'Envoi vers ' + label + '…');
 
-      var resp = await fetch('http://127.0.0.1:' + port + '/inject', {
+      var resp   = await fetch('http://127.0.0.1:' + port + '/inject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text, images: images }),
+        body: JSON.stringify({ target: target, text: text, images: images }),
       });
       var result = await resp.json();
 
@@ -222,14 +225,18 @@
 
       if (result.error) throw new Error(result.error);
 
-      var detail = images.length ? ' + ' + images.length + ' image(s) dans ' + result.tmpDir : '';
-      _toast('Demande #' + (idx + 1) + ' envoyée à VS Code' + detail + '.', 'success');
+      var imgInfo = images.length ? ' + ' + images.length + ' image(s)' : '';
+      _toast('Demande #' + (idx + 1) + ' → ' + label + imgInfo + '.', 'success');
 
     } catch (e) {
       _hideProgress();
-      _toast('Erreur VS Code bridge : ' + (e && e.message || String(e)), 'error');
+      _toast('Erreur ' + label + ' bridge : ' + (e && e.message || String(e)), 'error');
     }
   }
+
+  // -----------------------------------------------------------------------
+  // Inject into VS Code via local bridge (localhost:VSCODE_BRIDGE_PORT)
+  // -----------------------------------------------------------------------
 
   async function injectDemande(idx) {
     var dem = STATE.demandes[idx];
@@ -317,6 +324,7 @@
     downloadDemande: downloadDemande,
     injectDemande: injectDemande,
     injectToVscode: injectToVscode,
+    injectToCopilot: injectToCopilot,
   };
 
 })(window);
