@@ -488,9 +488,14 @@ html, body {
 }
 
 /* ============== Status ============== */
-.biaif-status { font-size: 10px; color: var(--text-muted); text-align: center; padding-bottom: 4px; min-height: 14px; }
-.biaif-status[data-kind="error"] { color: var(--danger); cursor: pointer; }
-.biaif-status[data-kind="success"] { color: var(--success); }
+.biaif-status {
+  font-size: 11px; color: var(--text-muted); text-align: center;
+  padding: 4px 8px; border-radius: 6px;
+  background: var(--bg-card); border: 1px solid var(--border-card);
+}
+.biaif-status:empty { display: none; }
+.biaif-status[data-kind="error"]   { color: var(--danger);  border-color: rgba(255, 69, 58, 0.3); cursor: pointer; }
+.biaif-status[data-kind="success"] { color: var(--success); border-color: rgba(48, 209, 88, 0.3); }
 
 /* ============== Tool button "Erreurs" (badge dynamique) ============== */
 .tool-btn--errors svg { color: var(--text-muted); }
