@@ -76,10 +76,18 @@
     <div class="biaif-segments-wrap">
       <div class="segments-title">
         <span>Historique <span class="segments-count">0</span></span>
-        <button class="sort-toggle" data-act="sort-toggle" aria-label="Inverser l'ordre des demandes" title="Trier (récent/ancien)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16l4 4 4-4"/><path d="M7 20V4"/><path d="M21 8l-4-4-4 4"/><path d="M17 4v16"/></svg>
-          <span class="sort-label">Z→A</span>
-        </button>
+        <div class="segments-tools">
+          <button class="sort-toggle" data-act="sort-toggle" aria-label="Inverser l'ordre des demandes" title="Trier (récent/ancien)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16l4 4 4-4"/><path d="M7 20V4"/><path d="M21 8l-4-4-4 4"/><path d="M17 4v16"/></svg>
+            <span class="sort-label">Z→A</span>
+          </button>
+          <button class="segments-zoom-btn" data-act="seg-font-down" aria-label="Réduire la taille du texte" title="Réduire la taille du texte des segments">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><text x="3" y="17" font-size="13" font-family="Inter,sans-serif" font-weight="700" fill="currentColor" stroke="none">A</text><line x1="13" y1="13" x2="21" y2="13"/></svg>
+          </button>
+          <button class="segments-zoom-btn" data-act="seg-font-up" aria-label="Agrandir la taille du texte" title="Agrandir la taille du texte des segments">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><text x="3" y="17" font-size="13" font-family="Inter,sans-serif" font-weight="700" fill="currentColor" stroke="none">A</text><line x1="13" y1="13" x2="21" y2="13"/><line x1="17" y1="9" x2="17" y2="17"/></svg>
+          </button>
+        </div>
       </div>
       <div class="biaif-segments">
         <div class="biaif-empty">Aucune demande pour le moment</div>

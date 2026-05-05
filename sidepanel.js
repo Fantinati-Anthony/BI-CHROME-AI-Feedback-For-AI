@@ -32,6 +32,7 @@
     lastShot: null,
     lastShotMode: null,
     sortOrder: 'desc',
+    segFontSize: 13,        // taille de texte des segments (px), 10..20
     lang: 'fr-FR',
     micDeviceId: '',
     // Mode "remplacement" : si non-null, le prochain pick d'élément
@@ -151,6 +152,24 @@
     if (!REFS.sortToggle) return;
     const lbl = REFS.sortToggle.querySelector('.sort-label');
     if (lbl) lbl.textContent = STATE.sortOrder === 'desc' ? 'Z→A' : 'A→Z';
+  }
+
+  // Taille du texte des segments (CSS variable --seg-text-size scopée
+  // sur .biaif-segments-wrap). Bornes 10..20 px.
+  function bumpSegFontSize(delta) {
+    const next = Math.max(10, Math.min(20, (STATE.segFontSize || 13) + delta));
+    if (next === STATE.segFontSize) return;
+    STATE.segFontSize = next;
+    applySegFontSize();
+    persist();
+  }
+  function applySegFontSize() {
+    const wrap = document.querySelector('.biaif-segments-wrap');
+    if (wrap) wrap.style.setProperty('--seg-text-size', (STATE.segFontSize || 13) + 'px');
+    const fontDown = document.querySelector('[data-act="seg-font-down"]');
+    const fontUp = document.querySelector('[data-act="seg-font-up"]');
+    if (fontDown) fontDown.disabled = STATE.segFontSize <= 10;
+    if (fontUp)   fontUp.disabled   = STATE.segFontSize >= 20;
   }
 
   function cacheRefs() {
@@ -329,6 +348,13 @@
       persist();
     });
     updateSortToggleLabel();
+
+    // Boutons zoom des segments
+    const fontDown = document.querySelector('[data-act="seg-font-down"]');
+    const fontUp = document.querySelector('[data-act="seg-font-up"]');
+    if (fontDown) fontDown.addEventListener('click', () => bumpSegFontSize(-1));
+    if (fontUp)   fontUp.addEventListener('click', () => bumpSegFontSize(+1));
+    applySegFontSize();
 
     // Mini footer : settings popover + shortcuts page
     if (REFS.toggleSettings) REFS.toggleSettings.addEventListener('click', (e) => {
@@ -816,7 +842,11 @@
       }
       if (typeof saved.micDeviceId === 'string') STATE.micDeviceId = saved.micDeviceId;
       if (saved.sortOrder === 'asc' || saved.sortOrder === 'desc') STATE.sortOrder = saved.sortOrder;
+      if (typeof saved.segFontSize === 'number' && saved.segFontSize >= 10 && saved.segFontSize <= 20) {
+        STATE.segFontSize = saved.segFontSize;
+      }
       updateSortToggleLabel();
+      applySegFontSize();
       renderDemandeEditor();
       renderSegments();
       updateArmedUi();
@@ -832,6 +862,7 @@
       lang: STATE.lang,
       micDeviceId: STATE.micDeviceId,
       sortOrder: STATE.sortOrder,
+      segFontSize: STATE.segFontSize,
     };
     try {
       chrome.storage.local.set({ [STORAGE_KEY]: payload }).catch(() => {
