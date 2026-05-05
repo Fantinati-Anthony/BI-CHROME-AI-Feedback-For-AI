@@ -17,6 +17,17 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "js": ["content/page-error-monitor.js"]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "run_at": "document_start",
+      "js": ["content/error-bridge.js"]
+    },
+    {
+      "matches": ["<all_urls>"],
       "run_at": "document_idle",
       "js": [
         "content/css-selector.js",

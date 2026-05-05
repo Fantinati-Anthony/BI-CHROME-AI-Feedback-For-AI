@@ -93,37 +93,11 @@
   }
 
   // ---------- Console errors monitor ----------
-  // Capte les erreurs JS et les rejets de promesse non gérés sur la page,
-  // dédoublonne (par msg+file:line) et envoie chaque erreur unique au
-  // side panel. Le side panel maintient la liste, le badge et l'UI.
-  const __biaifSeenErrors = new Set();
-  function __biaifReport(payload) {
-    const key = (payload.msg || '') + '|' + (payload.file || '') + ':' + (payload.line || 0);
-    if (__biaifSeenErrors.has(key)) return;
-    __biaifSeenErrors.add(key);
-    payload.key = key;
-    payload.url = window.location.href;
-    payload.ts = Date.now();
-    try { chrome.runtime.sendMessage({ type: 'biaif:console-error', error: payload }).catch?.(() => {}); }
-    catch (_) {}
-  }
-  window.addEventListener('error', (e) => {
-    __biaifReport({
-      msg: e.message || (e.error && e.error.message) || String(e),
-      file: e.filename || null,
-      line: e.lineno || null,
-      col: e.colno || null,
-      stack: e.error && e.error.stack ? String(e.error.stack) : null,
-    });
-  }, true);
-  window.addEventListener('unhandledrejection', (e) => {
-    const r = e.reason;
-    __biaifReport({
-      msg: (r && r.message) || (typeof r === 'string' ? r : 'Unhandled rejection'),
-      file: null, line: null, col: null,
-      stack: r && r.stack ? String(r.stack) : null,
-    });
-  });
+  // Désormais géré par les content scripts dédiés :
+  //   - content/page-error-monitor.js (MAIN world, document_start)
+  //   - content/error-bridge.js       (isolated, document_start)
+  // Aucun code ici : on ne capte rien depuis ce script (document_idle)
+  // car la plupart des erreurs surviennent au chargement de la page.
 
   // Listener clavier in-page (filet de sécurité contre les conflits
   // de chrome.commands).
