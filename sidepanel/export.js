@@ -117,9 +117,9 @@
     var text = buildPrompt({ inlineImages: false });
     try {
       await navigator.clipboard.writeText(text);
-      _toast('Prompt copié — collez dans Claude Code et drag-droppez les screenshots.', 'success');
+      _toast(_t('toast.copy_paste_full', 'Prompt copié — collez dans Claude Code et drag-droppez les screenshots.'), 'success');
     } catch (e) {
-      _toast('Copie impossible : ' + e.message, 'error');
+      _toast(_t('toast.copy_fail', 'Copie impossible : ' + e.message, { err: e.message }), 'error');
     }
   }
 
@@ -128,17 +128,44 @@
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
-      _toast('Prompt de la demande #' + (idx + 1) + ' copié.', 'success');
+      _toast(_t('toast.copied_demande', 'Prompt de la demande #' + (idx + 1) + ' copié.', { n: idx + 1 }), 'success');
     } catch (e) {
-      _toast('Copie impossible : ' + e.message, 'error');
+      _toast(_t('toast.copy_fail', 'Copie impossible : ' + e.message, { err: e.message }), 'error');
     }
   }
+
+  // Helper: copy prompt + open URL in a new tab.
+  async function _copyAndOpen(idx, url, name) {
+    var text = buildPromptForDemande(idx);
+    if (!text) { _toast(_t('toast.nothing_to_send', 'Rien à envoyer pour cette demande.'), 'info'); return; }
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      _toast(_t('toast.copy_fail', 'Copie impossible : ' + e.message, { err: e.message }), 'error');
+      return;
+    }
+    try {
+      if (chrome && chrome.tabs && chrome.tabs.create) chrome.tabs.create({ url: url });
+      else window.open(url, '_blank', 'noopener');
+    } catch (_) {
+      try { window.open(url, '_blank', 'noopener'); } catch (__) {}
+    }
+    _toast(_t('toast.copy_paste_into', 'Prompt copié — collez-le dans ' + name, { name: name }), 'success');
+  }
+
+  function openInClaudeOnline(idx) { return _copyAndOpen(idx, 'https://claude.ai/new',          'Claude.ai'); }
+  function openInChatgpt(idx)      { return _copyAndOpen(idx, 'https://chatgpt.com/',           'ChatGPT'); }
+  function openInGemini(idx)       { return _copyAndOpen(idx, 'https://gemini.google.com/app',  'Gemini'); }
+  function openInPerplexity(idx)   { return _copyAndOpen(idx, 'https://www.perplexity.ai/',     'Perplexity'); }
+  function openInGrok(idx)         { return _copyAndOpen(idx, 'https://grok.com/',              'Grok'); }
+  function openInLechat(idx)       { return _copyAndOpen(idx, 'https://chat.mistral.ai/chat',   'Le Chat'); }
+  function openInDeepseek(idx)     { return _copyAndOpen(idx, 'https://chat.deepseek.com/',     'DeepSeek'); }
 
   // -----------------------------------------------------------------------
   // Download
   // -----------------------------------------------------------------------
   async function downloadBundle() {
-    if (!STATE.demandes.length) { _toast('Rien à télécharger.', 'info'); return; }
+    if (!STATE.demandes.length) { _toast(_t('toast.nothing_to_download', 'Rien à télécharger.'), 'info'); return; }
     var text = buildPrompt({ inlineImages: false });
     _downloadFile('biaif-prompt.md', new Blob([text], { type: 'text/markdown' }));
     var imgCount = 0;
@@ -151,7 +178,7 @@
         imgCount++;
       }
     }
-    _toast('Prompt + ' + imgCount + ' capture(s) téléchargés.', 'success');
+    _toast(_t('toast.bundle_downloaded', 'Prompt + ' + imgCount + ' capture(s) téléchargés.', { n: imgCount }), 'success');
   }
 
   async function downloadDemande(idx) {
@@ -166,18 +193,21 @@
       _downloadFile('biaif-demande-' + (idx + 1) + '-ref' + (ri + 1) + '.png', await _dataUrlToBlob(r.dataUrl));
       imgCount++;
     }
-    _toast('Demande #' + (idx + 1) + ' téléchargée' + (imgCount ? ' (+ ' + imgCount + ' capture' + (imgCount > 1 ? 's' : '') + ')' : '') + '.', 'success');
+    _toast(imgCount
+      ? _t('toast.demande_downloaded_with', 'Demande #' + (idx + 1) + ' téléchargée (+ ' + imgCount + ' capture(s)).', { n: idx + 1, imgs: imgCount })
+      : _t('toast.demande_downloaded', 'Demande #' + (idx + 1) + ' téléchargée.', { n: idx + 1 }),
+      'success');
   }
 
   // -----------------------------------------------------------------------
   // Inject into Claude.ai editor (drag-and-drop simulation)
   // -----------------------------------------------------------------------
   async function injectToCopilot(idx) {
-    return _injectVscodeBridge(idx, 'copilot', 'Copilot Chat');
+    return _injectVscodeBridge(idx, 'copilot', _t('btn.copilot', 'VS-Code GH for Copilot'));
   }
 
   async function injectToVscode(idx) {
-    return _injectVscodeBridge(idx, 'vscode', 'VS Code');
+    return _injectVscodeBridge(idx, 'vscode', _t('btn.vscode', 'VS-Code Terminal'));
   }
 
   async function _injectVscodeBridge(idx, target, label) {
@@ -189,9 +219,9 @@
     var images = (dem.refs || []).filter(function (r) { return r.type === 'screenshot' && r.dataUrl; }).map(function (r) { return r.dataUrl; });
     var total  = (text ? 1 : 0) + images.length;
 
-    if (!total) { _toast('Rien à envoyer pour cette demande.', 'info'); return; }
+    if (!total) { _toast(_t('toast.nothing_to_send', 'Rien à envoyer pour cette demande.'), 'info'); return; }
 
-    _toast('Connexion au bridge ' + label + '…', 'info');
+    _toast(_t('toast.bridge_connecting', 'Connexion au bridge ' + label + '…', { label: label }), 'info');
     _updateProgress(0, total, 'Ping bridge…');
 
     try {
@@ -205,7 +235,7 @@
         clearTimeout(pingTimer);
         _hideProgress();
         _toast(
-          'Bridge VS Code introuvable (port ' + port + '). Installez l\'extension BIAIF dans VS Code.',
+          _t('toast.bridge_offline', "Bridge VS Code introuvable (port " + port + "). Installez l'extension BIAIF dans VS Code.", { port: port }),
           'error', 8000,
         );
         return;
@@ -226,11 +256,11 @@
       if (result.error) throw new Error(result.error);
 
       var imgInfo = images.length ? ' + ' + images.length + ' image(s)' : '';
-      _toast('Demande #' + (idx + 1) + ' → ' + label + imgInfo + '.', 'success');
+      _toast(_t('toast.bridge_sent', 'Demande #' + (idx + 1) + ' → ' + label + imgInfo + '.', { n: idx + 1, label: label, imgs: imgInfo }), 'success');
 
     } catch (e) {
       _hideProgress();
-      _toast('Erreur ' + label + ' bridge : ' + (e && e.message || String(e)), 'error');
+      _toast(_t('toast.bridge_fail', 'Erreur ' + label + ' bridge : ' + (e && e.message || String(e)), { label: label, err: (e && e.message || String(e)) }), 'error');
     }
   }
 
@@ -245,9 +275,9 @@
     var images = (dem.refs || []).filter(function (r) { return r.type === 'screenshot' && r.dataUrl; }).map(function (r) { return r.dataUrl; });
     var total  = (text ? 1 : 0) + images.length;
 
-    if (!total) { _toast('Rien à injecter dans cette demande.', 'info'); return; }
+    if (!total) { _toast(_t('toast.nothing_to_inject', 'Rien à injecter dans cette demande.'), 'info'); return; }
 
-    _toast('Injection en cours dans l\'éditeur Claude Code…', 'info');
+    _toast(_t('toast.injecting', "Injection en cours dans l'éditeur Claude Code…"), 'info');
     _updateProgress(0, total, 'Connexion à l\'éditeur…');
 
     try {
@@ -264,13 +294,14 @@
       _updateProgress(total, total, 'Terminé');
       setTimeout(_hideProgress, 1200);
       if (resp.error) {
-        _toast('Injection impossible : ' + resp.error + ' — assurez-vous d\'être sur l\'onglet Claude Code.', 'error');
+        _toast(_t('toast.inject_fail', 'Injection impossible : ' + resp.error, { err: resp.error }), 'error');
       } else {
-        _toast('Demande #' + (idx + 1) + ' injectée' + (images.length ? ' + ' + images.length + ' image(s)' : '') + '.', 'success');
+        var imgInfo = images.length ? ' + ' + images.length + ' image(s)' : '';
+        _toast(_t('toast.injected', 'Demande #' + (idx + 1) + ' injectée' + imgInfo + '.', { n: idx + 1, imgs: imgInfo }), 'success');
       }
     } catch (e) {
       _hideProgress();
-      _toast('Injection échouée : ' + (e && e.message || String(e)), 'error');
+      _toast(_t('toast.inject_fail_generic', 'Injection échouée : ' + (e && e.message || String(e)), { err: (e && e.message || String(e)) }), 'error');
     }
   }
 
@@ -310,8 +341,15 @@
     return '`'.repeat(Math.max(3, max + 1));
   }
 
-  function _toast(msg, kind) {
-    if (window.BIAIFToast) window.BIAIFToast.show(msg, kind);
+  function _toast(msg, kind, dur) {
+    if (window.BIAIFToast) window.BIAIFToast.show(msg, kind, dur);
+  }
+  function _t(key, fallback, vars) {
+    if (window.BIAIFi18n && window.BIAIFi18n.t) {
+      var v = window.BIAIFi18n.t(key, vars);
+      if (v && v !== key) return v;
+    }
+    return fallback || key;
   }
 
   window.BIAIFExport = {
@@ -325,6 +363,13 @@
     injectDemande: injectDemande,
     injectToVscode: injectToVscode,
     injectToCopilot: injectToCopilot,
+    openInClaudeOnline: openInClaudeOnline,
+    openInChatgpt: openInChatgpt,
+    openInGemini: openInGemini,
+    openInPerplexity: openInPerplexity,
+    openInGrok: openInGrok,
+    openInLechat: openInLechat,
+    openInDeepseek: openInDeepseek,
   };
 
 })(window);

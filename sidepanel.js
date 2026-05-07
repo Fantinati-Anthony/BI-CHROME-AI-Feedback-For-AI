@@ -41,7 +41,11 @@
     consoleErrors:      [],
     editingDemandeIdx:  null,
     searchQuery:        '',
-    visibleButtons:     { inject: true, vscode: true, copilot: true, copy: true, download: true },
+    visibleButtons:     {
+      inject: true, vscode: true, copilot: true, copy: true, download: true,
+      claude_online: false, chatgpt: false, gemini: false, perplexity: false,
+      grok: false, lechat: false, deepseek: false,
+    },
     uiLang:             '',
   };
 
@@ -68,9 +72,16 @@
       // Apply persisted settings to DOM
       if (REFS.langSelect && STATE.lang) REFS.langSelect.value = STATE.lang;
       // Sync button-visibility checkboxes with persisted state
-      ['inject', 'vscode', 'copilot', 'copy', 'download'].forEach((key) => {
+      ['inject', 'vscode', 'copilot', 'copy', 'download',
+       'claude_online', 'chatgpt', 'gemini', 'perplexity', 'grok', 'lechat', 'deepseek'
+      ].forEach((key) => {
         const cb = document.getElementById('vis-' + key);
-        if (cb) cb.checked = STATE.visibleButtons[key] !== false;
+        if (!cb) return;
+        // For new (online) keys default is false; for legacy keys default is true.
+        const defaultsFalse = ['claude_online','chatgpt','gemini','perplexity','grok','lechat','deepseek'];
+        const fallback = defaultsFalse.indexOf(key) >= 0 ? false : true;
+        const v = STATE.visibleButtons[key];
+        cb.checked = (v === undefined) ? fallback : !!v;
       });
       _updateSpFontVal();
       window.BIAIFRenderer.updateSortToggleLabel();
@@ -168,7 +179,7 @@
     // Tools
     if (REFS.pickerBtn) REFS.pickerBtn.addEventListener('click', async () => {
       const resp = await sendBg({ type: _MSG('PICKER_TOGGLE') });
-      if (resp && resp.error) window.BIAIFToast.show('Picker KO : ' + decodeContentScriptError(resp.error), 'error');
+      if (resp && resp.error) window.BIAIFToast.show(window.BIAIFi18n.t('toast.picker_fail', { err: decodeContentScriptError(resp.error) }), 'error');
     });
     if (REFS.micBtn) REFS.micBtn.addEventListener('click', () => window.BIAIFSpeech.toggleMic());
 
@@ -268,8 +279,8 @@
     // Reload modal
     if (REFS.reloadModalBtn) REFS.reloadModalBtn.addEventListener('click', async () => {
       const resp = await sendBg({ type: _MSG('RELOAD_ACTIVE_TAB') });
-      if (resp && resp.ok) { hideReloadModal(); window.BIAIFToast.show('Onglet rechargé — réessaye dans 1 s.', 'success'); }
-      else window.BIAIFToast.show('Recharge KO : ' + (resp ? resp.error : 'no resp'), 'error');
+      if (resp && resp.ok) { hideReloadModal(); window.BIAIFToast.show(window.BIAIFi18n.t('toast.tab_reload_retry'), 'success'); }
+      else window.BIAIFToast.show(window.BIAIFi18n.t('toast.tab_reload_fail', { err: (resp ? resp.error : 'no resp') }), 'error');
     });
     if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', () => hideReloadModal());
 
@@ -281,7 +292,9 @@
     });
 
     // Button visibility toggles
-    ['inject', 'vscode', 'copilot', 'copy', 'download'].forEach((key) => {
+    ['inject', 'vscode', 'copilot', 'copy', 'download',
+     'claude_online', 'chatgpt', 'gemini', 'perplexity', 'grok', 'lechat', 'deepseek'
+    ].forEach((key) => {
       const cb = document.getElementById('vis-' + key);
       if (!cb) return;
       cb.addEventListener('change', () => {
@@ -298,6 +311,11 @@
       const lang = btn.dataset.lang;
       STATE.uiLang = lang;
       window.BIAIFi18n.setLang(lang);
+      // Re-render dynamic UI bits whose labels live in JS (segment buttons, master btn, etc.)
+      window.BIAIFRenderer.renderSegments();
+      window.BIAIFRenderer.renderDemandeRefsStrip();
+      window.BIAIFRenderer.updateMasterBtnLabel();
+      window.BIAIFRenderer.updateErrorsBadges();
       window.BIAIFStorage.persist(STATE);
     });
 
@@ -345,7 +363,7 @@
       const action = REFS.status.dataset.action;
       if (action === 'reload-active-tab') {
         const resp = await sendBg({ type: _MSG('RELOAD_ACTIVE_TAB') });
-        if (resp && resp.ok) window.BIAIFToast.show('Onglet rechargé.', 'success');
+        if (resp && resp.ok) window.BIAIFToast.show(window.BIAIFi18n.t('toast.tab_reloaded'), 'success');
       }
     });
   }
@@ -421,7 +439,34 @@
         if (msg.action === 'copy-prompt') window.BIAIFExport.copyPrompt();
         return;
       }
+      if (msg.type === _MSG('OPEN_WITH_FILTER')) {
+        onOpenWithFilter(msg.filterUrl);
+        return;
+      }
     });
+  }
+
+  function onOpenWithFilter(filterUrl) {
+    // filterUrl is null for AI pages (show all) or a page URL for other pages
+    let query = '';
+    if (filterUrl) {
+      try { query = new URL(filterUrl).hostname; } catch (_) { query = filterUrl; }
+    }
+    STATE.searchQuery = query;
+    if (REFS.searchInput) {
+      REFS.searchInput.value = query;
+      // Clear placeholder styling when a value is set
+      REFS.searchInput.dispatchEvent(new Event('input', { bubbles: false }));
+    }
+    window.BIAIFRenderer.renderSegments();
+    if (query) {
+      window.BIAIFToast.show(
+        window.BIAIFi18n
+          ? window.BIAIFi18n.t('toast.filter_applied', { host: query })
+          : 'Filtre : ' + query,
+        'info', 2500
+      );
+    }
   }
 
   // ============================================================
@@ -434,7 +479,7 @@
     REFS.pickerBtn.classList.toggle('active', active);
     REFS.pickerBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
     const lbl = REFS.pickerBtn.querySelector('.label');
-    if (lbl) lbl.textContent = active ? 'Picker actif' : 'Sélecteur';
+    if (lbl) lbl.textContent = active ? window.BIAIFi18n.t('tools.picker_active') : window.BIAIFi18n.t('tools.picker');
   }
 
   function onElementPicked(msg) {
@@ -461,7 +506,7 @@
         if (demKey === 'current') window.BIAIFRenderer.renderDemandeEditor();
         else window.BIAIFRenderer.renderSegments();
         window.BIAIFStorage.persist(STATE);
-        window.BIAIFToast.show('Référence #' + (refIndex + 1) + ' mise à jour : ' + shortLabel(descriptor), 'success');
+        window.BIAIFToast.show(window.BIAIFi18n.t('toast.ref_updated', { n: refIndex + 1, label: shortLabel(descriptor) }), 'success');
       }
       if (!STATE.armed) sendBg({ type: _MSG('PICKER_DISABLE') });
       return;
@@ -471,8 +516,8 @@
     window.BIAIFSession.addRefToTarget(ref);
     window.BIAIFToast.show(
       typeof tIdx === 'number'
-        ? 'Élément ajouté à la demande #' + (tIdx + 1) + ' : ' + shortLabel(descriptor)
-        : 'Référence ajoutée : ' + shortLabel(descriptor),
+        ? window.BIAIFi18n.t('toast.element_added', { n: tIdx + 1, label: shortLabel(descriptor) })
+        : window.BIAIFi18n.t('toast.ref_added', { label: shortLabel(descriptor) }),
       'success'
     );
     STATE.modalTarget = 'current';
@@ -502,7 +547,7 @@
   }
 
   function addAllConsoleErrors() {
-    if (!STATE.consoleErrors.length) { window.BIAIFToast.show('Aucune erreur détectée sur la page.', 'info'); return; }
+    if (!STATE.consoleErrors.length) { window.BIAIFToast.show(window.BIAIFi18n.t('toast.no_errors'), 'info'); return; }
     const count = STATE.consoleErrors.length;
     for (const err of STATE.consoleErrors) {
       window.BIAIFSession.addRefToTarget({
@@ -513,7 +558,7 @@
     }
     STATE.consoleErrors = [];
     window.BIAIFRenderer.updateErrorsBadges();
-    window.BIAIFToast.show(count + ' erreur' + (count > 1 ? 's ajoutées' : ' ajoutée') + ' au segment courant.', 'success');
+    window.BIAIFToast.show(window.BIAIFi18n.t(count > 1 ? 'toast.errors_added_plural' : 'toast.errors_added_singular', { n: count }), 'success');
   }
 
   // ============================================================
@@ -588,7 +633,7 @@
         count++;
       } catch (e) { console.warn('[BIAIF] file read failed', e && e.message); }
     }
-    if (count) window.BIAIFToast.show(count + ' image' + (count > 1 ? 's ajoutées' : ' ajoutée') + ' comme référence' + (count > 1 ? 's' : '') + '.', 'success');
+    if (count) window.BIAIFToast.show(window.BIAIFi18n.t(count > 1 ? 'toast.images_added_plural' : 'toast.images_added_singular', { n: count }), 'success');
   }
 
   function readFileAsDataUrl(file) {
@@ -608,12 +653,12 @@
     if (!text) return;
     window.BIAIFSession.addTextToTarget('« ' + text + ' »');
     if (pageUrl) STATE.currentDemande.pageUrl = pageUrl;
-    window.BIAIFToast.show('Sélection texte ajoutée au segment courant.', 'success');
+    window.BIAIFToast.show(window.BIAIFi18n.t('toast.text_selection_added'), 'success');
   }
 
   async function addImageFromContext(srcUrl, pageUrl) {
     if (!srcUrl) return;
-    window.BIAIFToast.show("Téléchargement de l'image…", 'info', 2000);
+    window.BIAIFToast.show(window.BIAIFi18n.t('toast.image_downloading'), 'info', 2000);
     let dataUrl = null;
     try {
       const resp = await fetch(srcUrl);
@@ -622,7 +667,7 @@
     } catch (_) {}
     window.BIAIFSession.addRefToTarget({ type: 'screenshot', mode: dataUrl ? 'image' : 'image-url', dataUrl, srcUrl, url: pageUrl || null, ts: Date.now() });
     if (pageUrl) STATE.currentDemande.pageUrl = pageUrl;
-    window.BIAIFToast.show(dataUrl ? 'Image ajoutée comme référence.' : 'Image ajoutée (URL seulement).', 'success');
+    window.BIAIFToast.show(window.BIAIFi18n.t(dataUrl ? 'toast.image_added' : 'toast.image_added_url'), 'success');
   }
 
   // ============================================================
@@ -630,7 +675,7 @@
   // ============================================================
 
   function clearAll() {
-    if (!confirm('Effacer la session ? (Toutes les demandes finalisées et la demande en cours seront perdues)')) return;
+    if (!confirm(window.BIAIFi18n.t('confirm.clear_all'))) return;
     if (STATE.editingDemandeIdx !== null) window.BIAIFSession.exitEditMode({ silent: true });
     STATE.demandes       = [];
     STATE.currentDemande = { text: '', refs: [], pageUrl: null };

@@ -24,10 +24,10 @@
     _startTimer();
     if (!STATE.pickerActive) {
       var resp = await _sendBg({ type: _MSG('PICKER_ENABLE') });
-      if (resp && resp.error) _toast('Picker KO : ' + _decodeErr(resp.error), 'error');
+      if (resp && resp.error) _toast(_t('toast.picker_fail', 'Picker KO : ' + _decodeErr(resp.error), { err: _decodeErr(resp.error) }), 'error');
     }
     if (!STATE.micActive) await window.BIAIFSpeech.startMic();
-    _toast('Session démarrée.', 'success');
+    _toast(_t('toast.session_started', 'Session démarrée.'), 'success');
   }
 
   function stopSession() {
@@ -45,7 +45,7 @@
       finalizeDemande(true);
     }
     _updateArmedUi();
-    _toast('Session arrêtée — ' + STATE.demandes.length + ' demande(s) capturée(s).', 'info');
+    _toast(_t('toast.session_stopped', 'Session arrêtée — ' + STATE.demandes.length + ' demande(s) capturée(s).', { n: STATE.demandes.length }), 'info');
   }
 
   function finalizeDemande(silent) {
@@ -54,7 +54,7 @@
     var text    = STATE.currentDemande.text, refs = STATE.currentDemande.refs;
     var cleaned = (text || '').replace(/\s+/g, ' ').trim();
     if (!cleaned && !refs.length) {
-      if (!silent) _toast('Rien à finaliser — parlez ou ajoutez une référence.', 'info');
+      if (!silent) _toast(_t('toast.nothing_to_finalize', 'Rien à finaliser — parlez ou ajoutez une référence.'), 'info');
       return;
     }
     STATE.demandes.push({
@@ -70,7 +70,7 @@
     window.BIAIFRenderer.renderSegments();
     window.BIAIFRenderer.updateArmedUi();
     window.BIAIFStorage.persist(STATE);
-    if (!silent) _toast('Demande #' + STATE.demandes.length + ' finalisée.', 'success');
+    if (!silent) _toast(_t('toast.demande_finalized', 'Demande #' + STATE.demandes.length + ' finalisée.', { n: STATE.demandes.length }), 'success');
   }
 
   // nextVoiceSegment is the legacy alias for finalizeDemande
@@ -96,7 +96,7 @@
       var textEl = document.querySelector('.demande-text[data-i="' + idx + '"]');
       if (textEl) textEl.focus();
     }, 30);
-    _toast('Édition de la demande #' + (idx + 1) + ' — voix, picker, capture s\'y insèrent.', 'info', 3000);
+    _toast(_t('toast.edit_mode_entered', 'Édition de la demande #' + (idx + 1) + ' — voix, picker, capture s\'y insèrent.', { n: idx + 1 }), 'info', 3000);
   }
 
   function exitEditMode(opts) {
@@ -107,7 +107,7 @@
     if (!STATE.armed && STATE.pickerActive) _sendBg({ type: _MSG('PICKER_DISABLE') });
     window.BIAIFRenderer.renderSegments();
     window.BIAIFRenderer.updateArmedUi();
-    if (!opts || !opts.silent) _toast('Mode édition terminé.', 'info');
+    if (!opts || !opts.silent) _toast(_t('toast.edit_mode_exited', 'Mode édition terminé.'), 'info');
   }
 
   // -----------------------------------------------------------------------
@@ -171,10 +171,11 @@
   // Shot runner
   // -----------------------------------------------------------------------
   async function runShotMode(mode) {
-    _toast('Capture (' + mode + ')…', 'info', 2000);
+    _toast(_t('toast.shot_running', 'Capture (' + mode + ')…', { mode: mode }), 'info', 2000);
     var resp = await _sendBg({ type: _MSG('CAPTURE_MODE'), mode: mode });
     if (!resp || resp.error || !resp.dataUrl) {
-      _toast('Capture KO : ' + _decodeErr(resp ? (resp.error || 'pas de dataUrl') : 'pas de réponse'), 'error');
+      var err = _decodeErr(resp ? (resp.error || 'pas de dataUrl') : 'pas de réponse');
+      _toast(_t('toast.shot_fail', 'Capture KO : ' + err, { err: err }), 'error');
       return;
     }
     STATE.lastShot     = resp.dataUrl;
@@ -183,8 +184,8 @@
     var tIdx = activeTargetIdx();
     addRefToTarget(ref);
     _toast(typeof tIdx === 'number'
-      ? 'Capture ' + mode + ' ajoutée à la demande #' + (tIdx + 1)
-      : 'Capture ' + mode + ' OK — ajoutée comme référence', 'success');
+      ? _t('toast.shot_added', 'Capture ' + mode + ' ajoutée à la demande #' + (tIdx + 1), { mode: mode, n: tIdx + 1 })
+      : _t('toast.shot_added_current', 'Capture ' + mode + ' OK — ajoutée comme référence', { mode: mode }), 'success');
     STATE.modalTarget = 'current';
   }
 
@@ -207,7 +208,7 @@
     window.BIAIFRenderer.renderSegments();
     window.BIAIFStorage.persist(STATE);
     var newNum = ((srcIdx < dstIdx) ? dstIdx - 1 : dstIdx) + 1;
-    _toast('Demandes fusionnées dans #' + newNum + '.', 'success');
+    _toast(_t('toast.merge_complete', 'Demandes fusionnées dans #' + newNum + '.', { n: newNum }), 'success');
   }
 
   // -----------------------------------------------------------------------
@@ -296,26 +297,30 @@
     var ref = target.refs[refIndex];
 
     if (editType === 'screenshot' || ref.type === 'screenshot') {
-      if (!ref.dataUrl) { _toast('Capture indisponible (cache local).', 'error'); return; }
-      _toast("Annotateur ouvert dans l'onglet actif…", 'info', 2000);
+      if (!ref.dataUrl) { _toast(_t('toast.annotate_unavailable', 'Capture indisponible (cache local).'), 'error'); return; }
+      _toast(_t('toast.annotate_open', "Annotateur ouvert dans l'onglet actif…"), 'info', 2000);
       var resp = await _sendBg({ type: _MSG('ANNOTATE'), dataUrl: ref.dataUrl });
-      if (!resp || resp.cancelled) { _toast('Annotation annulée.', 'info'); return; }
-      if (resp.error || !resp.dataUrl) { _toast('Annotation KO : ' + _decodeErr(resp.error || 'no result'), 'error'); return; }
+      if (!resp || resp.cancelled) { _toast(_t('toast.annotate_cancelled', 'Annotation annulée.'), 'info'); return; }
+      if (resp.error || !resp.dataUrl) {
+        var aerr = _decodeErr(resp.error || 'no result');
+        _toast(_t('toast.annotate_fail', 'Annotation KO : ' + aerr, { err: aerr }), 'error'); return;
+      }
       ref.dataUrl = resp.dataUrl;
       if (demKey === 'current') window.BIAIFRenderer.renderDemandeEditor();
       else window.BIAIFRenderer.renderSegments();
       window.BIAIFStorage.persist(STATE);
-      _toast('Référence #' + (refIndex + 1) + ' : annotation enregistrée.', 'success');
+      _toast(_t('toast.annotate_saved', 'Référence #' + (refIndex + 1) + ' : annotation enregistrée.', { n: refIndex + 1 }), 'success');
       return;
     }
     STATE.replacingRef = { demKey: demKey, refIndex: refIndex };
     var r2 = await _sendBg({ type: _MSG('PICKER_ENABLE') });
     if (r2 && r2.error) {
       STATE.replacingRef = null;
-      _toast('Picker KO : ' + _decodeErr(r2.error), 'error');
+      var perr = _decodeErr(r2.error);
+      _toast(_t('toast.picker_fail', 'Picker KO : ' + perr, { err: perr }), 'error');
       return;
     }
-    _toast('Cliquez un élément pour remplacer la référence #' + (refIndex + 1) + '…', 'info', 4000);
+    _toast(_t('toast.replace_ref_prompt', 'Cliquez un élément pour remplacer la référence #' + (refIndex + 1) + '…', { n: refIndex + 1 }), 'info', 4000);
   }
 
   // -----------------------------------------------------------------------
@@ -342,6 +347,13 @@
   function _updateMasterBtn() { if (window.BIAIFRenderer) window.BIAIFRenderer.updateMasterBtnLabel(); }
   function _updateArmedUi()   { if (window.BIAIFRenderer) window.BIAIFRenderer.updateArmedUi(); }
   function _toast(m, k, d)    { if (window.BIAIFToast) window.BIAIFToast.show(m, k, d); }
+  function _t(key, fallback, vars) {
+    if (window.BIAIFi18n && window.BIAIFi18n.t) {
+      var v = window.BIAIFi18n.t(key, vars);
+      if (v && v !== key) return v;
+    }
+    return fallback || key;
+  }
   function _sendBg(payload)   { return chrome.runtime.sendMessage(payload).catch(function () { return null; }); }
   function _MSG(key)          { return window.BIAIF && window.BIAIF.MSG ? window.BIAIF.MSG[key] : 'biaif:' + key.toLowerCase().replace(/_/g, '-'); }
   function _decodeErr(e) {

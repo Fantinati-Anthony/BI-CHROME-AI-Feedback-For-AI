@@ -38,6 +38,14 @@
         "content/main.js",
         "content/inject.js"
       ]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "run_at": "document_idle",
+      "js": [
+        "shared/constants.js",
+        "content/textarea-injector.js"
+      ]
     }
   ],
   "commands": {

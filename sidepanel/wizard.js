@@ -173,8 +173,8 @@
         '<p class="wiz-desc">' + _t('wizard.welcome.desc', "Capturez vos idées, bugs et retours directement depuis le navigateur et transmettez-les à votre IA — avec texte, captures d'écran et contexte HTML.") + '</p>' +
         '<div class="wiz-chips">' +
           '<span class="wiz-chip wiz-chip-blue">Claude Code</span>' +
-          '<span class="wiz-chip wiz-chip-teal">VS Code</span>' +
-          '<span class="wiz-chip wiz-chip-purple">Copilot</span>' +
+          '<span class="wiz-chip wiz-chip-teal">' + _t('btn.vscode', 'VS-Code Terminal') + '</span>' +
+          '<span class="wiz-chip wiz-chip-purple">' + _t('btn.copilot', 'VS-Code GH for Copilot') + '</span>' +
         '</div>' +
       '</div>'
     );
@@ -255,14 +255,23 @@
   function _stepExport() {
     var VB = (_STATE && _STATE.visibleButtons) ? _STATE.visibleButtons : {};
     var btns = [
-      { key: 'inject',   c: 'purple', label: _t('btn.inject', 'Injecter'), desc: _t('wizard.export.inject_desc', 'Injection directe dans Claude.ai (texte + images)')   },
-      { key: 'vscode',   c: 'teal',   label: _t('btn.vscode', 'VS Code'),  desc: _t('wizard.export.vscode_desc', 'Bridge local → terminal Claude Code CLI')            },
-      { key: 'copilot',  c: 'indigo', label: _t('btn.copilot', 'Copilot'),  desc: _t('wizard.export.copilot_desc', 'GitHub Copilot Chat (texte + fichiers joints)')      },
-      { key: 'copy',     c: 'gray',   label: _t('btn.copy', 'Copier'),   desc: _t('wizard.export.copy_desc', 'Prompt Markdown dans le presse-papier')              },
-      { key: 'download', c: 'muted',  label: _t('btn.download', '.MD'),      desc: _t('wizard.export.download_desc', 'Archive Markdown + captures PNG')                    },
+      { key: 'inject',        c: 'purple', label: _t('btn.inject', 'Injecter'),               desc: _t('wizard.export.inject_desc', 'Injection directe dans Claude.ai (texte + images)') },
+      { key: 'vscode',        c: 'teal',   label: _t('btn.vscode', 'VS-Code Terminal'),       desc: _t('wizard.export.vscode_desc', 'Bridge local → terminal Claude Code CLI') },
+      { key: 'copilot',       c: 'indigo', label: _t('btn.copilot', 'VS-Code GH for Copilot'), desc: _t('wizard.export.copilot_desc', 'GitHub Copilot Chat (texte + fichiers joints)') },
+      { key: 'copy',          c: 'gray',   label: _t('btn.copy', 'Copier'),                   desc: _t('wizard.export.copy_desc', 'Prompt Markdown dans le presse-papier') },
+      { key: 'download',      c: 'muted',  label: _t('btn.download', '.MD'),                  desc: _t('wizard.export.download_desc', 'Archive Markdown + captures PNG') },
+      { key: 'claude_online', c: 'gray',   label: _t('btn.claude_online', 'Claude.ai'),       desc: _t('wizard.export.online_desc', 'Copie le prompt et ouvre {name} dans un nouvel onglet', { name: 'Claude.ai' }), online: true },
+      { key: 'chatgpt',       c: 'gray',   label: _t('btn.chatgpt', 'ChatGPT'),               desc: _t('wizard.export.online_desc', 'Copie le prompt et ouvre {name} dans un nouvel onglet', { name: 'ChatGPT' }), online: true },
+      { key: 'gemini',        c: 'gray',   label: _t('btn.gemini', 'Gemini'),                 desc: _t('wizard.export.online_desc', 'Copie le prompt et ouvre {name} dans un nouvel onglet', { name: 'Gemini' }), online: true },
+      { key: 'perplexity',    c: 'gray',   label: _t('btn.perplexity', 'Perplexity'),         desc: _t('wizard.export.online_desc', 'Copie le prompt et ouvre {name} dans un nouvel onglet', { name: 'Perplexity' }), online: true },
+      { key: 'grok',          c: 'gray',   label: _t('btn.grok', 'Grok'),                     desc: _t('wizard.export.online_desc', 'Copie le prompt et ouvre {name} dans un nouvel onglet', { name: 'Grok' }), online: true },
+      { key: 'lechat',        c: 'gray',   label: _t('btn.lechat', 'Le Chat'),                desc: _t('wizard.export.online_desc', 'Copie le prompt et ouvre {name} dans un nouvel onglet', { name: 'Le Chat' }), online: true },
+      { key: 'deepseek',      c: 'gray',   label: _t('btn.deepseek', 'DeepSeek'),             desc: _t('wizard.export.online_desc', 'Copie le prompt et ouvre {name} dans un nouvel onglet', { name: 'DeepSeek' }), online: true },
     ];
+    var defaultsFalse = ['claude_online','chatgpt','gemini','perplexity','grok','lechat','deepseek'];
     var rows = btns.map(function (b) {
-      var checked = VB[b.key] !== false;
+      var v = VB[b.key];
+      var checked = (v === undefined) ? (defaultsFalse.indexOf(b.key) === -1) : !!v;
       return (
         '<label class="wiz-toggle-row" for="wiz-vis-' + b.key + '">' +
           '<span class="wiz-badge wiz-badge-' + b.c + '">' + b.label + '</span>' +
@@ -299,13 +308,25 @@
     if (_STATE && _STATE.visibleButtons) {
       var VB = _STATE.visibleButtons;
       var names = {
-        inject:   _t('btn.inject', 'Injecter'),
-        vscode:   _t('btn.vscode', 'VS Code'),
-        copilot:  _t('btn.copilot', 'Copilot'),
-        copy:     _t('btn.copy', 'Copier'),
-        download: _t('btn.download', '.MD'),
+        inject:        _t('btn.inject', 'Injecter'),
+        vscode:        _t('btn.vscode', 'VS-Code Terminal'),
+        copilot:       _t('btn.copilot', 'VS-Code GH for Copilot'),
+        copy:          _t('btn.copy', 'Copier'),
+        download:      _t('btn.download', '.MD'),
+        claude_online: _t('btn.claude_online', 'Claude.ai'),
+        chatgpt:       _t('btn.chatgpt', 'ChatGPT'),
+        gemini:        _t('btn.gemini', 'Gemini'),
+        perplexity:    _t('btn.perplexity', 'Perplexity'),
+        grok:          _t('btn.grok', 'Grok'),
+        lechat:        _t('btn.lechat', 'Le Chat'),
+        deepseek:      _t('btn.deepseek', 'DeepSeek'),
       };
-      Object.keys(names).forEach(function (k) { if (VB[k] !== false) activeButtons.push(names[k]); });
+      var defaultsFalse = ['claude_online','chatgpt','gemini','perplexity','grok','lechat','deepseek'];
+      Object.keys(names).forEach(function (k) {
+        var v = VB[k];
+        var on = (v === undefined) ? (defaultsFalse.indexOf(k) === -1) : !!v;
+        if (on) activeButtons.push(names[k]);
+      });
     }
 
     var recap = [

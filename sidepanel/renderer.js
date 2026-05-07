@@ -19,6 +19,14 @@
   // -----------------------------------------------------------------------
   // escapeHtml (shared util — safe for innerHTML contexts)
   // -----------------------------------------------------------------------
+  function _t(key, fallback, vars) {
+    if (window.BIAIFi18n && window.BIAIFi18n.t) {
+      var v = window.BIAIFi18n.t(key, vars);
+      if (v && v !== key) return v;
+    }
+    return fallback || key;
+  }
+
   function esc(s) {
     return String(s || '')
       .replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -39,11 +47,11 @@
     var filtered = _filterDemandes();
 
     if (!STATE.demandes.length) {
-      REFS.segments.appendChild(_makeEmpty('Aucune demande pour le moment'));
+      REFS.segments.appendChild(_makeEmpty(_t('segments.empty', 'Aucune demande pour le moment')));
       _reattach(qt); updateMasterBtnLabel(); updateArmedUi(); return;
     }
     if (!filtered.length) {
-      REFS.segments.appendChild(_makeEmpty('Aucun résultat pour cette recherche'));
+      REFS.segments.appendChild(_makeEmpty(_t('segments.no_results', 'Aucun résultat pour cette recherche')));
       _reattach(qt); updateMasterBtnLabel(); updateArmedUi(); return;
     }
 
@@ -72,6 +80,17 @@
     });
   }
 
+  function _onlineButton(origIndex, slug, i18nKey, fallback) {
+    var label = esc(_t(i18nKey, fallback));
+    var aria  = esc(_t('aria.open_in_new_tab', 'Ouvrir ' + fallback + ' dans un nouvel onglet et copier le prompt', { name: fallback }));
+    return (
+      '<button class="seg-action-btn seg-action-btn--online seg-action-btn--' + slug + '" data-act="seg-' + slug + '" data-i="' + origIndex + '" aria-label="' + aria + '" title="' + label + '">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+        label +
+      '</button>'
+    );
+  }
+
   function _makeEmpty(msg) {
     var el = document.createElement('div');
     el.className = 'biaif-empty';
@@ -85,6 +104,7 @@
     card.className = 'biaif-segment';
     var dt        = new Date(dem.ts || Date.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     var refsCount = (dem.refs || []).length;
+    var refsLabel = _t(refsCount > 1 ? 'segments.ref_plural' : 'segments.ref_singular', refsCount + ' réf' + (refsCount > 1 ? 's' : ''), { n: refsCount });
     var isEditing = STATE.editingDemandeIdx === origIndex;
     if (isEditing) card.classList.add('is-editing');
     card.dataset.i = String(origIndex);
@@ -101,7 +121,7 @@
       '<header>' +
         '<button class="seg-drag-handle" data-i="' + origIndex + '" aria-label="Glisser pour fusionner" title="Glisser sur une autre demande pour fusionner">⋮⋮</button>' +
         '<span class="seg-num" aria-label="Demande ' + num + '">#' + num + '</span>' +
-        '<span class="seg-meta">' + dt + ' · <span aria-label="' + refsCount + ' références">' + refsCount + ' réf' + (refsCount > 1 ? 's' : '') + '</span></span>' +
+        '<span class="seg-meta">' + dt + ' · <span aria-label="' + refsCount + ' références">' + esc(refsLabel) + '</span></span>' +
         editBtnHtml +
         '<button class="seg-del" data-i="' + origIndex + '" aria-label="Supprimer la demande ' + num + '" title="Supprimer">×</button>' +
       '</header>' +
@@ -112,14 +132,21 @@
           '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m16 6-4 4-4-4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>' +
           'Injecter' +
         '</button>' +
-        '<button class="seg-action-btn seg-action-btn--vscode" data-act="seg-vscode" data-i="' + origIndex + '" aria-label="Envoyer vers VS Code (bridge BIAIF)" title="VS Code — Claude Code CLI / terminal">' +
+        '<button class="seg-action-btn seg-action-btn--vscode" data-act="seg-vscode" data-i="' + origIndex + '" aria-label="' + esc(_t('btn.vscode','VS-Code Terminal')) + '" title="' + esc(_t('btn.vscode','VS-Code Terminal')) + '">' +
           '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>' +
-          'VS Code' +
+          esc(_t('btn.vscode','VS-Code Terminal')) +
         '</button>' +
-        '<button class="seg-action-btn seg-action-btn--copilot" data-act="seg-copilot" data-i="' + origIndex + '" aria-label="Injecter dans GitHub Copilot Chat" title="GitHub Copilot Chat — texte pré-rempli + images jointes">' +
+        '<button class="seg-action-btn seg-action-btn--copilot" data-act="seg-copilot" data-i="' + origIndex + '" aria-label="' + esc(_t('btn.copilot','VS-Code GH for Copilot')) + '" title="' + esc(_t('btn.copilot','VS-Code GH for Copilot')) + '">' +
           '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>' +
-          'Copilot' +
+          esc(_t('btn.copilot','VS-Code GH for Copilot')) +
         '</button>' +
+        _onlineButton(origIndex, 'claude-online',  'btn.claude_online', 'Claude.ai') +
+        _onlineButton(origIndex, 'chatgpt',        'btn.chatgpt',       'ChatGPT') +
+        _onlineButton(origIndex, 'gemini',         'btn.gemini',        'Gemini') +
+        _onlineButton(origIndex, 'perplexity',     'btn.perplexity',    'Perplexity') +
+        _onlineButton(origIndex, 'grok',           'btn.grok',          'Grok') +
+        _onlineButton(origIndex, 'lechat',         'btn.lechat',        'Le Chat') +
+        _onlineButton(origIndex, 'deepseek',       'btn.deepseek',      'DeepSeek') +
         '<button class="seg-action-btn" data-act="seg-copy" data-i="' + origIndex + '" aria-label="Copier le prompt de cette demande" title="Copier le prompt">' +
           '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>' +
           'Copier' +
@@ -132,9 +159,19 @@
 
     // Apply button visibility
     var VB = STATE.visibleButtons || {};
-    var VB_MAP = { inject: 'seg-inject', vscode: 'seg-vscode', copilot: 'seg-copilot', copy: 'seg-copy', download: 'seg-download' };
+    var VB_MAP = {
+      inject: 'seg-inject', vscode: 'seg-vscode', copilot: 'seg-copilot',
+      copy: 'seg-copy', download: 'seg-download',
+      claude_online: 'seg-claude-online', chatgpt: 'seg-chatgpt', gemini: 'seg-gemini',
+      perplexity: 'seg-perplexity', grok: 'seg-grok', lechat: 'seg-lechat', deepseek: 'seg-deepseek',
+    };
+    var defaultsFalse = ['claude_online','chatgpt','gemini','perplexity','grok','lechat','deepseek'];
     Object.keys(VB_MAP).forEach(function (key) {
-      if (VB[key] === false) {
+      var v = VB[key];
+      var isVisible;
+      if (v === undefined) isVisible = defaultsFalse.indexOf(key) === -1; // default true for legacy, false for new
+      else isVisible = !!v;
+      if (!isVisible) {
         var b = card.querySelector('[data-act="' + VB_MAP[key] + '"]');
         if (b) b.hidden = true;
       }
@@ -174,6 +211,26 @@
     if (_btnCopilot)  _btnCopilot.addEventListener('click',  function (e) { e.stopPropagation(); if (window.BIAIFExport) window.BIAIFExport.injectToCopilot(Number(e.currentTarget.dataset.i)); });
     if (_btnCopy)     _btnCopy.addEventListener('click',     function (e) { e.stopPropagation(); if (window.BIAIFExport) window.BIAIFExport.copyPromptForDemande(Number(e.currentTarget.dataset.i)); });
     if (_btnDownload) _btnDownload.addEventListener('click', function (e) { e.stopPropagation(); if (window.BIAIFExport) window.BIAIFExport.downloadDemande(Number(e.currentTarget.dataset.i)); });
+
+    var ONLINE_FN = {
+      'seg-claude-online': 'openInClaudeOnline',
+      'seg-chatgpt':       'openInChatgpt',
+      'seg-gemini':        'openInGemini',
+      'seg-perplexity':    'openInPerplexity',
+      'seg-grok':          'openInGrok',
+      'seg-lechat':        'openInLechat',
+      'seg-deepseek':      'openInDeepseek',
+    };
+    Object.keys(ONLINE_FN).forEach(function (act) {
+      var btn = card.querySelector('[data-act="' + act + '"]');
+      if (!btn) return;
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (window.BIAIFExport && window.BIAIFExport[ONLINE_FN[act]]) {
+          window.BIAIFExport[ONLINE_FN[act]](Number(e.currentTarget.dataset.i));
+        }
+      });
+    });
     card.querySelector('.seg-edit-btn').addEventListener('click', function (e) {
       e.stopPropagation();
       var i = Number(e.currentTarget.dataset.i);
@@ -185,13 +242,13 @@
       var i   = Number(e.currentTarget.dataset.i);
       var d   = STATE.demandes[i];
       var prv = (d && d.text || '').replace(/\{\{ref:\d+\}\}/g, '…').trim().slice(0, 60) || '(vide)';
-      if (!confirm('Supprimer la demande #' + (i + 1) + ' ?\n\n' + prv)) return;
+      if (!confirm(_t('confirm.delete_demande', 'Supprimer la demande #' + (i + 1) + ' ?\n\n' + prv, { n: i + 1, preview: prv }))) return;
       if (STATE.editingDemandeIdx === i && window.BIAIFSession) window.BIAIFSession.exitEditMode({ silent: true });
       if (typeof STATE.editingDemandeIdx === 'number' && STATE.editingDemandeIdx > i) STATE.editingDemandeIdx--;
       STATE.demandes.splice(i, 1);
       renderSegments();
       if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
-      if (window.BIAIFToast) window.BIAIFToast.show('Demande #' + (i + 1) + ' supprimée.', 'info');
+      if (window.BIAIFToast) window.BIAIFToast.show(_t('toast.demande_deleted', 'Demande #' + (i + 1) + ' supprimée.', { n: i + 1 }), 'info');
     });
 
     // Segment drag-drop for merge
@@ -265,7 +322,7 @@
   function renderDemandeRefsStrip() {
     if (REFS.demandeRefsCount) {
       var n = STATE.currentDemande.refs.length;
-      REFS.demandeRefsCount.textContent = n + ' réf' + (n > 1 ? 's' : '');
+      REFS.demandeRefsCount.textContent = _t(n > 1 ? 'segments.ref_plural' : 'segments.ref_singular', n + ' réf' + (n > 1 ? 's' : ''), { n: n });
     }
     var strip = REFS.demandeRefsStrip;
     if (!strip) return;
@@ -424,10 +481,10 @@
     if (!REFS.masterBtn) return;
     var lbl = REFS.masterBtn.querySelector('.master-label');
     if (!lbl) return;
-    if (typeof STATE.editingDemandeIdx === 'number') { lbl.textContent = 'Terminer'; return; }
-    if (!STATE.armed) { lbl.textContent = 'Démarrer'; return; }
+    if (typeof STATE.editingDemandeIdx === 'number') { lbl.textContent = _t('session.finish', 'Terminer'); return; }
+    if (!STATE.armed) { lbl.textContent = _t('session.start', 'Démarrer'); return; }
     var hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
-    lbl.textContent = hasContent ? 'Suivant →' : 'Nouveau segment';
+    lbl.textContent = hasContent ? _t('session.next', 'Suivant →') : _t('session.new_segment', 'Nouveau segment');
   }
 
   function updateArmedUi() {
@@ -453,7 +510,7 @@
     var btn = document.querySelector('[data-act="open-errors"]');
     if (btn) {
       btn.classList.toggle('has-errors', n > 0);
-      btn.setAttribute('aria-label', 'Erreurs console (' + n + ')');
+      btn.setAttribute('aria-label', _t('aria.errors_count', 'Erreurs console (' + n + ')', { n: n }));
     }
   }
 
