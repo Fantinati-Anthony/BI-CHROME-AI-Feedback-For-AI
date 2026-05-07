@@ -1,31 +1,40 @@
 /**
- * BIAIF Wizard — First-launch onboarding (5 steps)
+ * BIAIF Wizard — First-launch onboarding (6 steps, 2 interactive)
  * Storage key versioned so a future update can re-trigger the wizard.
  */
 (function (window) {
   'use strict';
 
-  var DONE_KEY    = 'biaif:wizard-v1';
-  var _overlay    = null;
-  var _curStep    = 0;
+  var DONE_KEY   = 'biaif:wizard-v1';
+  var _overlay   = null;
+  var _curStep   = 0;
+  var _STATE     = null;
+  var _persistFn = null;
 
   var STEPS = [
     { id: 'welcome', fn: _stepWelcome },
     { id: 'flow',    fn: _stepFlow    },
     { id: 'tools',   fn: _stepTools   },
+    { id: 'lang',    fn: _stepLang    },
     { id: 'export',  fn: _stepExport  },
     { id: 'ready',   fn: _stepReady   },
   ];
 
   // ── Public ─────────────────────────────────────────────────────
 
-  function init() {
+  function init(state, persistFn) {
+    _STATE     = state     || null;
+    _persistFn = persistFn || null;
     chrome.storage.local.get(DONE_KEY, function (obj) {
       if (!obj[DONE_KEY]) _show();
     });
   }
 
-  function open() { _show(); }
+  function open(state, persistFn) {
+    _STATE     = state     || null;
+    _persistFn = persistFn || null;
+    _show();
+  }
 
   // ── Build overlay ──────────────────────────────────────────────
 
@@ -69,7 +78,7 @@
     var next = _overlay.querySelector('.wiz-btn-next');
     var last = STEPS.length - 1;
 
-    var dir  = (!initial && idx > _curStep) ? 'fwd' : (!initial && idx < _curStep) ? 'bwd' : 'fwd';
+    var dir = (!initial && idx > _curStep) ? 'fwd' : (!initial && idx < _curStep) ? 'bwd' : 'fwd';
     _curStep = idx;
 
     // Dots
@@ -94,11 +103,51 @@
     // Animate + render
     body.classList.remove('wiz-anim-fwd', 'wiz-anim-bwd');
     body.innerHTML = STEPS[idx].fn();
+    _bindStep(idx);
     requestAnimationFrame(function () { body.classList.add('wiz-anim-' + dir); });
   }
 
+  // ── Bind interactive step events ───────────────────────────────
+
+  function _bindStep(idx) {
+    var id = STEPS[idx].id;
+
+    if (id === 'lang') {
+      _overlay.querySelectorAll('.wiz-lang-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          _overlay.querySelectorAll('.wiz-lang-btn').forEach(function (b) {
+            b.classList.remove('is-active');
+          });
+          btn.classList.add('is-active');
+          if (_STATE) {
+            _STATE.lang = btn.dataset.lang;
+            // Sync with the main settings select
+            var sel = document.querySelector('select[name="lang"]');
+            if (sel) sel.value = _STATE.lang;
+          }
+        });
+      });
+    }
+
+    if (id === 'export') {
+      _overlay.querySelectorAll('.wiz-toggle-list input[type="checkbox"]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+          if (_STATE && _STATE.visibleButtons) {
+            _STATE.visibleButtons[cb.dataset.key] = cb.checked;
+            // Sync with the settings panel checkboxes
+            var spCb = document.getElementById('vis-' + cb.dataset.key);
+            if (spCb) spCb.checked = cb.checked;
+          }
+        });
+      });
+    }
+  }
+
+  // ── Done ───────────────────────────────────────────────────────
+
   function _done() {
     chrome.storage.local.set({ [DONE_KEY]: true });
+    if (_persistFn) _persistFn();
     _overlay.classList.remove('is-visible');
     _overlay.classList.add('is-out');
     setTimeout(function () {
@@ -131,10 +180,10 @@
 
   function _stepFlow() {
     var items = [
-      { n: 1, c: 'blue',   title: 'Démarrez',       desc: 'Cliquez "Démarrer" — micro et sélecteur s\'activent' },
-      { n: 2, c: 'purple', title: 'Exprimez-vous',   desc: 'Parlez ou tapez votre instruction naturellement' },
-      { n: 3, c: 'pink',   title: 'Ciblez & capturez', desc: 'Pointez un élément, prenez une capture ou ajoutez une erreur JS' },
-      { n: 4, c: 'amber',  title: 'Exportez',        desc: 'Injectez dans votre IA ou copiez le prompt formaté' },
+      { n: 1, c: 'blue',   title: 'Démarrez',          desc: 'Cliquez "Démarrer" — micro et sélecteur s\'activent' },
+      { n: 2, c: 'purple', title: 'Exprimez-vous',      desc: 'Parlez ou tapez votre instruction naturellement' },
+      { n: 3, c: 'pink',   title: 'Ciblez & capturez',  desc: 'Pointez un élément, prenez une capture ou ajoutez une erreur JS' },
+      { n: 4, c: 'amber',  title: 'Exportez',           desc: 'Injectez dans votre IA ou copiez le prompt formaté' },
     ];
     var rows = items.map(function (it) {
       return '<li class="wiz-flow-row wiz-flow-' + it.c + '">' +
@@ -149,11 +198,11 @@
 
   function _stepTools() {
     var tools = [
-      { label: 'Micro',      desc: 'Dictée vocale multilingue',         path: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>' },
-      { label: 'Sélecteur',  desc: 'Pointez un élément → récupère selector, tag, texte, HTML', path: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>' },
-      { label: 'Capture',    desc: '4 modes : visible, sélection, élément, pleine page',       path: '<rect width="18" height="18" x="3" y="3" rx="2"/><line x1="3" x2="21" y1="9" y2="9"/>' },
-      { label: 'Fichier',    desc: 'Importez une image ou glissez-déposez',                    path: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>' },
-      { label: 'Erreurs JS', desc: 'Capture les erreurs console de la page active',            path: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>' },
+      { label: 'Micro',      desc: 'Dictée vocale multilingue',                                    path: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>' },
+      { label: 'Sélecteur',  desc: 'Pointez un élément → selector, tag, texte, HTML',             path: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>' },
+      { label: 'Capture',    desc: '4 modes : visible, sélection, élément, pleine page',           path: '<rect width="18" height="18" x="3" y="3" rx="2"/><line x1="3" x2="21" y1="9" y2="9"/>' },
+      { label: 'Fichier',    desc: 'Importez une image ou glissez-déposez',                        path: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>' },
+      { label: 'Erreurs JS', desc: 'Capture les erreurs console de la page active',                path: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>' },
     ];
     var rows = tools.map(function (t) {
       return '<li class="wiz-tool-row">' +
@@ -164,49 +213,117 @@
     return '<div class="wiz-step"><h2 class="wiz-h2">Outils de capture</h2><ul class="wiz-tool-list">' + rows + '</ul></div>';
   }
 
-  // ── Step 3 : Export destinations ──────────────────────────────
+  // ── Step 3 : Language selection (interactive) ──────────────────
 
-  function _stepExport() {
-    var dests = [
-      { c: 'gray',   label: 'Copier',   desc: 'Prompt Markdown dans le presse-papier' },
-      { c: 'purple', label: 'Injecter', desc: 'Directement dans l\'éditeur Claude.ai (texte + images)' },
-      { c: 'teal',   label: 'VS Code',  desc: 'Bridge local → terminal Claude Code CLI' },
-      { c: 'indigo', label: 'Copilot',  desc: 'GitHub Copilot Chat (texte pré-rempli + fichiers joints)' },
-      { c: 'muted',  label: '.MD',      desc: 'Archive : fichier Markdown + captures PNG' },
+  function _stepLang() {
+    var currentLang = (_STATE && _STATE.lang) ? _STATE.lang : 'fr-FR';
+    var langs = [
+      { code: 'fr-FR', flag: '🇫🇷', name: 'Français'      },
+      { code: 'en-US', flag: '🇺🇸', name: 'English (US)'  },
+      { code: 'en-GB', flag: '🇬🇧', name: 'English (UK)'  },
+      { code: 'es-ES', flag: '🇪🇸', name: 'Español'       },
+      { code: 'de-DE', flag: '🇩🇪', name: 'Deutsch'       },
+      { code: 'it-IT', flag: '🇮🇹', name: 'Italiano'      },
+      { code: 'pt-BR', flag: '🇧🇷', name: 'Português'     },
+      { code: 'nl-NL', flag: '🇳🇱', name: 'Nederlands'    },
     ];
-    var rows = dests.map(function (d) {
-      return '<li class="wiz-export-row">' +
-        '<span class="wiz-badge wiz-badge-' + d.c + '">' + d.label + '</span>' +
-        '<span class="wiz-export-desc">' + d.desc + '</span>' +
-      '</li>';
+    var buttons = langs.map(function (l) {
+      var active = l.code === currentLang ? ' is-active' : '';
+      return (
+        '<button class="wiz-lang-btn' + active + '" data-lang="' + l.code + '" type="button">' +
+          '<span class="wiz-lang-flag">' + l.flag + '</span>' +
+          '<span class="wiz-lang-name">' + l.name + '</span>' +
+        '</button>'
+      );
     }).join('');
     return (
       '<div class="wiz-step">' +
-        '<h2 class="wiz-h2">Export vers votre IA</h2>' +
-        '<ul class="wiz-export-list">' + rows + '</ul>' +
-        '<div class="wiz-tip">💡 Activez ou désactivez chaque bouton dans <strong>⚙ Réglages → Boutons d\'export</strong></div>' +
+        '<h2 class="wiz-h2">Langue de reconnaissance vocale</h2>' +
+        '<p class="wiz-step-desc">Quelle langue utiliserez-vous principalement pour dicter vos instructions ?</p>' +
+        '<div class="wiz-lang-grid">' + buttons + '</div>' +
+        '<p class="wiz-step-hint">Modifiable à tout moment dans <strong>⚙ Réglages → Reconnaissance vocale</strong>.</p>' +
       '</div>'
     );
   }
 
-  // ── Step 4 : Ready ─────────────────────────────────────────────
+  // ── Step 4 : Export buttons (interactive toggles) ──────────────
+
+  function _stepExport() {
+    var VB = (_STATE && _STATE.visibleButtons) ? _STATE.visibleButtons : {};
+    var btns = [
+      { key: 'inject',   c: 'purple', label: 'Injecter', desc: 'Injection directe dans Claude.ai (texte + images)'   },
+      { key: 'vscode',   c: 'teal',   label: 'VS Code',  desc: 'Bridge local → terminal Claude Code CLI'            },
+      { key: 'copilot',  c: 'indigo', label: 'Copilot',  desc: 'GitHub Copilot Chat (texte + fichiers joints)'      },
+      { key: 'copy',     c: 'gray',   label: 'Copier',   desc: 'Prompt Markdown dans le presse-papier'              },
+      { key: 'download', c: 'muted',  label: '.MD',      desc: 'Archive Markdown + captures PNG'                    },
+    ];
+    var rows = btns.map(function (b) {
+      var checked = VB[b.key] !== false;
+      return (
+        '<label class="wiz-toggle-row" for="wiz-vis-' + b.key + '">' +
+          '<span class="wiz-badge wiz-badge-' + b.c + '">' + b.label + '</span>' +
+          '<span class="wiz-toggle-desc">' + b.desc + '</span>' +
+          '<span class="sp-switch">' +
+            '<input type="checkbox" id="wiz-vis-' + b.key + '" data-key="' + b.key + '"' + (checked ? ' checked' : '') + '>' +
+            '<span class="sp-switch-track"><span class="sp-switch-thumb"></span></span>' +
+          '</span>' +
+        '</label>'
+      );
+    }).join('');
+    return (
+      '<div class="wiz-step">' +
+        '<h2 class="wiz-h2">Boutons d\'export</h2>' +
+        '<p class="wiz-step-desc">Activez uniquement les outils que vous utilisez. Vous pourrez changer ça dans <strong>⚙ Réglages</strong>.</p>' +
+        '<ul class="wiz-toggle-list">' + rows + '</ul>' +
+      '</div>'
+    );
+  }
+
+  // ── Step 5 : Ready ─────────────────────────────────────────────
 
   function _stepReady() {
+    var langLabel = '';
+    if (_STATE && _STATE.lang) {
+      var langMap = {
+        'fr-FR': '🇫🇷 Français', 'en-US': '🇺🇸 English (US)', 'en-GB': '🇬🇧 English (UK)',
+        'es-ES': '🇪🇸 Español',  'de-DE': '🇩🇪 Deutsch',       'it-IT': '🇮🇹 Italiano',
+        'pt-BR': '🇧🇷 Português', 'nl-NL': '🇳🇱 Nederlands',
+      };
+      langLabel = langMap[_STATE.lang] || _STATE.lang;
+    }
+    var activeButtons = [];
+    if (_STATE && _STATE.visibleButtons) {
+      var VB = _STATE.visibleButtons;
+      var names = { inject: 'Injecter', vscode: 'VS Code', copilot: 'Copilot', copy: 'Copier', download: '.MD' };
+      Object.keys(names).forEach(function (k) { if (VB[k] !== false) activeButtons.push(names[k]); });
+    }
+
     var recap = [
       { icon: '▶', text: 'Cliquez <strong>Démarrer</strong> pour activer la session' },
-      { icon: '⚙', text: 'Configurez la langue et les boutons dans <strong>Réglages</strong>' },
+      { icon: '⚙', text: 'Configurez à nouveau via <strong>⚙ Réglages</strong> à tout moment' },
       { icon: '⌨', text: '<code>Alt+Shift+M</code> micro &nbsp;·&nbsp; <code>Alt+Shift+C</code> copier' },
       { icon: '↩', text: 'Retrouvez ce guide : <strong>⚙ Réglages → Revoir le guide</strong>' },
     ];
     var rows = recap.map(function (r) {
       return '<li><span>' + r.icon + '</span><span>' + r.text + '</span></li>';
     }).join('');
+
+    var configSummary = '';
+    if (langLabel || activeButtons.length) {
+      configSummary =
+        '<div class="wiz-config-summary">' +
+          (langLabel ? '<div class="wiz-summary-row"><span class="wiz-summary-label">Langue</span><span class="wiz-summary-val">' + langLabel + '</span></div>' : '') +
+          (activeButtons.length ? '<div class="wiz-summary-row"><span class="wiz-summary-label">Boutons actifs</span><span class="wiz-summary-val">' + activeButtons.join(' · ') + '</span></div>' : '') +
+        '</div>';
+    }
+
     return (
       '<div class="wiz-step wiz-step-ready">' +
         '<div class="wiz-orb wiz-orb-green" aria-hidden="true">' +
           _svg('<circle cx="12" cy="12" r="10"/><polyline points="9 11 12 14 22 4"/>', 52) +
         '</div>' +
         '<h1 class="wiz-h1">Vous êtes prêt !</h1>' +
+        configSummary +
         '<ul class="wiz-recap">' + rows + '</ul>' +
       '</div>'
     );
