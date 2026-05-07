@@ -597,6 +597,28 @@ html, body {
 .biaif-segments { display: flex; flex-direction: column; gap: 8px; }
 .biaif-empty { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 8px 0; }
 
+/* Linked session banner */
+.linked-session-banner {
+  display: flex; align-items: center; gap: 5px;
+  background: color-mix(in srgb, #1a9e6f 12%, transparent);
+  border: 1px solid #1a9e6f;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10px; color: #5fcaa8;
+  margin: 0 8px 4px;
+  overflow: hidden;
+}
+.lsb-conv {
+  font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex-shrink: 1; min-width: 0;
+}
+.lsb-tab {
+  color: #3d8a6e;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex-shrink: 2; min-width: 0;
+}
+
 /* Conversation filter chip */
 .conv-filter-chip {
   display: flex; align-items: center; gap: 5px;
