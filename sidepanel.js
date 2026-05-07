@@ -78,7 +78,7 @@
       window.BIAIFRenderer.renderSegments();
       window.BIAIFRenderer.updateArmedUi();
       window.BIAIFToast.show('Prêt.', 'info', 1500);
-      if (window.BIAIFWizard) window.BIAIFWizard.init();
+      if (window.BIAIFWizard) window.BIAIFWizard.init(STATE, () => window.BIAIFStorage.persist(STATE));
     });
 
     checkActiveTabReady();
@@ -274,7 +274,7 @@
     const guideBtn = document.getElementById('btn-revoir-guide');
     if (guideBtn) guideBtn.addEventListener('click', () => {
       if (REFS.settingsPopover) REFS.settingsPopover.classList.remove('is-open');
-      if (window.BIAIFWizard) window.BIAIFWizard.open();
+      if (window.BIAIFWizard) window.BIAIFWizard.open(STATE, () => window.BIAIFStorage.persist(STATE));
     });
 
     // Button visibility toggles
