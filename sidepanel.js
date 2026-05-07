@@ -42,6 +42,7 @@
     editingDemandeIdx:  null,
     searchQuery:        '',
     visibleButtons:     { inject: true, vscode: true, copilot: true, copy: true, download: true },
+    uiLang:             '',
   };
 
   const REFS = {};
@@ -77,7 +78,9 @@
       window.BIAIFRenderer.renderDemandeEditor();
       window.BIAIFRenderer.renderSegments();
       window.BIAIFRenderer.updateArmedUi();
-      window.BIAIFToast.show('Prêt.', 'info', 1500);
+      const uiLang = STATE.uiLang || window.BIAIFi18n.detectBrowserLang();
+      window.BIAIFi18n.setLang(uiLang);
+      window.BIAIFToast.show(window.BIAIFi18n.t('toast.ready'), 'info', 1500);
       if (window.BIAIFWizard) window.BIAIFWizard.init(STATE, () => window.BIAIFStorage.persist(STATE));
     });
 
@@ -288,6 +291,16 @@
       });
     });
 
+    // UI language buttons
+    document.getElementById('sp-lang-grid') && document.getElementById('sp-lang-grid').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-lang]');
+      if (!btn) return;
+      const lang = btn.dataset.lang;
+      STATE.uiLang = lang;
+      window.BIAIFi18n.setLang(lang);
+      window.BIAIFStorage.persist(STATE);
+    });
+
     // Mic settings
     if (REFS.micDeviceSelect) REFS.micDeviceSelect.addEventListener('change', (e) => {
       STATE.micDeviceId = e.target.value;
@@ -366,7 +379,7 @@
 
   function performUndo() {
     if (!window.BIAIFUndo.canUndo()) {
-      window.BIAIFToast.show('Rien à annuler.', 'info', 1500);
+      window.BIAIFToast.show(window.BIAIFi18n ? window.BIAIFi18n.t('toast.nothing_to_undo') : 'Rien à annuler.', 'info', 1500);
       return;
     }
     const snapshot = window.BIAIFUndo.pop();
@@ -386,7 +399,7 @@
         visibleButtons: STATE.visibleButtons,
       }
     }).catch(() => {});
-    window.BIAIFToast.show('Action annulée.', 'success', 2000);
+    window.BIAIFToast.show(window.BIAIFi18n ? window.BIAIFi18n.t('toast.undone') : 'Action annulée.', 'success', 2000);
   }
 
   // ============================================================
@@ -631,7 +644,7 @@
     window.BIAIFRenderer.renderSegments();
     window.BIAIFRenderer.updateArmedUi();
     window.BIAIFStorage.persist(STATE);
-    window.BIAIFToast.show('Tout effacé.', 'info');
+    window.BIAIFToast.show(window.BIAIFi18n ? window.BIAIFi18n.t('toast.cleared') : 'Tout effacé.', 'info');
   }
 
   // ============================================================

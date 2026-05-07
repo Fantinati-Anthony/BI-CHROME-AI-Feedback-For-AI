@@ -34,6 +34,7 @@
         STATE.segFontSize = saved.segFontSize;
       if (saved.visibleButtons && typeof saved.visibleButtons === 'object')
         STATE.visibleButtons = Object.assign({}, STATE.visibleButtons, saved.visibleButtons);
+      if (typeof saved.uiLang === 'string' && saved.uiLang) STATE.uiLang = saved.uiLang;
 
     } catch (e) {
       console.warn('[BIAIF Storage] hydrate failed', e && e.message);
@@ -81,6 +82,7 @@
       sortOrder:      STATE.sortOrder,
       segFontSize:    STATE.segFontSize,
       visibleButtons: STATE.visibleButtons,
+      uiLang:         STATE.uiLang,
     };
   }
 

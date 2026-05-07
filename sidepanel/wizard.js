@@ -38,6 +38,10 @@
 
   // ── Build overlay ──────────────────────────────────────────────
 
+  function _t(key, fallback) {
+    return (window.BIAIFi18n ? window.BIAIFi18n.t(key) : null) || fallback || key;
+  }
+
   function _show() {
     if (_overlay) return;
     _curStep = 0;
@@ -56,12 +60,12 @@
       '<div class="wiz-panel">' +
         '<div class="wiz-header">' +
           '<div class="wiz-dots">' + dots + '</div>' +
-          '<button class="wiz-skip">Passer</button>' +
+          '<button class="wiz-skip">' + _t('wizard.nav.skip', 'Passer') + '</button>' +
         '</div>' +
         '<div class="wiz-body"></div>' +
         '<div class="wiz-footer">' +
-          '<button class="wiz-btn wiz-btn-back" hidden>← Retour</button>' +
-          '<button class="wiz-btn wiz-btn-next">Suivant →</button>' +
+          '<button class="wiz-btn wiz-btn-back" hidden>' + _t('wizard.nav.back', '← Retour') + '</button>' +
+          '<button class="wiz-btn wiz-btn-next">' + _t('wizard.nav.next', 'Suivant →') + '</button>' +
         '</div>' +
       '</div>';
 
@@ -94,7 +98,7 @@
     }
     if (next) {
       var isDone = idx === last;
-      next.textContent = isDone ? '✓ Commencer' : 'Suivant →';
+      next.textContent = isDone ? _t('wizard.nav.done', '✓ Commencer') : _t('wizard.nav.next', 'Suivant →');
       next.classList.toggle('wiz-btn-done', isDone);
       next.onclick = function () { isDone ? _done() : _renderStep(_curStep + 1, false); };
     }
@@ -164,9 +168,9 @@
         '<div class="wiz-orb wiz-orb-blue" aria-hidden="true">' +
           _svg('<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>', 52) +
         '</div>' +
-        '<h1 class="wiz-h1">Bienvenue dans <em>BIAIF</em></h1>' +
-        '<p class="wiz-sub">BI · Chrome · AI · Feedback</p>' +
-        '<p class="wiz-desc">Capturez vos idées, bugs et retours directement depuis le navigateur et transmettez-les à votre IA — avec texte, captures d\'écran et contexte HTML.</p>' +
+        '<h1 class="wiz-h1">' + _t('wizard.welcome.title', 'Bienvenue dans') + ' <em>BIAIF</em></h1>' +
+        '<p class="wiz-sub">' + _t('wizard.welcome.sub', 'BI · Chrome · AI · Feedback') + '</p>' +
+        '<p class="wiz-desc">' + _t('wizard.welcome.desc', "Capturez vos idées, bugs et retours directement depuis le navigateur et transmettez-les à votre IA — avec texte, captures d'écran et contexte HTML.") + '</p>' +
         '<div class="wiz-chips">' +
           '<span class="wiz-chip wiz-chip-blue">Claude Code</span>' +
           '<span class="wiz-chip wiz-chip-teal">VS Code</span>' +
@@ -180,10 +184,10 @@
 
   function _stepFlow() {
     var items = [
-      { n: 1, c: 'blue',   title: 'Démarrez',          desc: 'Cliquez "Démarrer" — micro et sélecteur s\'activent' },
-      { n: 2, c: 'purple', title: 'Exprimez-vous',      desc: 'Parlez ou tapez votre instruction naturellement' },
-      { n: 3, c: 'pink',   title: 'Ciblez & capturez',  desc: 'Pointez un élément, prenez une capture ou ajoutez une erreur JS' },
-      { n: 4, c: 'amber',  title: 'Exportez',           desc: 'Injectez dans votre IA ou copiez le prompt formaté' },
+      { n: 1, c: 'blue',   title: _t('wizard.flow.step1_title', 'Démarrez'),         desc: _t('wizard.flow.step1_desc', 'Cliquez "Démarrer" — micro et sélecteur s\'activent') },
+      { n: 2, c: 'purple', title: _t('wizard.flow.step2_title', 'Exprimez-vous'),     desc: _t('wizard.flow.step2_desc', 'Parlez ou tapez votre instruction naturellement') },
+      { n: 3, c: 'pink',   title: _t('wizard.flow.step3_title', 'Ciblez & capturez'), desc: _t('wizard.flow.step3_desc', 'Pointez un élément, prenez une capture ou ajoutez une erreur JS') },
+      { n: 4, c: 'amber',  title: _t('wizard.flow.step4_title', 'Exportez'),          desc: _t('wizard.flow.step4_desc', 'Injectez dans votre IA ou copiez le prompt formaté') },
     ];
     var rows = items.map(function (it) {
       return '<li class="wiz-flow-row wiz-flow-' + it.c + '">' +
@@ -191,18 +195,18 @@
         '<div><strong>' + it.title + '</strong><span>' + it.desc + '</span></div>' +
       '</li>';
     }).join('');
-    return '<div class="wiz-step"><h2 class="wiz-h2">Comment ça marche</h2><ol class="wiz-flow-list">' + rows + '</ol></div>';
+    return '<div class="wiz-step"><h2 class="wiz-h2">' + _t('wizard.flow.title', 'Comment ça marche') + '</h2><ol class="wiz-flow-list">' + rows + '</ol></div>';
   }
 
   // ── Step 2 : Capture tools ─────────────────────────────────────
 
   function _stepTools() {
     var tools = [
-      { label: 'Micro',      desc: 'Dictée vocale multilingue',                                    path: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>' },
-      { label: 'Sélecteur',  desc: 'Pointez un élément → selector, tag, texte, HTML',             path: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>' },
-      { label: 'Capture',    desc: '4 modes : visible, sélection, élément, pleine page',           path: '<rect width="18" height="18" x="3" y="3" rx="2"/><line x1="3" x2="21" y1="9" y2="9"/>' },
-      { label: 'Fichier',    desc: 'Importez une image ou glissez-déposez',                        path: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>' },
-      { label: 'Erreurs JS', desc: 'Capture les erreurs console de la page active',                path: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>' },
+      { label: _t('wizard.tools.mic_label', 'Micro'),      desc: _t('wizard.tools.mic_desc', 'Dictée vocale multilingue'),                                    path: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>' },
+      { label: _t('wizard.tools.picker_label', 'Sélecteur'),  desc: _t('wizard.tools.picker_desc', 'Pointez un élément → selector, tag, texte, HTML'),             path: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>' },
+      { label: _t('wizard.tools.capture_label', 'Capture'),    desc: _t('wizard.tools.capture_desc', '4 modes : visible, sélection, élément, pleine page'),           path: '<rect width="18" height="18" x="3" y="3" rx="2"/><line x1="3" x2="21" y1="9" y2="9"/>' },
+      { label: _t('wizard.tools.file_label', 'Fichier'),    desc: _t('wizard.tools.file_desc', 'Importez une image ou glissez-déposez'),                        path: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>' },
+      { label: _t('wizard.tools.errors_label', 'Erreurs JS'), desc: _t('wizard.tools.errors_desc', 'Capture les erreurs console de la page active'),                path: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>' },
     ];
     var rows = tools.map(function (t) {
       return '<li class="wiz-tool-row">' +
@@ -210,7 +214,7 @@
         '<div><strong>' + t.label + '</strong><span>' + t.desc + '</span></div>' +
       '</li>';
     }).join('');
-    return '<div class="wiz-step"><h2 class="wiz-h2">Outils de capture</h2><ul class="wiz-tool-list">' + rows + '</ul></div>';
+    return '<div class="wiz-step"><h2 class="wiz-h2">' + _t('wizard.tools.title', 'Outils de capture') + '</h2><ul class="wiz-tool-list">' + rows + '</ul></div>';
   }
 
   // ── Step 3 : Language selection (interactive) ──────────────────
@@ -238,10 +242,10 @@
     }).join('');
     return (
       '<div class="wiz-step">' +
-        '<h2 class="wiz-h2">Langue de reconnaissance vocale</h2>' +
-        '<p class="wiz-step-desc">Quelle langue utiliserez-vous principalement pour dicter vos instructions ?</p>' +
+        '<h2 class="wiz-h2">' + _t('wizard.lang.title', 'Langue de reconnaissance vocale') + '</h2>' +
+        '<p class="wiz-step-desc">' + _t('wizard.lang.desc', 'Quelle langue utiliserez-vous principalement pour dicter vos instructions ?') + '</p>' +
         '<div class="wiz-lang-grid">' + buttons + '</div>' +
-        '<p class="wiz-step-hint">Modifiable à tout moment dans <strong>⚙ Réglages → Reconnaissance vocale</strong>.</p>' +
+        '<p class="wiz-step-hint">' + _t('wizard.lang.hint', 'Modifiable à tout moment dans ⚙ Réglages → Reconnaissance vocale.') + '</p>' +
       '</div>'
     );
   }
@@ -251,11 +255,11 @@
   function _stepExport() {
     var VB = (_STATE && _STATE.visibleButtons) ? _STATE.visibleButtons : {};
     var btns = [
-      { key: 'inject',   c: 'purple', label: 'Injecter', desc: 'Injection directe dans Claude.ai (texte + images)'   },
-      { key: 'vscode',   c: 'teal',   label: 'VS Code',  desc: 'Bridge local → terminal Claude Code CLI'            },
-      { key: 'copilot',  c: 'indigo', label: 'Copilot',  desc: 'GitHub Copilot Chat (texte + fichiers joints)'      },
-      { key: 'copy',     c: 'gray',   label: 'Copier',   desc: 'Prompt Markdown dans le presse-papier'              },
-      { key: 'download', c: 'muted',  label: '.MD',      desc: 'Archive Markdown + captures PNG'                    },
+      { key: 'inject',   c: 'purple', label: _t('btn.inject', 'Injecter'), desc: _t('wizard.export.inject_desc', 'Injection directe dans Claude.ai (texte + images)')   },
+      { key: 'vscode',   c: 'teal',   label: _t('btn.vscode', 'VS Code'),  desc: _t('wizard.export.vscode_desc', 'Bridge local → terminal Claude Code CLI')            },
+      { key: 'copilot',  c: 'indigo', label: _t('btn.copilot', 'Copilot'),  desc: _t('wizard.export.copilot_desc', 'GitHub Copilot Chat (texte + fichiers joints)')      },
+      { key: 'copy',     c: 'gray',   label: _t('btn.copy', 'Copier'),   desc: _t('wizard.export.copy_desc', 'Prompt Markdown dans le presse-papier')              },
+      { key: 'download', c: 'muted',  label: _t('btn.download', '.MD'),      desc: _t('wizard.export.download_desc', 'Archive Markdown + captures PNG')                    },
     ];
     var rows = btns.map(function (b) {
       var checked = VB[b.key] !== false;
@@ -272,8 +276,8 @@
     }).join('');
     return (
       '<div class="wiz-step">' +
-        '<h2 class="wiz-h2">Boutons d\'export</h2>' +
-        '<p class="wiz-step-desc">Activez uniquement les outils que vous utilisez. Vous pourrez changer ça dans <strong>⚙ Réglages</strong>.</p>' +
+        '<h2 class="wiz-h2">' + _t('wizard.export.title', "Boutons d'export") + '</h2>' +
+        '<p class="wiz-step-desc">' + _t('wizard.export.desc', 'Activez uniquement les outils que vous utilisez. Vous pourrez changer ça dans ⚙ Réglages.') + '</p>' +
         '<ul class="wiz-toggle-list">' + rows + '</ul>' +
       '</div>'
     );
@@ -294,15 +298,21 @@
     var activeButtons = [];
     if (_STATE && _STATE.visibleButtons) {
       var VB = _STATE.visibleButtons;
-      var names = { inject: 'Injecter', vscode: 'VS Code', copilot: 'Copilot', copy: 'Copier', download: '.MD' };
+      var names = {
+        inject:   _t('btn.inject', 'Injecter'),
+        vscode:   _t('btn.vscode', 'VS Code'),
+        copilot:  _t('btn.copilot', 'Copilot'),
+        copy:     _t('btn.copy', 'Copier'),
+        download: _t('btn.download', '.MD'),
+      };
       Object.keys(names).forEach(function (k) { if (VB[k] !== false) activeButtons.push(names[k]); });
     }
 
     var recap = [
-      { icon: '▶', text: 'Cliquez <strong>Démarrer</strong> pour activer la session' },
-      { icon: '⚙', text: 'Configurez à nouveau via <strong>⚙ Réglages</strong> à tout moment' },
-      { icon: '⌨', text: '<code>Alt+Shift+M</code> micro &nbsp;·&nbsp; <code>Alt+Shift+C</code> copier' },
-      { icon: '↩', text: 'Retrouvez ce guide : <strong>⚙ Réglages → Revoir le guide</strong>' },
+      { icon: '▶', text: _t('wizard.ready.step1', 'Cliquez <strong>Démarrer</strong> pour activer la session') },
+      { icon: '⚙', text: _t('wizard.ready.step2', 'Configurez à nouveau via <strong>⚙ Réglages</strong> à tout moment') },
+      { icon: '⌨', text: _t('wizard.ready.step3', '<code>Alt+Shift+M</code> micro &nbsp;·&nbsp; <code>Alt+Shift+C</code> copier') },
+      { icon: '↩', text: _t('wizard.ready.step4', 'Retrouvez ce guide : <strong>⚙ Réglages → Revoir le guide</strong>') },
     ];
     var rows = recap.map(function (r) {
       return '<li><span>' + r.icon + '</span><span>' + r.text + '</span></li>';
@@ -312,8 +322,8 @@
     if (langLabel || activeButtons.length) {
       configSummary =
         '<div class="wiz-config-summary">' +
-          (langLabel ? '<div class="wiz-summary-row"><span class="wiz-summary-label">Langue</span><span class="wiz-summary-val">' + langLabel + '</span></div>' : '') +
-          (activeButtons.length ? '<div class="wiz-summary-row"><span class="wiz-summary-label">Boutons actifs</span><span class="wiz-summary-val">' + activeButtons.join(' · ') + '</span></div>' : '') +
+          (langLabel ? '<div class="wiz-summary-row"><span class="wiz-summary-label">' + _t('wizard.ready.lang_label', 'Langue') + '</span><span class="wiz-summary-val">' + langLabel + '</span></div>' : '') +
+          (activeButtons.length ? '<div class="wiz-summary-row"><span class="wiz-summary-label">' + _t('wizard.ready.buttons_label', 'Boutons actifs') + '</span><span class="wiz-summary-val">' + activeButtons.join(' · ') + '</span></div>' : '') +
         '</div>';
     }
 
@@ -322,7 +332,7 @@
         '<div class="wiz-orb wiz-orb-green" aria-hidden="true">' +
           _svg('<circle cx="12" cy="12" r="10"/><polyline points="9 11 12 14 22 4"/>', 52) +
         '</div>' +
-        '<h1 class="wiz-h1">Vous êtes prêt !</h1>' +
+        '<h1 class="wiz-h1">' + _t('wizard.ready.title', 'Vous êtes prêt !') + '</h1>' +
         configSummary +
         '<ul class="wiz-recap">' + rows + '</ul>' +
       '</div>'
