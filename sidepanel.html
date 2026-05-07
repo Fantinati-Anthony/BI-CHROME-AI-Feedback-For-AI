@@ -73,6 +73,12 @@
           <input type="checkbox" id="vis-download" checked aria-label="Afficher le bouton .MD">
         </label>
       </div>
+
+      <hr class="settings-divider" />
+
+      <button class="settings-guide-btn" id="btn-revoir-guide" aria-label="Revoir le guide de démarrage">
+        ↩ Revoir le guide de démarrage
+      </button>
     </div>
 
     <!-- ============================================================
@@ -273,6 +279,7 @@
 
   <!-- Scripts — load order matters: constants → modules → intent-parser → orchestrator -->
   <script src="shared/constants.js"></script>
+  <script src="sidepanel/wizard.js"></script>
   <script src="sidepanel/toast.js"></script>
   <script src="sidepanel/undo.js"></script>
   <script src="sidepanel/storage.js"></script>

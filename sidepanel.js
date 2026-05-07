@@ -77,6 +77,7 @@
       window.BIAIFRenderer.renderSegments();
       window.BIAIFRenderer.updateArmedUi();
       window.BIAIFToast.show('Prêt.', 'info', 1500);
+      if (window.BIAIFWizard) window.BIAIFWizard.init();
     });
 
     checkActiveTabReady();
@@ -258,6 +259,13 @@
       else window.BIAIFToast.show('Recharge KO : ' + (resp ? resp.error : 'no resp'), 'error');
     });
     if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', () => hideReloadModal());
+
+    // "Revoir le guide" button
+    const guideBtn = document.getElementById('btn-revoir-guide');
+    if (guideBtn) guideBtn.addEventListener('click', () => {
+      if (REFS.settingsPopover) REFS.settingsPopover.setAttribute('hidden', '');
+      if (window.BIAIFWizard) window.BIAIFWizard.open();
+    });
 
     // Button visibility toggles
     ['inject', 'vscode', 'copilot', 'copy', 'download'].forEach((key) => {
