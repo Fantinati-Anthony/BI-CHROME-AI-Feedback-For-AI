@@ -71,6 +71,7 @@
         const cb = document.getElementById('vis-' + key);
         if (cb) cb.checked = STATE.visibleButtons[key] !== false;
       });
+      _updateSpFontVal();
       window.BIAIFRenderer.updateSortToggleLabel();
       window.BIAIFRenderer.applySegFontSize();
       window.BIAIFRenderer.renderDemandeEditor();
@@ -132,7 +133,7 @@
     REFS.sortToggle        = document.querySelector('[data-act="sort-toggle"]');
     REFS.toggleSettings    = document.querySelector('[data-act="toggle-settings"]');
     REFS.openShortcuts     = document.querySelector('[data-act="open-shortcuts"]');
-    REFS.settingsPopover   = document.getElementById('settings-popover');
+    REFS.settingsPopover   = document.getElementById('settings-panel');
     REFS.reloadModal       = document.getElementById('reload-modal');
     REFS.reloadModalBtn    = document.querySelector('[data-act="reload-tab-modal"]');
     REFS.reloadDismiss     = document.querySelector('[data-act="reload-dismiss"]');
@@ -222,11 +223,13 @@
     });
     window.BIAIFRenderer.updateSortToggleLabel();
 
-    // Font size
-    const fontDown = document.querySelector('[data-act="seg-font-down"]');
-    const fontUp   = document.querySelector('[data-act="seg-font-up"]');
-    if (fontDown) fontDown.addEventListener('click', () => window.BIAIFRenderer.bumpSegFontSize(-1));
-    if (fontUp)   fontUp.addEventListener('click',   () => window.BIAIFRenderer.bumpSegFontSize(+1));
+    // Font size (multiple buttons possible: segments header + settings panel)
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act="seg-font-down"],[data-act="seg-font-up"]');
+      if (!btn) return;
+      window.BIAIFRenderer.bumpSegFontSize(btn.dataset.act === 'seg-font-up' ? +1 : -1);
+      _updateSpFontVal();
+    });
     window.BIAIFRenderer.applySegFontSize();
 
     // History search
@@ -235,18 +238,25 @@
       window.BIAIFRenderer.renderSegments();
     });
 
-    // Settings popover
+    // Settings panel open/close
     if (REFS.toggleSettings) REFS.toggleSettings.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!REFS.settingsPopover) return;
-      REFS.settingsPopover.hasAttribute('hidden')
-        ? REFS.settingsPopover.removeAttribute('hidden')
-        : REFS.settingsPopover.setAttribute('hidden', '');
+      const opening = !REFS.settingsPopover.classList.contains('is-open');
+      REFS.settingsPopover.classList.toggle('is-open', opening);
+      REFS.toggleSettings.setAttribute('aria-expanded', opening ? 'true' : 'false');
+      if (opening) _updateSpFontVal();
     });
     document.addEventListener('click', (e) => {
-      if (!REFS.settingsPopover || REFS.settingsPopover.hasAttribute('hidden')) return;
-      if (e.target.closest('#settings-popover') || e.target.closest('[data-act="toggle-settings"]')) return;
-      REFS.settingsPopover.setAttribute('hidden', '');
+      if (!REFS.settingsPopover || !REFS.settingsPopover.classList.contains('is-open')) return;
+      if (e.target.closest('#settings-panel') || e.target.closest('[data-act="toggle-settings"]')) return;
+      REFS.settingsPopover.classList.remove('is-open');
+      REFS.toggleSettings && REFS.toggleSettings.setAttribute('aria-expanded', 'false');
+    });
+    const closeSettingsBtn = document.querySelector('[data-act="close-settings"]');
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', () => {
+      REFS.settingsPopover && REFS.settingsPopover.classList.remove('is-open');
+      REFS.toggleSettings && REFS.toggleSettings.setAttribute('aria-expanded', 'false');
     });
     if (REFS.openShortcuts) REFS.openShortcuts.addEventListener('click', () => {
       try { chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }); } catch (_) {}
@@ -263,7 +273,7 @@
     // "Revoir le guide" button
     const guideBtn = document.getElementById('btn-revoir-guide');
     if (guideBtn) guideBtn.addEventListener('click', () => {
-      if (REFS.settingsPopover) REFS.settingsPopover.setAttribute('hidden', '');
+      if (REFS.settingsPopover) REFS.settingsPopover.classList.remove('is-open');
       if (window.BIAIFWizard) window.BIAIFWizard.open();
     });
 
@@ -626,6 +636,11 @@
   // ============================================================
   // HELPERS
   // ============================================================
+
+  function _updateSpFontVal() {
+    const el = document.getElementById('sp-font-val');
+    if (el) el.textContent = (STATE.segFontSize || 13) + 'px';
+  }
 
   function shortLabel(descriptor) {
     if (!descriptor) return '?';
