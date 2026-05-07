@@ -597,6 +597,26 @@ html, body {
 .biaif-segments { display: flex; flex-direction: column; gap: 8px; }
 .biaif-empty { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 8px 0; }
 
+/* Conversation filter chip */
+.conv-filter-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: color-mix(in srgb, #6c47ff 15%, transparent);
+  border: 1px solid #6c47ff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10px; color: #b39dff;
+  margin-bottom: 6px;
+  max-width: 100%; overflow: hidden;
+}
+.conv-filter-chip__label {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.conv-filter-chip__clear {
+  background: none; border: none; color: #b39dff; cursor: pointer;
+  padding: 0 2px; font-size: 11px; line-height: 1; flex-shrink: 0;
+}
+.conv-filter-chip__clear:hover { color: #fff; }
+
 /* Demande history card */
 .biaif-segment {
   background: linear-gradient(180deg, rgba(20,20,25,1) 0%, rgba(13,13,15,1) 100%);

@@ -46,7 +46,9 @@
       claude_online: false, chatgpt: false, gemini: false, perplexity: false,
       grok: false, lechat: false, deepseek: false,
     },
-    uiLang:             '',
+    uiLang:              '',
+    conversationFilter:  '',   // exact URL of AI conversation currently filtered
+    pendingConversationUrl: null, // URL to tag on next finalized segments
   };
 
   const REFS = {};
@@ -440,31 +442,44 @@
         return;
       }
       if (msg.type === _MSG('OPEN_WITH_FILTER')) {
-        onOpenWithFilter(msg.filterUrl);
+        onOpenWithFilter(msg.conversationUrl || msg.filterUrl);
+        return;
+      }
+      if (msg.type === _MSG('START_LINKED_SEGMENT')) {
+        onStartLinkedSegment(msg.conversationUrl);
         return;
       }
     });
   }
 
-  function onOpenWithFilter(filterUrl) {
-    // filterUrl is null for AI pages (show all) or a page URL for other pages
-    let query = '';
-    if (filterUrl) {
-      try { query = new URL(filterUrl).hostname; } catch (_) { query = filterUrl; }
-    }
-    STATE.searchQuery = query;
-    if (REFS.searchInput) {
-      REFS.searchInput.value = query;
-      // Clear placeholder styling when a value is set
-      REFS.searchInput.dispatchEvent(new Event('input', { bubbles: false }));
-    }
+  function onOpenWithFilter(conversationUrl) {
+    STATE.conversationFilter = conversationUrl || '';
     window.BIAIFRenderer.renderSegments();
-    if (query) {
+    if (conversationUrl) {
+      let label = conversationUrl;
+      try { label = new URL(conversationUrl).hostname + new URL(conversationUrl).pathname; } catch (_) {}
       window.BIAIFToast.show(
         window.BIAIFi18n
-          ? window.BIAIFi18n.t('toast.filter_applied', { host: query })
-          : 'Filtre : ' + query,
+          ? window.BIAIFi18n.t('toast.filter_applied', { host: label })
+          : 'Filtre : ' + label,
         'info', 2500
+      );
+    }
+  }
+
+  async function onStartLinkedSegment(conversationUrl) {
+    STATE.conversationFilter    = conversationUrl || '';
+    STATE.pendingConversationUrl = conversationUrl || null;
+    window.BIAIFRenderer.renderSegments();
+    if (!STATE.armed) await window.BIAIFSession.startSession();
+    if (conversationUrl) {
+      let label = conversationUrl;
+      try { label = new URL(conversationUrl).hostname + new URL(conversationUrl).pathname; } catch (_) {}
+      window.BIAIFToast.show(
+        window.BIAIFi18n
+          ? window.BIAIFi18n.t('toast.linked_session_started', { conv: label })
+          : 'Session liée à ' + label,
+        'success', 3000
       );
     }
   }
