@@ -383,6 +383,7 @@
         demandes: STATE.demandes, currentDemande: STATE.currentDemande,
         lang: STATE.lang, micDeviceId: STATE.micDeviceId,
         sortOrder: STATE.sortOrder, segFontSize: STATE.segFontSize,
+        visibleButtons: STATE.visibleButtons,
       }
     }).catch(() => {});
     window.BIAIFToast.show('Action annulée.', 'success', 2000);
