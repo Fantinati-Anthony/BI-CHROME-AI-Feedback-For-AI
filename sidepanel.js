@@ -41,6 +41,7 @@
     consoleErrors:      [],
     editingDemandeIdx:  null,
     searchQuery:        '',
+    visibleButtons:     { inject: true, vscode: true, copilot: true, copy: true, download: true },
   };
 
   const REFS = {};
@@ -65,6 +66,11 @@
     await window.BIAIFStorage.hydrate(STATE, () => {
       // Apply persisted settings to DOM
       if (REFS.langSelect && STATE.lang) REFS.langSelect.value = STATE.lang;
+      // Sync button-visibility checkboxes with persisted state
+      ['inject', 'vscode', 'copilot', 'copy', 'download'].forEach((key) => {
+        const cb = document.getElementById('vis-' + key);
+        if (cb) cb.checked = STATE.visibleButtons[key] !== false;
+      });
       window.BIAIFRenderer.updateSortToggleLabel();
       window.BIAIFRenderer.applySegFontSize();
       window.BIAIFRenderer.renderDemandeEditor();
@@ -252,6 +258,17 @@
       else window.BIAIFToast.show('Recharge KO : ' + (resp ? resp.error : 'no resp'), 'error');
     });
     if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', () => hideReloadModal());
+
+    // Button visibility toggles
+    ['inject', 'vscode', 'copilot', 'copy', 'download'].forEach((key) => {
+      const cb = document.getElementById('vis-' + key);
+      if (!cb) return;
+      cb.addEventListener('change', () => {
+        STATE.visibleButtons[key] = cb.checked;
+        window.BIAIFRenderer.renderSegments();
+        window.BIAIFStorage.persist(STATE);
+      });
+    });
 
     // Mic settings
     if (REFS.micDeviceSelect) REFS.micDeviceSelect.addEventListener('change', (e) => {

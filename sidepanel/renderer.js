@@ -130,6 +130,16 @@
         '</button>' +
       '</div>';
 
+    // Apply button visibility
+    var VB = STATE.visibleButtons || {};
+    var VB_MAP = { inject: 'seg-inject', vscode: 'seg-vscode', copilot: 'seg-copilot', copy: 'seg-copy', download: 'seg-download' };
+    Object.keys(VB_MAP).forEach(function (key) {
+      if (VB[key] === false) {
+        var b = card.querySelector('[data-act="' + VB_MAP[key] + '"]');
+        if (b) b.hidden = true;
+      }
+    });
+
     var textEl = card.querySelector('.demande-text');
     renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true, demKey: origIndex });
 
@@ -154,26 +164,16 @@
       if (STATE.editingDemandeIdx !== origIndex && window.BIAIFSession) window.BIAIFSession.enterEditMode(origIndex);
     });
 
-    card.querySelector('[data-act="seg-inject"]').addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (window.BIAIFExport) window.BIAIFExport.injectDemande(Number(e.currentTarget.dataset.i));
-    });
-    card.querySelector('[data-act="seg-vscode"]').addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (window.BIAIFExport) window.BIAIFExport.injectToVscode(Number(e.currentTarget.dataset.i));
-    });
-    card.querySelector('[data-act="seg-copilot"]').addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (window.BIAIFExport) window.BIAIFExport.injectToCopilot(Number(e.currentTarget.dataset.i));
-    });
-    card.querySelector('[data-act="seg-copy"]').addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (window.BIAIFExport) window.BIAIFExport.copyPromptForDemande(Number(e.currentTarget.dataset.i));
-    });
-    card.querySelector('[data-act="seg-download"]').addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (window.BIAIFExport) window.BIAIFExport.downloadDemande(Number(e.currentTarget.dataset.i));
-    });
+    var _btnInject   = card.querySelector('[data-act="seg-inject"]');
+    var _btnVscode   = card.querySelector('[data-act="seg-vscode"]');
+    var _btnCopilot  = card.querySelector('[data-act="seg-copilot"]');
+    var _btnCopy     = card.querySelector('[data-act="seg-copy"]');
+    var _btnDownload = card.querySelector('[data-act="seg-download"]');
+    if (_btnInject)   _btnInject.addEventListener('click',   function (e) { e.stopPropagation(); if (window.BIAIFExport) window.BIAIFExport.injectDemande(Number(e.currentTarget.dataset.i)); });
+    if (_btnVscode)   _btnVscode.addEventListener('click',   function (e) { e.stopPropagation(); if (window.BIAIFExport) window.BIAIFExport.injectToVscode(Number(e.currentTarget.dataset.i)); });
+    if (_btnCopilot)  _btnCopilot.addEventListener('click',  function (e) { e.stopPropagation(); if (window.BIAIFExport) window.BIAIFExport.injectToCopilot(Number(e.currentTarget.dataset.i)); });
+    if (_btnCopy)     _btnCopy.addEventListener('click',     function (e) { e.stopPropagation(); if (window.BIAIFExport) window.BIAIFExport.copyPromptForDemande(Number(e.currentTarget.dataset.i)); });
+    if (_btnDownload) _btnDownload.addEventListener('click', function (e) { e.stopPropagation(); if (window.BIAIFExport) window.BIAIFExport.downloadDemande(Number(e.currentTarget.dataset.i)); });
     card.querySelector('.seg-edit-btn').addEventListener('click', function (e) {
       e.stopPropagation();
       var i = Number(e.currentTarget.dataset.i);
