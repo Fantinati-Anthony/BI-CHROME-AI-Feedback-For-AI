@@ -99,8 +99,8 @@
       var data = new Uint8Array(analyser.frequencyBinCount);
       micTestHandle = { stream: stream, ctx: ctx, analyser: analyser, data: data, raf: 0 };
       if (REFS.micMeter)    REFS.micMeter.hidden = false;
-      if (REFS.micTestBtn)  REFS.micTestBtn.textContent = '⏹ Stop test';
-      if (window.BIAIFToast) window.BIAIFToast.show('Test micro en cours — parle pour voir le niveau.', 'info');
+      if (REFS.micTestBtn)  REFS.micTestBtn.textContent = _t('mic.test_btn_stop', '⏹ Stop test');
+      if (window.BIAIFToast) window.BIAIFToast.show(_t('mic.test_running', 'Test micro en cours — parle pour voir le niveau.'), 'info');
 
       refreshMicDevices(false);
       (function tick() {
@@ -117,7 +117,7 @@
                 e && e.name === 'NotFoundError'    ? 'micro introuvable' :
                 e && e.name === 'NotReadableError' ? 'micro déjà utilisé' :
                 (e && e.message || String(e));
-      if (window.BIAIFToast) window.BIAIFToast.show('Test micro KO : ' + msg, 'error');
+      if (window.BIAIFToast) window.BIAIFToast.show(_t('mic.test_fail', 'Test micro KO : ' + msg, { err: msg }), 'error');
     }
   }
 
@@ -129,7 +129,7 @@
     micTestHandle = null;
     if (REFS.micMeter)    REFS.micMeter.hidden = true;
     if (REFS.micMeterBar) REFS.micMeterBar.style.width = '0%';
-    if (REFS.micTestBtn)  REFS.micTestBtn.textContent = '🔊 Tester';
+    if (REFS.micTestBtn)  REFS.micTestBtn.textContent = _t('mic.test_btn_default', '🔊 Tester');
   }
 
   async function refreshMicDevices(forcePrompt) {
@@ -153,7 +153,7 @@
       var previous = STATE.micDeviceId || sel.value || '';
       sel.innerHTML = '';
       var def = document.createElement('option');
-      def.value = ''; def.textContent = 'Système par défaut';
+      def.value = ''; def.textContent = _t('settings.voice.mic_default', 'Système par défaut');
       sel.appendChild(def);
       inputs.forEach(function (d) {
         var opt = document.createElement('option');
@@ -195,22 +195,30 @@
   // -----------------------------------------------------------------------
   // Error handling
   // -----------------------------------------------------------------------
+  function _t(key, fallback, vars) {
+    if (window.BIAIFi18n && window.BIAIFi18n.t) {
+      var v = window.BIAIFi18n.t(key, vars);
+      if (v && v !== key) return v;
+    }
+    return fallback || key;
+  }
+
   function voiceErrorFr(code) {
     switch (code) {
       case 'denied-extension':
       case 'not-allowed':
-      case 'service-not-allowed':   return "micro bloqué pour BIAIF — clique ici pour ouvrir la page de permissions de l'extension";
-      case 'no-speech':             return 'rien entendu';
-      case 'audio-capture':         return 'aucun micro détecté';
-      case 'network':               return 'erreur réseau';
-      case 'aborted':               return 'reconnaissance interrompue';
-      case 'language-not-supported': return 'langue non supportée';
-      case 'bad-grammar':           return 'grammaire invalide';
-      case 'auto-restart-failed':   return 'session coupée par le navigateur — recliquez sur le micro';
-      case 'no-media-devices':      return 'API media non disponible';
-      case 'not-supported':         return 'reconnaissance vocale non supportée par le navigateur';
-      case 'init-failed':           return 'initialisation impossible';
-      case 'start-failed':          return 'impossible de démarrer le micro';
+      case 'service-not-allowed':   return _t('mic.err.denied');
+      case 'no-speech':             return _t('mic.err.no_speech', 'rien entendu');
+      case 'audio-capture':         return _t('mic.err.audio_capture', 'aucun micro détecté');
+      case 'network':               return _t('mic.err.network', 'erreur réseau');
+      case 'aborted':               return _t('mic.err.aborted', 'reconnaissance interrompue');
+      case 'language-not-supported': return _t('mic.err.lang_unsupported', 'langue non supportée');
+      case 'bad-grammar':           return _t('mic.err.bad_grammar', 'grammaire invalide');
+      case 'auto-restart-failed':   return _t('mic.err.auto_restart', 'session coupée par le navigateur — recliquez sur le micro');
+      case 'no-media-devices':      return _t('mic.err.no_media', 'API media non disponible');
+      case 'not-supported':         return _t('mic.err.not_supported', 'reconnaissance vocale non supportée par le navigateur');
+      case 'init-failed':           return _t('mic.err.init_failed', 'initialisation impossible');
+      case 'start-failed':          return _t('mic.err.start_failed', 'impossible de démarrer le micro');
       default:                      return code || 'erreur inconnue';
     }
   }
@@ -269,14 +277,14 @@
       REFS.micBtn.classList.toggle('active', active);
       REFS.micBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
       var lbl = REFS.micBtn.querySelector('.label');
-      if (lbl) lbl.textContent = active ? 'Micro ✓' : 'Micro';
+      if (lbl) lbl.textContent = active ? _t('mic.label_active', 'Micro ✓') : _t('tools.mic', 'Micro');
     }
     if (!active) clearInterimGhost();
   }
 
   function _onVoiceError(code) {
     var isPermDenied = code === 'not-allowed' || code === 'service-not-allowed' || code === 'denied-extension';
-    if (window.BIAIFToast) window.BIAIFToast.show('Micro : ' + voiceErrorFr(code), 'error');
+    if (window.BIAIFToast) window.BIAIFToast.show(_t('mic.error_prefix', 'Micro : ' + voiceErrorFr(code), { err: voiceErrorFr(code) }), 'error');
     if (isPermDenied) {
       try { chrome.tabs.create({ url: 'chrome://settings/content/siteDetails?site=chrome-extension%3A%2F%2F' + chrome.runtime.id }); } catch (_) {}
     }
@@ -289,7 +297,7 @@
       if (!STATE.micActive) { _stopWatchdog(); return; }
       var idle = Date.now() - (MIC.lastEventAt || 0);
       if (idle > 12000 && window.BIAIFToast) {
-        window.BIAIFToast.show('Aucun signal audio depuis 12 s — vérifiez le micro par défaut dans Chrome.', 'error', 5000);
+        window.BIAIFToast.show(_t('mic.idle_warning', 'Aucun signal audio depuis 12 s — vérifiez le micro par défaut dans Chrome.'), 'error', 5000);
       }
     }, 3000);
   }

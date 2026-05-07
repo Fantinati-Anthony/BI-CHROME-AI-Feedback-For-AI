@@ -118,10 +118,11 @@
       if (usage > MAX_BYTES) {
         console.warn('[BIAIF Storage] quota warning: ' + Math.round(usage / 1024) + ' KB used');
         if (window.BIAIFToast) {
-          window.BIAIFToast.show(
-            'Stockage presque plein (' + Math.round(usage / 1024 / 1024 * 10) / 10 + ' MB). Videz l\'historique pour libérer de l\'espace.',
-            'error', 8000
-          );
+          var mb = Math.round(usage / 1024 / 1024 * 10) / 10;
+          var msg = (window.BIAIFi18n && window.BIAIFi18n.t)
+            ? window.BIAIFi18n.t('toast.storage_warning', { mb: mb })
+            : 'Stockage presque plein (' + mb + ' MB).';
+          window.BIAIFToast.show(msg, 'error', 8000);
         }
       }
     } catch (_) {}
