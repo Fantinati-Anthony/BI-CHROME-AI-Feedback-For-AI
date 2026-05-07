@@ -1,11 +1,16 @@
 /**
  * BIAIF Textarea Injector
  *
- * Injects a floating PromptDrop trigger button near focused <textarea> and
- * [contenteditable] elements on AI online pages and all other pages.
+ * Injects a pair of always-visible buttons next to every <textarea> and
+ * [contenteditable] found on the page (including dynamically added ones).
  *
- * On AI pages → opens sidepanel showing ALL segments (pick what to send).
- * On other pages → opens sidepanel filtered to the current page's hostname.
+ * Button 1 (funnel) – opens the sidepanel filtered to segments linked to
+ *   the EXACT conversation URL (location.href at click time).
+ * Button 2 (plus)   – opens the sidepanel, starts a new session, and tags
+ *   every segment created in that session with the conversation URL.
+ *
+ * Buttons are always visible (not just on focus) when the textarea is in
+ * the viewport.  Positions are kept in sync via ResizeObserver + scroll/rAF.
  */
 (function () {
   'use strict';
@@ -13,207 +18,238 @@
   if (window.__BIAIF_TEXTAREA_INJECTOR__) return;
   window.__BIAIF_TEXTAREA_INJECTOR__ = true;
 
-  const AI_HOSTS = [
-    'claude.ai',
-    'chatgpt.com',
-    'gemini.google.com',
-    'perplexity.ai',
-    'grok.com',
-    'x.com',
-    'mistral.ai',
-    'chat.deepseek.com',
-    'chat.mistral.ai',
-  ];
+  /* ── constants ─────────────────────────────────────────────────────────── */
 
-  const isAiPage = AI_HOSTS.some(
-    (h) => location.hostname === h || location.hostname.endsWith('.' + h)
-  );
+  var STYLE_ID = '__biaif_style__';
+  var CSS = [
+    '.__biaif_pair__ {',
+    '  position:fixed;',
+    '  z-index:2147483647;',
+    '  display:flex;',
+    '  gap:4px;',
+    '  pointer-events:auto;',
+    '  transition: opacity .2s;',
+    '}',
+    '.__biaif_pair__.is-hidden { opacity:0; pointer-events:none; }',
+    '.__biaif_btn__ {',
+    '  width:26px; height:26px;',
+    '  border-radius:50%;',
+    '  border:none;',
+    '  padding:0;',
+    '  cursor:pointer;',
+    '  display:flex;',
+    '  align-items:center;',
+    '  justify-content:center;',
+    '  box-shadow:0 2px 6px rgba(0,0,0,.35);',
+    '  transition: transform .15s, opacity .15s;',
+    '  font-family:sans-serif;',
+    '}',
+    '.__biaif_btn__:hover { transform:scale(1.12); }',
+    '.__biaif_btn__--filter { background:#6c47ff; }',
+    '.__biaif_btn__--new    { background:#1a9e6f; }',
+    '.__biaif_btn__ svg { display:block; }',
+    '.__biaif_tip__ {',
+    '  position:absolute;',
+    '  bottom:calc(100% + 5px);',
+    '  left:50%;',
+    '  transform:translateX(-50%);',
+    '  background:#1a1a2e;',
+    '  color:#fff;',
+    '  font-size:11px;',
+    '  white-space:nowrap;',
+    '  padding:3px 7px;',
+    '  border-radius:4px;',
+    '  pointer-events:none;',
+    '  opacity:0;',
+    '  transition:opacity .1s;',
+    '}',
+    '.__biaif_btn__:hover .__biaif_tip__ { opacity:1; }',
+  ].join('\n');
 
-  // ── Floating button ──────────────────────────────────────────────────────
+  /* ── style injection ────────────────────────────────────────────────────── */
 
-  const FLOAT_ID = '__biaif_float_btn__';
+  function _ensureStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    var s = document.createElement('style');
+    s.id  = STYLE_ID;
+    s.textContent = CSS;
+    (document.head || document.documentElement).appendChild(s);
+  }
 
-  let _btn = null;
-  let _blurTimer = null;
-  let _currentTarget = null;
+  /* ── tracked elements ───────────────────────────────────────────────────── */
 
-  function _getBtn() {
-    if (_btn) return _btn;
+  // Map<Element, { pair:Element, ro:ResizeObserver, io:IntersectionObserver }>
+  var _tracked = new Map();
 
-    const style = document.createElement('style');
-    style.textContent = `
-      #${FLOAT_ID} {
-        position: fixed;
-        z-index: 2147483647;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: none;
-        padding: 0;
-        cursor: pointer;
-        background: #6c47ff;
-        box-shadow: 0 2px 8px rgba(0,0,0,.35);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transform: scale(.8);
-        transition: opacity .15s, transform .15s;
-        pointer-events: none;
-        font-family: sans-serif;
-      }
-      #${FLOAT_ID}.is-visible {
-        opacity: 1;
-        transform: scale(1);
-        pointer-events: auto;
-      }
-      #${FLOAT_ID}:hover {
-        background: #7c5cff;
-        transform: scale(1.1) !important;
-      }
-      #${FLOAT_ID} svg {
-        width: 14px;
-        height: 14px;
-        display: block;
-      }
-      #${FLOAT_ID} .biaif-tooltip {
-        position: absolute;
-        bottom: calc(100% + 6px);
-        right: 0;
-        background: #1a1a2e;
-        color: #fff;
-        font-size: 11px;
-        white-space: nowrap;
-        padding: 4px 8px;
-        border-radius: 4px;
-        pointer-events: none;
-        opacity: 0;
-        transform: translateY(4px);
-        transition: opacity .1s, transform .1s;
-      }
-      #${FLOAT_ID}:hover .biaif-tooltip {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    `;
-    document.head.appendChild(style);
+  var _rAF = null;
 
-    _btn = document.createElement('button');
-    _btn.id = FLOAT_ID;
-    _btn.setAttribute('aria-label', 'Ouvrir PromptDrop');
-    _btn.setAttribute('type', 'button');
-    _btn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-           stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="8 17 12 21 16 17"/>
-        <line x1="12" y1="3" x2="12" y2="21"/>
-        <polyline points="3 7 12 3 21 7"/>
-      </svg>
-      <span class="biaif-tooltip">PromptDrop</span>
-    `;
-
-    _btn.addEventListener('mousedown', (e) => {
-      e.preventDefault(); // don't steal focus from textarea
-      e.stopPropagation();
+  function _scheduleUpdate() {
+    if (_rAF) return;
+    _rAF = requestAnimationFrame(function () {
+      _rAF = null;
+      _tracked.forEach(function (entry, el) {
+        _reposition(el, entry.pair);
+      });
     });
-    _btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      _openPanel();
+  }
+
+  function _reposition(el, pair) {
+    var rect = el.getBoundingClientRect();
+    var vw   = window.innerWidth;
+    var vh   = window.innerHeight;
+    var inView = rect.width > 0 && rect.height > 0 &&
+                 rect.bottom > 0 && rect.top < vh &&
+                 rect.right > 0  && rect.left < vw;
+
+    if (!inView) { pair.classList.add('is-hidden'); return; }
+    pair.classList.remove('is-hidden');
+
+    // Place bottom-right corner of the textarea, shifted slightly inside
+    var PAIR_W  = 26 + 4 + 26; // btn + gap + btn
+    var PAIR_H  = 26;
+    var MARGIN  = 4;
+
+    var top  = rect.bottom - PAIR_H - MARGIN;
+    var left = rect.right  - PAIR_W - MARGIN;
+
+    // Clamp inside viewport
+    if (left < 4)        left = 4;
+    if (top  < 4)        top  = rect.top + MARGIN;
+    if (left + PAIR_W > vw - 4) left = vw - PAIR_W - 4;
+    if (top  + PAIR_H > vh - 4) top  = vh - PAIR_H - 4;
+
+    pair.style.top  = top  + 'px';
+    pair.style.left = left + 'px';
+  }
+
+  function _makeBtn(cls, svg, tip, onClick) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = '__biaif_btn__ __biaif_btn__--' + cls;
+    btn.setAttribute('aria-label', tip);
+    var tipEl = document.createElement('span');
+    tipEl.className = '__biaif_tip__';
+    tipEl.textContent = tip;
+    btn.innerHTML = svg;
+    btn.appendChild(tipEl);
+    btn.addEventListener('mousedown', function (e) { e.preventDefault(); e.stopPropagation(); });
+    btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); onClick(); });
+    return btn;
+  }
+
+  var SVG_FILTER = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>';
+  var SVG_NEW    = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+
+  function _attach(el) {
+    if (_tracked.has(el)) return;
+    // Skip tiny / invisible elements (tool widgets, etc.)
+    var r = el.getBoundingClientRect();
+    if (r.width < 40 || r.height < 20) return;
+
+    _ensureStyle();
+
+    var conversationUrl = location.href;
+
+    var pair = document.createElement('div');
+    pair.className = '__biaif_pair__ is-hidden';
+
+    var tipFilter = 'PromptDrop – Filtrer cette conversation';
+    var tipNew    = 'PromptDrop – Nouveau segment lié à cette conversation';
+
+    var btnFilter = _makeBtn('filter', SVG_FILTER, tipFilter, function () {
+      _send({ type: _msgType('OPEN_WITH_FILTER'), conversationUrl: location.href, filterUrl: null });
+    });
+    var btnNew = _makeBtn('new', SVG_NEW, tipNew, function () {
+      _send({ type: _msgType('START_LINKED_SEGMENT'), conversationUrl: location.href });
     });
 
-    document.body.appendChild(_btn);
-    return _btn;
+    pair.appendChild(btnFilter);
+    pair.appendChild(btnNew);
+    document.body.appendChild(pair);
+
+    var ro = new ResizeObserver(function () { _scheduleUpdate(); });
+    ro.observe(el);
+
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) pair.classList.add('is-hidden');
+        else _reposition(el, pair);
+      });
+    }, { threshold: 0 });
+    io.observe(el);
+
+    _tracked.set(el, { pair: pair, ro: ro, io: io });
+    _reposition(el, pair);
   }
 
-  function _positionNear(el) {
-    const btn = _getBtn();
-    const rect = el.getBoundingClientRect();
-    const MARGIN = 4;
-
-    let top  = rect.bottom - 28 - MARGIN;
-    let left = rect.right  - 28 - MARGIN;
-
-    // keep inside viewport
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    if (left + 28 > vw - 4)  left = vw - 28 - 4;
-    if (left < 4)             left = 4;
-    if (top + 28 > vh - 4)   top  = vh - 28 - 4;
-    if (top < 4)              top  = rect.top + MARGIN;
-
-    btn.style.top  = top  + 'px';
-    btn.style.left = left + 'px';
+  function _detach(el) {
+    var entry = _tracked.get(el);
+    if (!entry) return;
+    entry.ro.disconnect();
+    entry.io.disconnect();
+    if (entry.pair.parentNode) entry.pair.parentNode.removeChild(entry.pair);
+    _tracked.delete(el);
   }
 
-  function _showFor(el) {
-    clearTimeout(_blurTimer);
-    _currentTarget = el;
-    _positionNear(el);
-    _getBtn().classList.add('is-visible');
+  /* ── message helper ─────────────────────────────────────────────────────── */
+
+  function _msgType(key) {
+    return (window.BIAIF && window.BIAIF.MSG && window.BIAIF.MSG[key])
+      ? window.BIAIF.MSG[key]
+      : 'biaif:' + key.toLowerCase().replace(/_/g, '-');
   }
 
-  function _scheduleHide() {
-    clearTimeout(_blurTimer);
-    _blurTimer = setTimeout(() => {
-      _getBtn().classList.remove('is-visible');
-      _currentTarget = null;
-    }, 200);
+  function _send(msg) {
+    try { chrome.runtime.sendMessage(msg).catch(function () {}); } catch (_) {}
   }
 
-  function _openPanel() {
-    const filterUrl = isAiPage ? null : location.href;
-    const msg = {
-      type: (window.BIAIF && window.BIAIF.MSG && window.BIAIF.MSG.OPEN_WITH_FILTER)
-              ? window.BIAIF.MSG.OPEN_WITH_FILTER
-              : 'biaif:open-with-filter',
-      filterUrl,
-      pageUrl: location.href,
-    };
-    try {
-      chrome.runtime.sendMessage(msg).catch(() => {});
-    } catch (_) {}
+  /* ── selector ───────────────────────────────────────────────────────────── */
+
+  var SELECTOR = 'textarea, [contenteditable="true"], [contenteditable=""]';
+
+  function _scanAll() {
+    document.querySelectorAll(SELECTOR).forEach(function (el) {
+      _attach(el);
+    });
   }
 
-  // ── Focus / blur listeners ───────────────────────────────────────────────
+  /* ── scroll / resize ────────────────────────────────────────────────────── */
 
-  const SELECTOR = 'textarea, [contenteditable="true"], [contenteditable=""]';
+  window.addEventListener('scroll',     function () { _scheduleUpdate(); }, { passive: true, capture: true });
+  window.addEventListener('resize',     function () { _scheduleUpdate(); }, { passive: true });
 
-  function _onFocus(e) {
-    const el = e.target;
-    if (!el.matches(SELECTOR)) return;
-    // skip very small elements (inline widgets, hidden inputs)
-    const rect = el.getBoundingClientRect();
-    if (rect.width < 40 || rect.height < 20) return;
-    _showFor(el);
-  }
+  /* ── MutationObserver ───────────────────────────────────────────────────── */
 
-  function _onBlur(e) {
-    if (!e.target.matches(SELECTOR)) return;
-    _scheduleHide();
-  }
-
-  // keep button over the field on scroll / resize
-  function _onScroll() {
-    if (!_currentTarget) return;
-    _positionNear(_currentTarget);
-  }
-
-  document.addEventListener('focusin',  _onFocus, true);
-  document.addEventListener('focusout', _onBlur,  true);
-  window.addEventListener('scroll',     _onScroll, { passive: true, capture: true });
-  window.addEventListener('resize',     _onScroll, { passive: true });
-
-  // ── MutationObserver : handle textareas added dynamically ───────────────
-
-  // We rely purely on focusin events (which bubble) so no per-element binding
-  // is needed. The MutationObserver is kept minimal — it only ensures the
-  // floating button stays in the DOM if the host SPA clears document.body.
-  const _observer = new MutationObserver(() => {
-    if (_btn && !document.body.contains(_btn)) {
-      _btn = null; // will be re-created on next _getBtn() call
-    }
+  var _mo = new MutationObserver(function (mutations) {
+    var needScan = false;
+    mutations.forEach(function (m) {
+      m.addedNodes.forEach(function (n) {
+        if (n.nodeType !== 1) return;
+        if (n.matches && n.matches(SELECTOR)) { _attach(n); return; }
+        if (n.querySelector) {
+          n.querySelectorAll(SELECTOR).forEach(function (el) { _attach(el); });
+        }
+        needScan = true;
+      });
+      m.removedNodes.forEach(function (n) {
+        if (n.nodeType !== 1) return;
+        if (_tracked.has(n)) _detach(n);
+        if (n.querySelectorAll) {
+          n.querySelectorAll(SELECTOR).forEach(function (el) { if (_tracked.has(el)) _detach(el); });
+        }
+      });
+    });
+    if (needScan) _scheduleUpdate();
   });
-  _observer.observe(document.documentElement, { childList: true, subtree: false });
+
+  _mo.observe(document.documentElement, { childList: true, subtree: true });
+
+  /* ── initial scan ───────────────────────────────────────────────────────── */
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _scanAll);
+  } else {
+    _scanAll();
+  }
 
 })();

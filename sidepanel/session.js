@@ -58,11 +58,12 @@
       return;
     }
     STATE.demandes.push({
-      id:   'dem-' + Date.now(),
-      ts:   Date.now(),
-      text: cleaned,
-      refs: refs.slice(),
-      url:  STATE.currentDemande.pageUrl || null,
+      id:              'dem-' + Date.now(),
+      ts:              Date.now(),
+      text:            cleaned,
+      refs:            refs.slice(),
+      url:             STATE.currentDemande.pageUrl || null,
+      conversationUrl: STATE.pendingConversationUrl || null,
     });
     STATE.currentDemande = { text: '', refs: [], pageUrl: null };
     if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';

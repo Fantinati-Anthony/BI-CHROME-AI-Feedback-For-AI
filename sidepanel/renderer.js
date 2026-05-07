@@ -41,8 +41,33 @@
     var qt = document.querySelector('.biaif-quick-tools');
     if (qt && qt.parentNode) qt.parentNode.removeChild(qt);
 
+    // Remove any previous conversation-filter chip
+    var prevChip = document.getElementById('conv-filter-chip');
+    if (prevChip) prevChip.parentNode.removeChild(prevChip);
+
     REFS.segments.innerHTML = '';
     if (REFS.segmentsCount) REFS.segmentsCount.textContent = String(STATE.demandes.length);
+
+    // Show conversation filter chip when active
+    var cf = (STATE.conversationFilter || '').trim();
+    if (cf) {
+      var chip = document.createElement('div');
+      chip.id = 'conv-filter-chip';
+      chip.className = 'conv-filter-chip';
+      var label = cf;
+      try { label = new URL(cf).hostname + new URL(cf).pathname; } catch (_) {}
+      chip.title = cf;
+      chip.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>' +
+        '<span class="conv-filter-chip__label">' + esc(label) + '</span>' +
+        '<button class="conv-filter-chip__clear" type="button" aria-label="Effacer le filtre conversation">✕</button>';
+      chip.querySelector('.conv-filter-chip__clear').addEventListener('click', function () {
+        STATE.conversationFilter    = '';
+        STATE.pendingConversationUrl = null;
+        renderSegments();
+      });
+      REFS.segments.parentNode && REFS.segments.parentNode.insertBefore(chip, REFS.segments);
+    }
 
     var filtered = _filterDemandes();
 
@@ -69,8 +94,12 @@
   }
 
   function _filterDemandes() {
-    var q = (STATE.searchQuery || '').toLowerCase().trim();
+    var q  = (STATE.searchQuery       || '').toLowerCase().trim();
+    var cf = (STATE.conversationFilter || '').trim();
     return STATE.demandes.map(function (d, i) { return { dem: d, origIndex: i }; }).filter(function (item) {
+      // Conversation filter: exact URL match
+      if (cf && item.dem.conversationUrl !== cf) return false;
+      // Text search
       if (!q) return true;
       var text = (item.dem.text || '').toLowerCase();
       var refs = (item.dem.refs || []).map(function (r) {

@@ -198,13 +198,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // Content script → SW : open sidepanel with optional URL filter
-  if (msg.type === MSG.OPEN_WITH_FILTER) {
+  // Content script → SW : open sidepanel and filter / start linked session
+  if (msg.type === MSG.OPEN_WITH_FILTER || msg.type === MSG.START_LINKED_SEGMENT) {
     (async () => {
       try {
         const tabId = sender.tab && sender.tab.id;
         if (tabId) await chrome.sidePanel.open({ tabId });
-        // Forward to sidepanel so it can apply the filter
         chrome.runtime.sendMessage(msg).catch(() => {});
       } catch (_) {}
       sendResponse({ ok: true });
