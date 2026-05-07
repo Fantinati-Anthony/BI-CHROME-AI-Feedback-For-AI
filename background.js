@@ -198,6 +198,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  // Content script → SW : open sidepanel with optional URL filter
+  if (msg.type === MSG.OPEN_WITH_FILTER) {
+    (async () => {
+      try {
+        const tabId = sender.tab && sender.tab.id;
+        if (tabId) await chrome.sidePanel.open({ tabId });
+        // Forward to sidepanel so it can apply the filter
+        chrome.runtime.sendMessage(msg).catch(() => {});
+      } catch (_) {}
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
   // Content script → sidepanel : forward capture progress
   if (msg.type === MSG.CAPTURE_PROGRESS) {
     chrome.runtime.sendMessage(msg).catch(() => {});

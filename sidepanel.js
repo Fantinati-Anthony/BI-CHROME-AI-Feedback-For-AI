@@ -439,7 +439,34 @@
         if (msg.action === 'copy-prompt') window.BIAIFExport.copyPrompt();
         return;
       }
+      if (msg.type === _MSG('OPEN_WITH_FILTER')) {
+        onOpenWithFilter(msg.filterUrl);
+        return;
+      }
     });
+  }
+
+  function onOpenWithFilter(filterUrl) {
+    // filterUrl is null for AI pages (show all) or a page URL for other pages
+    let query = '';
+    if (filterUrl) {
+      try { query = new URL(filterUrl).hostname; } catch (_) { query = filterUrl; }
+    }
+    STATE.searchQuery = query;
+    if (REFS.searchInput) {
+      REFS.searchInput.value = query;
+      // Clear placeholder styling when a value is set
+      REFS.searchInput.dispatchEvent(new Event('input', { bubbles: false }));
+    }
+    window.BIAIFRenderer.renderSegments();
+    if (query) {
+      window.BIAIFToast.show(
+        window.BIAIFi18n
+          ? window.BIAIFi18n.t('toast.filter_applied', { host: query })
+          : 'Filtre : ' + query,
+        'info', 2500
+      );
+    }
   }
 
   // ============================================================

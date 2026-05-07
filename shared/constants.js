@@ -45,6 +45,8 @@
     INJECT_TO_EDITOR:  'biaif:inject-to-editor',
     // Inject into VS Code via local bridge
     INJECT_TO_VSCODE:  'biaif:inject-to-vscode',
+    // Content script → SW → sidepanel: open panel with optional URL filter
+    OPEN_WITH_FILTER:  'biaif:open-with-filter',
   });
 
   root.BIAIF.VSCODE_BRIDGE_PORT = 51473;
