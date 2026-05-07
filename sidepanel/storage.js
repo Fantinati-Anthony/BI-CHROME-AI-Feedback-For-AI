@@ -32,6 +32,8 @@
       if (saved.sortOrder === 'asc' || saved.sortOrder === 'desc') STATE.sortOrder = saved.sortOrder;
       if (typeof saved.segFontSize === 'number' && saved.segFontSize >= 8 && saved.segFontSize <= 16)
         STATE.segFontSize = saved.segFontSize;
+      if (saved.visibleButtons && typeof saved.visibleButtons === 'object')
+        STATE.visibleButtons = Object.assign({}, STATE.visibleButtons, saved.visibleButtons);
 
     } catch (e) {
       console.warn('[BIAIF Storage] hydrate failed', e && e.message);
@@ -78,6 +80,7 @@
       micDeviceId:    STATE.micDeviceId,
       sortOrder:      STATE.sortOrder,
       segFontSize:    STATE.segFontSize,
+      visibleButtons: STATE.visibleButtons,
     };
   }
 
