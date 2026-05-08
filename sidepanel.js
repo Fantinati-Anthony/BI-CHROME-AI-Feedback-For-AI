@@ -53,6 +53,8 @@
     pageFilter:          '',   // exact tabUrl filter
     pendingConversationUrl: null,  // tags next segments with this conversation URL
     pendingRepoId:          null,  // tags next segments with this GitHub repo
+    autoOpenOnKnownActive:  false, // open sidepanel when switching to a tab linked to an active segment
+    autoOpenOnKnownDone:    false, // open sidepanel when switching to a tab linked to a done/archived segment
   };
 
   const REFS = {};
@@ -89,6 +91,11 @@
         const v = STATE.visibleButtons[key];
         cb.checked = (v === undefined) ? fallback : !!v;
       });
+      // Sync auto-open checkboxes
+      const cbActive = document.getElementById('aop-active');
+      const cbDone   = document.getElementById('aop-done');
+      if (cbActive) cbActive.checked = !!STATE.autoOpenOnKnownActive;
+      if (cbDone)   cbDone.checked   = !!STATE.autoOpenOnKnownDone;
       _updateSpFontVal();
       window.BIAIFRenderer.updateSortToggleLabel();
       window.BIAIFRenderer.applySegFontSize();
@@ -311,6 +318,17 @@
       cb.addEventListener('change', () => {
         STATE.visibleButtons[key] = cb.checked;
         window.BIAIFRenderer.renderSegments();
+        window.BIAIFStorage.persist(STATE);
+      });
+    });
+
+    // Auto-open toggles
+    ['aop-active', 'aop-done'].forEach((id) => {
+      const cb = document.getElementById(id);
+      if (!cb) return;
+      cb.addEventListener('change', () => {
+        if (id === 'aop-active') STATE.autoOpenOnKnownActive = cb.checked;
+        if (id === 'aop-done')   STATE.autoOpenOnKnownDone   = cb.checked;
         window.BIAIFStorage.persist(STATE);
       });
     });
