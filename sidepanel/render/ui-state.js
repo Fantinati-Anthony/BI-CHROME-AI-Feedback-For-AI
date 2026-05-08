@@ -25,7 +25,7 @@
     var hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
     if (typeof STATE.editingDemandeIdx === 'number') {
       // Session bar is CSS-hidden during segment edit, but keep label correct.
-      lbl.textContent = _t('session.update', 'Mettre à jour ✓');
+      lbl.textContent = _t('session.update', 'Enregistrer ✓');
       REFS.masterBtn.disabled = false;
     } else {
       lbl.textContent = _t('session.save', 'Enregistrer →');

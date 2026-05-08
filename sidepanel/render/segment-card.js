@@ -302,20 +302,39 @@
       document.querySelectorAll('.biaif-segment.is-dragging-seg, .biaif-segment.is-drop-target')
         .forEach(function (c) { c.classList.remove('is-dragging-seg', 'is-drop-target'); });
     });
+    function _dropMode(e) {
+      var rect = card.getBoundingClientRect();
+      var y    = e.clientY - rect.top;
+      if (y < rect.height * 0.25) return 'before';
+      if (y > rect.height * 0.75) return 'after';
+      return 'merge';
+    }
+    function _clearDropClasses() {
+      card.classList.remove('is-drop-target', 'is-drop-before', 'is-drop-after');
+    }
     card.addEventListener('dragover', function (e) {
       if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
       e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-      card.classList.add('is-drop-target');
+      var mode = _dropMode(e);
+      ctx.SEG_DRAG.dropMode = mode;
+      _clearDropClasses();
+      if (mode === 'merge')       card.classList.add('is-drop-target');
+      else if (mode === 'before') card.classList.add('is-drop-before');
+      else                        card.classList.add('is-drop-after');
     });
     card.addEventListener('dragleave', function (e) {
       if (e.relatedTarget && card.contains(e.relatedTarget)) return;
-      card.classList.remove('is-drop-target');
+      _clearDropClasses();
     });
     card.addEventListener('drop', function (e) {
       if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
-      e.preventDefault(); card.classList.remove('is-drop-target');
-      var src = ctx.SEG_DRAG.sourceIdx; ctx.SEG_DRAG.sourceIdx = -1;
-      if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(src, origIndex);
+      e.preventDefault(); _clearDropClasses();
+      var src  = ctx.SEG_DRAG.sourceIdx; ctx.SEG_DRAG.sourceIdx = -1;
+      var mode = ctx.SEG_DRAG.dropMode || 'merge';
+      ctx.SEG_DRAG.dropMode = null;
+      if (!window.BIAIFSession) return;
+      if (mode === 'merge') window.BIAIFSession.mergeDemandes(src, origIndex);
+      else                  window.BIAIFSession.reorderDemande(src, mode === 'before' ? origIndex : origIndex + 1);
     });
 
     return card;
