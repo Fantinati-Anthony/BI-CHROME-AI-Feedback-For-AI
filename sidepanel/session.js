@@ -52,10 +52,11 @@
 
   function finalizeDemande(silent) {
     if (STATE.editingDemandeIdx !== null) {
-      // Unified editor → save changes back to the segment then exit
+      // Unified editor → save changes back to the segment then go back to history
       _saveEditToDemande();
       var updatedIdx = STATE.editingDemandeIdx;
       exitEditMode({ silent: true });
+      _disarm();
       window.BIAIFStorage.persist(STATE);
       if (!silent) _toast(_t('toast.demande_updated', 'Demande #' + (updatedIdx + 1) + ' mise à jour.', { n: updatedIdx + 1 }), 'success');
       return;
@@ -81,6 +82,7 @@
     if (!repoId) {
       for (var j = 0; j < refs.length; j++) { if (refs[j].repoId) { repoId = refs[j].repoId; break; } }
     }
+    var savedNum = STATE.demandes.length + 1;
     STATE.demandes.push({
       id:              'dem-' + Date.now(),
       ts:              Date.now(),
@@ -92,11 +94,12 @@
     });
     STATE.currentDemande = { text: '', refs: [], pageUrl: null };
     if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
+    // Save done → go back to history view
+    _disarm();
     window.BIAIFRenderer.renderDemandeRefsStrip();
     window.BIAIFRenderer.renderSegments();
-    window.BIAIFRenderer.updateArmedUi();
     window.BIAIFStorage.persist(STATE);
-    if (!silent) _toast(_t('toast.demande_finalized', 'Demande #' + STATE.demandes.length + ' finalisée.', { n: STATE.demandes.length }), 'success');
+    if (!silent) _toast(_t('toast.demande_finalized', 'Demande #' + savedNum + ' finalisée.', { n: savedNum }), 'success');
   }
 
   // nextVoiceSegment is the legacy alias for finalizeDemande
@@ -403,6 +406,30 @@
   // -----------------------------------------------------------------------
   // Private helpers
   // -----------------------------------------------------------------------
+  // Silently disarm: go back to history view, stop mic/picker if not needed
+  function _disarm() {
+    STATE.armed = false;
+    if (REFS && REFS.masterBtn) REFS.masterBtn.classList.remove('armed');
+    if (STATE.micActive && !STATE.armed) window.BIAIFSpeech.stopMic && window.BIAIFSpeech.stopMic();
+    window.BIAIFRenderer.updateArmedUi();
+    window.BIAIFRenderer.updateMasterBtnLabel();
+  }
+
+  // Public disarm — saves edit if any, abandons new draft, goes back to history
+  function disarm() {
+    if (STATE.editingDemandeIdx !== null) {
+      // Save edits before going back
+      _saveEditToDemande();
+      exitEditMode({ silent: true });
+    } else {
+      syncCurrentDemandeFromEditor();
+    }
+    _disarm();
+    window.BIAIFRenderer.renderSegments();
+    window.BIAIFStorage.persist(STATE);
+    _toast(_t('toast.back_to_history', 'Retour à l\'historique.'), 'info', 1500);
+  }
+
   function _updateMasterBtn() { if (window.BIAIFRenderer) window.BIAIFRenderer.updateMasterBtnLabel(); }
   function _updateArmedUi()   { if (window.BIAIFRenderer) window.BIAIFRenderer.updateArmedUi(); }
   function _toast(m, k, d)    { if (window.BIAIFToast) window.BIAIFToast.show(m, k, d); }
@@ -448,6 +475,7 @@
     stopSession:                stopSession,
     finalizeDemande:            finalizeDemande,
     nextVoiceSegment:           nextVoiceSegment,
+    disarm:                     disarm,
     enterEditMode:              enterEditMode,
     exitEditMode:               exitEditMode,
     activeTargetIdx:            activeTargetIdx,

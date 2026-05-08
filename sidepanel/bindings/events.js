@@ -63,17 +63,18 @@
       STATE.pendingConversationUrl = null;
       H.updateLinkedSessionBanner();
     });
-    // "Nouvelle conv." — reset conversation context + ouvre la zone si besoin.
+    // "Nouvelle conv." — arms the session and resets conversation context.
     var newConvBtn = document.querySelector('[data-act="new-conv"]');
     if (newConvBtn) newConvBtn.addEventListener('click', function () {
       _autoArm();
       STATE.pendingConversationUrl = null;
       STATE.pendingRepoId = null;
       H.updateLinkedSessionBanner();
-      window.BIAIFToast.show(
-        _t('toast.new_conv', 'Nouvelle conversation — le prochain segment sera indépendant.'),
-        'info'
-      );
+    });
+    // "✕ Disarm" — saves any pending work and goes back to history view.
+    var disarmBtn = document.querySelector('[data-act="disarm"]');
+    if (disarmBtn) disarmBtn.addEventListener('click', function () {
+      window.BIAIFSession.disarm();
     });
   }
 

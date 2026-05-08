@@ -95,6 +95,23 @@
 /* Stop button hidden in new UX */
 .session-stop { display: none !important; }
 
+/* Disarm button — small ✕ pill to go back to history from armed/edit mode */
+.session-disarm {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer; transition: all 0.15s;
+  padding: 0;
+}
+.session-disarm:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(255, 69, 58, 0.08);
+}
+
 .biaif-buffer-preview {
   font-size: 11px; color: var(--text-muted); font-style: italic;
   padding: 4px 0;
