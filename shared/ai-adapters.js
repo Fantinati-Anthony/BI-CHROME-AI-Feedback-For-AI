@@ -25,12 +25,14 @@
         // fallback: no opacity class (element simply disappears when done)
         'div.text-assistant-secondary.tabular-nums:not(.opacity-0)',
       ],
-      // CSS selectors for the native input area to hide (opacity:0, keeping layout).
+      // CSS selectors for the native input area to hide (visibility:hidden, keeping layout).
       // Applied when hideAiTextarea setting is on.
+      // The first selector targets the parent container of the prompt blur div
+      // (identified by data-surface="prompt" aria-hidden="true").
       inputHide: [
+        'div:has(> [aria-hidden="true"][data-surface="prompt"])',
+        '[aria-hidden="true"][data-surface="prompt"]',
         'div[contenteditable="true"][aria-label="Prompt"].ProseMirror',
-        'div.tiptap[contenteditable="true"]',
-        'div.ProseMirror[contenteditable="true"]',
       ],
       // Submit button selectors (for auto-submit after injection)
       submitBtn: [

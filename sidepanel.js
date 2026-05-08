@@ -107,6 +107,14 @@
       const cbAutoSub   = document.getElementById('auto-submit-inject');
       if (cbHideTa)  cbHideTa.checked  = !!STATE.hideAiTextarea;
       if (cbAutoSub) cbAutoSub.checked = !!STATE.autoSubmitAfterInject;
+      // Re-apply hide-textarea dependency after checkboxes are restored
+      if (cbHideTa && cbAutoSub) {
+        const autoOn = cbAutoSub.checked;
+        cbHideTa.disabled = !autoOn;
+        const row = cbHideTa.closest('.sp-toggle-row');
+        if (row) row.classList.toggle('is-disabled', !autoOn);
+        if (!autoOn && cbHideTa.checked) { cbHideTa.checked = false; STATE.hideAiTextarea = false; }
+      }
       _updateSpFontVal();
       window.BIAIFRenderer.updateSortToggleLabel();
       window.BIAIFRenderer.applySegFontSize();
@@ -345,23 +353,47 @@
       });
     });
 
-    // Behaviour toggles
-    const cbHideTa = document.getElementById('hide-ai-textarea');
+    // Behaviour toggles — hide-textarea requires auto-submit to be on
+    const cbHideTa  = document.getElementById('hide-ai-textarea');
+    const cbAutoSub = document.getElementById('auto-submit-inject');
+
+    // Sync the disabled state of hide-textarea based on auto-submit
+    function _syncHideTextareaDep() {
+      if (!cbHideTa || !cbAutoSub) return;
+      const autoSubOn = cbAutoSub.checked;
+      cbHideTa.disabled = !autoSubOn;
+      const row = cbHideTa.closest('.sp-toggle-row');
+      if (row) row.classList.toggle('is-disabled', !autoSubOn);
+      // Force off if auto-submit is disabled
+      if (!autoSubOn && cbHideTa.checked) {
+        cbHideTa.checked = false;
+        STATE.hideAiTextarea = false;
+        // Remove hide style from active tab
+        try {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs && tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'biaif:hide-ai-textarea', hide: false }).catch(() => {});
+          });
+        } catch (_) {}
+      }
+    }
+
     if (cbHideTa) cbHideTa.addEventListener('change', () => {
       STATE.hideAiTextarea = cbHideTa.checked;
       window.BIAIFStorage.persist(STATE);
-      // Notify active tab content script to apply/remove hide style
       try {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           if (tabs && tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'biaif:hide-ai-textarea', hide: cbHideTa.checked }).catch(() => {});
         });
       } catch (_) {}
     });
-    const cbAutoSub = document.getElementById('auto-submit-inject');
     if (cbAutoSub) cbAutoSub.addEventListener('change', () => {
       STATE.autoSubmitAfterInject = cbAutoSub.checked;
+      _syncHideTextareaDep();
       window.BIAIFStorage.persist(STATE);
     });
+
+    // Apply dependency state after checkboxes are restored from storage
+    _syncHideTextareaDep();
 
     // UI language buttons
     document.getElementById('sp-lang-grid') && document.getElementById('sp-lang-grid').addEventListener('click', (e) => {

@@ -9,6 +9,7 @@
   var STATE, REFS;
   var DRAG     = { chip: null, sourceContainer: null };
   var SEG_DRAG = { sourceIdx: -1 };
+  var _archiveTimer = null; // module-level, avoids window pollution
 
   function init(state, refs) {
     STATE = state;
@@ -90,19 +91,24 @@
     var display = filtered.slice();
     if (STATE.sortOrder === 'desc') display.reverse();
 
-    // Split into active (non-done) and archived (done)
-    var active   = display.filter(function (item) { return item.dem.status !== 'done'; });
-    var archived = display.filter(function (item) { return item.dem.status === 'done'; });
-
-    active.forEach(function (item) {
-      var card = _buildSegmentCard(item.dem, item.origIndex);
-      REFS.segments.appendChild(card);
+    // Group by conversationUrl; orphan done items fall into archive zone
+    var groups     = _buildConvGroups(display);
+    var orphanDone = [];
+    groups.forEach(function (group) {
+      if (group.isGroup) {
+        REFS.segments.appendChild(_buildConversationGroup(group));
+      } else {
+        var item = group.items[0];
+        if (item.dem.status === 'done') {
+          orphanDone.push(item);
+        } else {
+          REFS.segments.appendChild(_buildSegmentCard(item.dem, item.origIndex));
+        }
+      }
     });
 
-    // Archive zone
-    if (archived.length) {
-      var zone = _buildArchiveZone(archived);
-      REFS.segments.appendChild(zone);
+    if (orphanDone.length) {
+      REFS.segments.appendChild(_buildArchiveZone(orphanDone));
     }
 
     _reattach(qt);
@@ -169,8 +175,8 @@
     zone.appendChild(body);
 
     // Update archive header relative time every 30s
-    if (!window.__biaif_archive_timer__) {
-      window.__biaif_archive_timer__ = setInterval(function () {
+    if (!_archiveTimer) {
+      _archiveTimer = setInterval(function () {
         document.querySelectorAll('.biaif-archive-updated').forEach(function (el) {
           var zone2 = el.closest('.biaif-archive-zone');
           if (!zone2) return;
@@ -191,6 +197,92 @@
     }
 
     return zone;
+  }
+
+  // -----------------------------------------------------------------------
+  // Conversation grouping
+  // -----------------------------------------------------------------------
+
+  function _buildConvGroups(display) {
+    var urlGroups = Object.create(null);
+    var result    = [];
+    display.forEach(function (item) {
+      var url = item.dem.conversationUrl || null;
+      if (url) {
+        if (!urlGroups[url]) {
+          urlGroups[url] = { conversationUrl: url, items: [] };
+          result.push(urlGroups[url]);
+        }
+        urlGroups[url].items.push(item);
+      } else {
+        result.push({ conversationUrl: null, items: [item], isGroup: false });
+      }
+    });
+    result.forEach(function (g) {
+      if (g.conversationUrl !== null) {
+        var hasDone = g.items.some(function (i) { return i.dem.status === 'done'; });
+        g.isGroup = g.items.length >= 2 || hasDone;
+      }
+    });
+    return result;
+  }
+
+  function _buildConversationGroup(group) {
+    var wrap = document.createElement('div');
+    wrap.className = 'biaif-conv-group';
+
+    var convShort = group.conversationUrl;
+    try { convShort = new URL(group.conversationUrl).hostname; } catch (_) {}
+
+    var doneItems   = group.items.filter(function (i) { return i.dem.status === 'done'; });
+    var activeItems = group.items.filter(function (i) { return i.dem.status !== 'done'; });
+    var total       = group.items.length;
+
+    var header = document.createElement('div');
+    header.className = 'biaif-conv-header';
+    header.innerHTML =
+      '<svg class="biaif-conv-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+      '<a class="biaif-conv-url" href="' + esc(group.conversationUrl) + '" target="_blank" rel="noopener" title="' + esc(group.conversationUrl) + '">' + esc(convShort) + '</a>' +
+      '<span class="biaif-conv-count">' + total + ' segment' + (total > 1 ? 's' : '') + '</span>';
+    wrap.appendChild(header);
+
+    activeItems.forEach(function (item) {
+      wrap.appendChild(_buildSegmentCard(item.dem, item.origIndex));
+    });
+
+    if (doneItems.length) {
+      var subsegWrap = document.createElement('div');
+      subsegWrap.className = 'biaif-conv-done-wrap';
+
+      var ts        = _latestArchiveTs(doneItems);
+      var relT      = _relTime(ts);
+      var doneLabel = doneItems.length + ' archivé' + (doneItems.length > 1 ? 's' : '');
+      var subsegToggle = document.createElement('button');
+      subsegToggle.type      = 'button';
+      subsegToggle.className = 'biaif-conv-done-toggle';
+      subsegToggle.setAttribute('aria-expanded', 'false');
+      subsegToggle.innerHTML =
+        '<svg class="biaif-conv-done-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '<span class="biaif-conv-done-label">' + esc(doneLabel) + '</span>' +
+        (relT ? '<span class="biaif-conv-done-ts">' + esc(_t('archive.updated', 'MAJ il y a ' + relT, { t: relT })) + '</span>' : '');
+
+      var subsegBody = document.createElement('div');
+      subsegBody.className = 'biaif-conv-done-body';
+      doneItems.forEach(function (item) {
+        subsegBody.appendChild(_buildSegmentCard(item.dem, item.origIndex));
+      });
+
+      subsegToggle.addEventListener('click', function () {
+        var expanded = subsegWrap.classList.toggle('is-expanded');
+        subsegToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      });
+
+      subsegWrap.appendChild(subsegToggle);
+      subsegWrap.appendChild(subsegBody);
+      wrap.appendChild(subsegWrap);
+    }
+
+    return wrap;
   }
 
   function _hostname(url) {
