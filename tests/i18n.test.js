@@ -81,6 +81,31 @@ describe('BIAIFi18n.tn (plural via Intl.PluralRules)', () => {
     window.BIAIFi18n.setLang('fr');
     expect(window.BIAIFi18n.tn('segments.ref', 0, { n: 0 })).toContain('0');
   });
+
+  it('FR uses singular for n=1 with {n} interpolation', () => {
+    window.BIAIFi18n.setLang('fr');
+    const out = window.BIAIFi18n.tn('segments.ref', 1, { n: 1 });
+    // FR singular form is "1 réf" (not "1 réfs"). Implementation may use
+    // _singular OR _one — both branches yield the singular spelling.
+    expect(out).toBe('1 réf');
+  });
+
+  it('EN selects "_other" for n=2 (CLDR plural)', () => {
+    window.BIAIFi18n.setLang('en');
+    const out = window.BIAIFi18n.tn('segments.ref', 2, { n: 2 });
+    expect(out).toBe('2 refs');
+  });
+
+  it('PluralRules cache is per-locale (no cross-talk)', () => {
+    window.BIAIFi18n.setLang('en');
+    const enOne = window.BIAIFi18n.tn('segments.ref', 1, { n: 1 });
+    window.BIAIFi18n.setLang('de');
+    const deOne = window.BIAIFi18n.tn('segments.ref', 1, { n: 1 });
+    expect(enOne).toContain('1');
+    expect(deOne).toContain('1');
+    // Same number, different translations.
+    expect(enOne).not.toBe(deOne);
+  });
 });
 
 describe('BIAIFi18n.detectBrowserLang', () => {

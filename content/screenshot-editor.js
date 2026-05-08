@@ -71,7 +71,9 @@
         'position:fixed', 'inset:0', 'z-index:2147483646',
         'display:none',
       ].join(';');
-      const shadow = host.attachShadow({ mode: 'open' });
+      // Closed shadow root: host-page CSS / scripts cannot reach into
+      // our annotator UI (consistent with content/element-selector.js).
+      const shadow = host.attachShadow({ mode: 'closed' });
       shadow.innerHTML = this.template();
       document.documentElement.appendChild(host);
 

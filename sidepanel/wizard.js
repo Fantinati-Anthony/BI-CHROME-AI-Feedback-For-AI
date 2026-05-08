@@ -18,6 +18,7 @@
     { id: 'lang',       fn: _stepLang       },
     { id: 'theme',      fn: _stepTheme      },
     { id: 'templates',  fn: _stepTemplates  },
+    { id: 'palette',    fn: _stepPalette    },
     { id: 'privacy',    fn: _stepPrivacy    },
     { id: 'shortcuts',  fn: _stepShortcuts  },
     { id: 'export',     fn: _stepExport     },
@@ -338,6 +339,23 @@
       + '<li>' + _t('wizard.templates.tip1', 'Cliquez « Modèles » → « Enregistrer la saisie » pour capturer le prompt actuel.') + '</li>'
       + '<li>' + _t('wizard.templates.tip2', 'Cliquez sur un modèle pour l\'insérer dans la zone de saisie.') + '</li>'
       + '<li>' + _t('wizard.templates.tip3', 'Les modèles sont sauvegardés et exportés avec votre configuration.') + '</li>'
+      + '</ul>';
+  }
+
+  // ── Step Palette (Cmd+K) ───────────────────────────────────────
+
+  function _stepPalette() {
+    return ''
+      + '<h2 class="wiz-title">⌨️ ' + _t('wizard.palette.title', 'Palette de commandes') + '</h2>'
+      + '<p class="wiz-text">'
+      + _t('wizard.palette.text', 'Appuyez sur')
+      + ' <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd> '
+      + _t('wizard.palette.text2', 'pour tout faire au clavier : insérer un modèle, ouvrir une IA, changer de thème, lancer une commande.')
+      + '</p>'
+      + '<ul class="wiz-list">'
+      + '<li>📝 ' + _t('wizard.palette.tpl', 'Vos modèles avec interpolation {{var}}') + '</li>'
+      + '<li>🤖 ' + _t('wizard.palette.ai',  'Vos IA cibles (Claude, ChatGPT, Gemini, …)') + '</li>'
+      + '<li>⚡ ' + _t('wizard.palette.cmd', 'Commandes : sauvegarder, copier, changer le thème, ouvrir les réglages, rechercher…') + '</li>'
       + '</ul>';
   }
 

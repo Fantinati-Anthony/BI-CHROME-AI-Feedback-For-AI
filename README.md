@@ -91,8 +91,14 @@ cd BI-CHROME-AI-Feedback-For-AI
 | Toggle element picker               | `Alt+Shift+E`         |
 | Toggle microphone                   | `Alt+Shift+M`         |
 | Copy formatted prompt               | `Alt+Shift+C`         |
+| **Command palette**                 | **`Cmd/Ctrl+K`**      |
+| Merge with previous / next segment  | `Alt+↑` / `Alt+↓`     |
 | Exit picker mode                    | `Esc` (in page)       |
 | Multi-pick (capture without exit)   | `Ctrl/Cmd + click`    |
+
+The command palette is the fastest way to use BIAIF without a mouse:
+templates (with `{{var}}` interpolation), AI targets, theme switch,
+save / copy / search — all behind a fuzzy filter.
 | Merge demande with neighbour        | `Alt+↑` / `Alt+↓` on the drag handle |
 
 Shortcuts can be remapped in `chrome://extensions/shortcuts`.
