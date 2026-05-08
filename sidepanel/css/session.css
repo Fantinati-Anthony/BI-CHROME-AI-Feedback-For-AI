@@ -130,6 +130,70 @@
   background: rgba(255, 69, 58, 0.08);
 }
 
+/* ─── Topbar tools row (search / sort / font / settings) ─────────── */
+.topbar-tools {
+  display: flex; align-items: center; gap: 6px;
+  padding-top: 2px;
+}
+.topbar-tools .topbar-icon-btn:last-child { margin-left: auto; }
+
+/* Expandable search input */
+.topbar-search-input {
+  flex: 1; min-width: 0;
+  height: 32px; padding: 0 10px;
+  border: 1px solid var(--accent-blue);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card); color: var(--text-main);
+  font-family: inherit; font-size: 12px;
+  outline: none; box-shadow: 0 0 8px rgba(14,165,183,0.18);
+  animation: topbar-search-slide 0.18s ease-out;
+}
+.topbar-search-input::placeholder { color: var(--text-muted); }
+.topbar-search-input[hidden] { display: none; }
+@keyframes topbar-search-slide {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+[data-act="search-toggle"][aria-expanded="true"] {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-50);
+}
+
+/* Split button (sort / font) — two stacked half-buttons */
+.topbar-split {
+  display: flex; flex-direction: column;
+  width: 28px; height: 36px; flex-shrink: 0;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.topbar-split:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 8px rgba(14,165,183,0.18);
+}
+.topbar-split-half {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  border: none; padding: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer; transition: all 0.12s;
+}
+.topbar-split-half:hover {
+  color: var(--accent-blue);
+  background: var(--accent-blue-50);
+}
+.topbar-split-half:active { transform: scale(0.92); }
+.topbar-split-half.is-active {
+  color: var(--accent-blue);
+  background: var(--accent-blue-50);
+}
+.topbar-split-half:disabled {
+  opacity: 0.3; cursor: not-allowed;
+}
+
 /* Top-bar icon buttons (Logs, Settings) — discrete, top-right of the bar */
 .topbar-icon-btn {
   display: flex; align-items: center; justify-content: center;

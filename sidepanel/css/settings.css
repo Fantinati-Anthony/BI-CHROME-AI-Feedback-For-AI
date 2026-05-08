@@ -32,19 +32,71 @@
 /* Scrollable body */
 .sp-body { flex: 1; overflow-y: auto; scrollbar-width: thin; }
 
-/* Section */
+/* Section — now an accordion (<details>) */
 .sp-section {
-  padding: 20px 16px 4px;
+  border-bottom: 1px solid var(--border-card);
+  padding: 0;
+}
+.sp-section-last { border-bottom: none; }
+.sp-section[open] { background: linear-gradient(180deg, rgba(14,165,183,0.04) 0%, transparent 60%); }
+
+/* Accordion header (clickable summary) */
+.sp-section-title {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 16px;
+  font-size: 11px; font-weight: 700; color: var(--text-main);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin: 0;
+  cursor: pointer; list-style: none;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+.sp-section-title::-webkit-details-marker { display: none; }
+.sp-section-title:hover {
+  background: var(--accent-blue-50);
+  color: var(--accent-blue);
+}
+.sp-section-title svg:first-child {
+  flex-shrink: 0; color: var(--accent-blue);
+  filter: drop-shadow(0 0 4px rgba(14,165,183,0.35));
+}
+.sp-section[open] > .sp-section-title {
+  color: var(--accent-blue);
   border-bottom: 1px solid var(--border-card);
 }
-.sp-section-last { border-bottom: none; padding-bottom: 20px; }
-.sp-section-title {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 10px; font-weight: 700; color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.08em;
-  margin: 0 0 14px;
+.sp-section-title-text { flex: 1; }
+/* Chevron — rotates when accordion opens */
+.sp-section-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.2s ease, color 0.15s;
 }
-.sp-section-desc { font-size: 11px; color: var(--text-muted); margin: -8px 0 12px; line-height: 1.5; }
+.sp-section[open] > .sp-section-title .sp-section-chevron {
+  transform: rotate(180deg); color: var(--accent-blue);
+}
+
+/* Accordion body */
+.sp-section-body {
+  padding: 14px 16px 18px;
+  animation: sp-section-fade 0.2s ease-out;
+}
+@keyframes sp-section-fade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sp-section-desc { font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; }
+
+/* Sub-section header inside an accordion */
+.sp-subsection-title {
+  font-size: 10.5px; font-weight: 700;
+  color: var(--accent-blue);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin: 16px 0 8px; padding: 6px 10px;
+  border-left: 2px solid var(--accent-blue);
+  background: var(--accent-blue-50);
+  border-radius: 0 6px 6px 0;
+}
 
 /* Field */
 .sp-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
