@@ -63,13 +63,18 @@
       STATE.pendingConversationUrl = null;
       H.updateLinkedSessionBanner();
     });
-    // "Nouvelle conv." — arms the session and resets conversation context.
+    // "Nouvelle conv." — clears any leftover draft and arms a fresh session.
     var newConvBtn = document.querySelector('[data-act="new-conv"]');
     if (newConvBtn) newConvBtn.addEventListener('click', function () {
+      // Always start with an empty editor (no leftover from previous session)
+      STATE.currentDemande = { text: '', refs: [], pageUrl: null };
+      if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
+      window.BIAIFRenderer.renderDemandeRefsStrip();
       _autoArm();
       STATE.pendingConversationUrl = null;
       STATE.pendingRepoId = null;
       H.updateLinkedSessionBanner();
+      window.BIAIFStorage.persist(STATE);
     });
     // "✕ Disarm" — saves any pending work and goes back to history view.
     var disarmBtn = document.querySelector('[data-act="disarm"]');
