@@ -258,15 +258,9 @@
   /* ── GitHub repo detection ──────────────────────────────────────────────── */
 
   function _extractGithubRepo(url) {
-    try {
-      var u = new URL(url);
-      if (u.hostname === 'github.com') {
-        var parts = u.pathname.split('/').filter(Boolean);
-        var skip  = ['orgs','settings','marketplace','explore','trending','notifications','search','login','logout'];
-        if (parts.length >= 2 && !skip.includes(parts[0])) return parts[0] + '/' + parts[1];
-      }
-    } catch (_) {}
-    return null;
+    return (window.BIAIF && window.BIAIF.utils)
+      ? window.BIAIF.utils.extractGithubRepo(url)
+      : null;
   }
 
   /* ── message helper ─────────────────────────────────────────────────────── */
@@ -329,5 +323,16 @@
   } else {
     _scanAll();
   }
+
+  /* ── lifecycle cleanup ──────────────────────────────────────────────────── */
+  // On pagehide / bfcache eviction: detach every tracked input (which also
+  // disconnects per-element ResizeObserver + IntersectionObserver) and stop
+  // the global MutationObserver. Prevents observer leaks across SPA nav.
+  window.addEventListener('pagehide', function () {
+    try {
+      _tracked.forEach(function (_, el) { try { _detach(el); } catch (_e) {} });
+    } catch (_) {}
+    try { _mo.disconnect(); } catch (_) {}
+  }, { once: true });
 
 })();

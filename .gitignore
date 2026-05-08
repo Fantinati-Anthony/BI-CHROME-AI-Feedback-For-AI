@@ -1,0 +1,26 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Node (in case CI / local lint runs install ESLint locally)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Build output (none today, but reserved)
+dist/
+build/
+
+# VS Code companion build artefact
+vscode-extension/*.vsix
+vscode-extension/node_modules/
+
+# Local env
+.env
+.env.local

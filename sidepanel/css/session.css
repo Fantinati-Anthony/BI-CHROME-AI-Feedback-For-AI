@@ -1,0 +1,129 @@
+/* ============== Session bar (Démarrer / Suivant / Stop) ============== */
+.session-bar { display: flex; gap: 8px; }
+.session-main {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 18px; border: none; border-radius: var(--radius-pill);
+  color: #fff;
+  font-family: inherit; font-size: 14px; font-weight: 700; letter-spacing: 0.3px;
+  cursor: pointer;
+  position: relative; overflow: hidden;
+  /* Gradient AI : bleu électrique → cyan → violet en mouvement permanent */
+  background: linear-gradient(120deg, #4f46e5 0%, #06b6d4 35%, #8b5cf6 70%, #4f46e5 100%);
+  background-size: 220% 220%;
+  animation: ai-gradient 6s ease-in-out infinite;
+  box-shadow:
+    0 0 22px rgba(139, 92, 246, 0.35),
+    0 0 44px rgba(6, 182, 212, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.18s ease, box-shadow 0.25s ease;
+}
+.session-main::before {
+  /* Reflet animé qui balaie le bouton (effet "shimmer") */
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: ai-shine 3.5s linear infinite;
+  pointer-events: none;
+}
+.session-main:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 0 36px rgba(139, 92, 246, 0.55),
+    0 0 70px rgba(6, 182, 212, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.session-main:active { transform: translateY(0) scale(0.99); }
+.session-main svg, .session-main .master-label {
+  position: relative; z-index: 1;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+
+/* État armé (Suivant) : on accentue le violet pour signaler l'enregistrement */
+.session-main.armed {
+  background: linear-gradient(120deg, #ec4899 0%, #8b5cf6 35%, #4f46e5 70%, #06b6d4 100%);
+  background-size: 220% 220%;
+  animation: ai-gradient 4s ease-in-out infinite;
+  box-shadow:
+    0 0 28px rgba(236, 72, 153, 0.45),
+    0 0 56px rgba(139, 92, 246, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+@keyframes ai-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+@keyframes ai-shine {
+  0%   { background-position: -120% 0; }
+  100% { background-position: 220% 0; }
+}
+.session-stop {
+  width: 44px; padding: 0; border: none; border-radius: var(--radius-pill);
+  background: var(--danger); color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.session-stop:hover { transform: scale(1.05); }
+.session-stop[hidden] { display: none; }
+
+.biaif-buffer-preview {
+  font-size: 11px; color: var(--text-muted); font-style: italic;
+  padding: 4px 0;
+}
+.biaif-buffer-preview.armed { color: var(--accent-blue); }
+.biaif-buffer-preview[hidden] { display: none; }
+
+/* ============== Quick Tools row (Micro / Sélecteur / Capture) ============== */
+.biaif-quick-tools {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.quick-tools-row { display: flex; gap: 8px; }
+
+/* Sous-ligne contextuelle qui apparaît sous Capture */
+.quick-tools-subline {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  padding: 6px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  animation: subline-fade-in 0.18s ease-out;
+}
+.quick-tools-subline[hidden] { display: none; }
+@keyframes subline-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.subline-btn {
+  flex: 1; min-width: 70px;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  color: var(--text-main);
+  border-radius: 6px;
+  font-family: inherit; font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+}
+.subline-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+.subline-btn svg { flex-shrink: 0; color: var(--accent-blue); }
+
+/* Bouton Capture en mode "ouvert" (sous-ligne déployée) */
+[data-act="capture-toggle"][aria-expanded="true"] {
+  border-color: var(--accent-blue) !important;
+  background: var(--bg-card-hover) !important;
+}
+
+.tool-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 4px; border: 1px solid var(--border-card); border-radius: var(--radius-sm);
+  background: var(--bg-card); color: var(--text-main);
+  font-family: inherit; cursor: pointer; transition: all 0.15s;
+}
+.tool-btn:hover { background: var(--bg-card-hover); border-color: var(--accent-blue); }
+.tool-btn.active { background: var(--accent-blue-50); border-color: var(--accent-blue); }
+.tool-btn svg { color: var(--accent-blue); }
+.tool-btn .label { font-size: 11px; font-weight: 500; }

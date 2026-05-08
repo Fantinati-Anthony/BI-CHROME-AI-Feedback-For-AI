@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Lint & syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate JSON files
+        run: |
+          set -e
+          for f in manifest.json .eslintrc.json .prettierrc vscode-extension/package.json; do
+            echo "→ $f"
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))"
+          done
+
+      - name: Syntax-check every .js
+        run: |
+          set -e
+          # node --check on every script except SW (which uses importScripts).
+          # For SW we strip the importScripts() lines first.
+          fail=0
+          while IFS= read -r f; do
+            if [ "$f" = "background.js" ]; then
+              tmp=$(mktemp --suffix=.js)
+              # Strip importScripts() (Node doesn't recognise them) but keep
+              # line numbers identical so error messages stay accurate.
+              sed -E "s/^[[:space:]]*importScripts\([^)]*\);/\/\/ stripped/" "$f" > "$tmp"
+              node --check "$tmp" || fail=1
+              rm -f "$tmp"
+            else
+              node --check "$f" || fail=1
+            fi
+          done < <(find . -type f -name '*.js' \
+                     -not -path './node_modules/*' \
+                     -not -path './vscode-extension/node_modules/*' \
+                     -not -path './.git/*')
+          exit $fail
+
+      - name: Install ESLint + Prettier
+        run: npm i --no-save eslint@8 prettier@3
+
+      - name: ESLint
+        run: npx eslint . --max-warnings=200 || true
+        # `|| true` for now — ESLint config is freshly added; remove once
+        # the codebase is clean. CI still fails on syntax errors above.
+
+      - name: Prettier check
+        run: npx prettier --check . || true
+        # Same caveat as ESLint — remove the `|| true` once the codebase is
+        # uniformly formatted.

@@ -1,0 +1,108 @@
+/* ============== Demande editor (Mad-Libs zone) ============== */
+.demande-zone {
+  background: linear-gradient(180deg, rgba(20,20,25,1) 0%, rgba(13,13,15,1) 100%);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+  position: relative;
+}
+.demande-header {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+}
+.demande-title {}
+.demande-refs-count {
+  background: var(--accent-blue-50); color: var(--accent-blue);
+  padding: 1px 7px; border-radius: var(--radius-pill);
+  font-size: 10px; font-weight: 700;
+  text-transform: none; letter-spacing: 0;
+}
+.demande-editor {
+  min-height: 70px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  color: var(--text-main);
+  padding: 8px 10px; border-radius: 6px;
+  font-family: inherit; font-size: 13px; line-height: 1.5;
+  outline: none; transition: border-color 0.15s;
+  word-wrap: break-word;
+  overflow: visible; /* important : laisse les tooltips des chips s'afficher hors de l'éditeur */
+}
+.demande-editor:focus { border-color: var(--accent-blue); }
+.demande-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Voix en direct : ghost text inline pendant que SpeechRecognition
+   produit du texte interim. Remplacé par le final transcript via
+   clearInterimGhost + appendVoiceTo*. */
+.voice-interim-ghost {
+  color: var(--accent-blue);
+  font-style: italic;
+  opacity: 0.7;
+  user-select: none;
+  pointer-events: none;
+  white-space: pre-wrap;
+  animation: voice-interim-pulse 1.4s ease-in-out infinite;
+}
+@keyframes voice-interim-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.85; }
+}
+.demande-refs-strip {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  min-height: 0;
+}
+.demande-refs-strip:empty { display: none; }
+
+/* Ref chip inline (in editor + history demande text) */
+.ref-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 7px; margin: 0 2px;
+  background: var(--accent-blue-50); color: var(--accent-blue);
+  border: 1px solid var(--accent-blue-100);
+  border-radius: var(--radius-pill);
+  font-family: 'Inter', monospace; font-size: 11px; font-weight: 600;
+  user-select: none; vertical-align: baseline;
+  white-space: nowrap;
+}
+.ref-chip--screenshot {
+  background: var(--accent-purple-50); color: var(--accent-purple);
+  border-color: rgba(139, 92, 246, 0.25);
+}
+.ref-chip--error {
+  background: rgba(255, 69, 58, 0.12); color: var(--danger);
+  border-color: rgba(255, 69, 58, 0.3);
+}
+.ref-chip--error .ref-chip-toggle { color: var(--danger); }
+.ref-chip--error .ref-details { border-top-color: rgba(255, 69, 58, 0.25); }
+.ref-chip svg { width: 10px; height: 10px; }
+.ref-chip-readonly { cursor: default; }
+
+/* Ref strip mini-thumbnails / mini-info (current demande's refs) */
+.ref-mini {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 6px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  font-size: 10px; color: var(--text-muted);
+  max-width: 100%;
+}
+.ref-mini-num {
+  font-family: 'Inter', monospace; font-weight: 700;
+  color: var(--accent-blue);
+}
+.ref-mini--screenshot .ref-mini-num { color: var(--accent-purple); }
+.ref-mini-thumb {
+  width: 24px; height: 16px; object-fit: cover;
+  border-radius: 2px; border: 1px solid var(--border-card); background: #000;
+}
+.ref-mini-label {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
+}

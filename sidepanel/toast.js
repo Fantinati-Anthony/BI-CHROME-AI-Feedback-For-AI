@@ -1,23 +1,20 @@
 /**
  * BIAIF Toast — compact notification bar above footer.
- * Shows up to 2 toasts; oldest is dismissed when the bar is full.
+ * Shows up to BIAIF.config.ui.MAX_TOASTS toasts; oldest dismissed when full.
  */
 (function (window) {
   'use strict';
 
-  var MAX_TOASTS = 2;
-  var container  = null;
+  var CFG = (window.BIAIF && window.BIAIF.config && window.BIAIF.config.ui) || {};
+  var MAX_TOASTS = CFG.MAX_TOASTS || 4;
+  var DOM = (window.BIAIF && window.BIAIF.dom) || {};
+  var esc = DOM.esc || function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+  var container = null;
 
   function ensureContainer() {
     if (container) return container;
     container = document.getElementById('toast-container');
     return container;
-  }
-
-  function esc(s) {
-    return String(s || '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   /**

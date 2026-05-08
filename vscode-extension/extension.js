@@ -46,30 +46,82 @@ function activate(context) {
 // HTTP server
 // ---------------------------------------------------------------------------
 
+// ── Hardening limits ──────────────────────────────────────────────────────
+// Listening on 127.0.0.1 still means every page in every browser on the local
+// machine can reach this server (including malicious local pages). Without
+// these caps, a hostile script could DoS the editor or fill the temp dir.
+const MAX_BODY_BYTES   = 20 * 1024 * 1024;  // 20 MB total payload
+const MAX_TEXT_BYTES   = 1  * 1024 * 1024;  // 1 MB of prompt text
+const MAX_IMAGE_COUNT  = 10;
+const MAX_IMAGE_BYTES  = 8  * 1024 * 1024;  // 8 MB per image (post-decode)
+const ALLOWED_TARGETS  = new Set(['vscode', 'copilot']);
+
+// Restricts the X-origin to chrome-extension://* (the BIAIF side panel).
+// Loopback-binding alone is NOT enough: any local page can fetch 127.0.0.1.
+// A concrete origin check + the secret-token contract closes the gap.
+function _isAllowedOrigin(req) {
+  const origin = req.headers['origin'] || '';
+  if (!origin) return true; // server-to-server style request (curl, ping)
+  return origin.startsWith('chrome-extension://') ||
+         origin.startsWith('moz-extension://')    ||
+         origin.startsWith('safari-web-extension://');
+}
+
 function startBridge(context) {
   if (server) return;
   const port = Number(vscode.workspace.getConfiguration('biaif').get('bridgePort', 51473));
 
   server = http.createServer((req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    const origin = req.headers['origin'] || '';
+    // Echo back the requesting extension origin (exact-match) — never `*`.
+    if (_isAllowedOrigin(req)) {
+      if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    } else {
+      // Reject browsers from disallowed origins outright.
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'origin not allowed' }));
+      return;
+    }
 
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
     if (req.method === 'GET' && req.url === '/ping') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, version: '0.4.0', port }));
+      res.end(JSON.stringify({ ok: true, version: '0.5.0', port }));
       return;
     }
 
     if (req.method === 'POST' && req.url === '/inject') {
-      let body = '';
-      req.on('data', (c) => { body += c; });
+      let received = 0;
+      const chunks = [];
+      let aborted = false;
+      req.on('data', (c) => {
+        if (aborted) return;
+        received += c.length;
+        if (received > MAX_BODY_BYTES) {
+          aborted = true;
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'payload too large (> ' + MAX_BODY_BYTES + ' bytes)' }));
+          try { req.destroy(); } catch (_) {}
+          return;
+        }
+        chunks.push(c);
+      });
       req.on('end', async () => {
+        if (aborted) return;
         try {
+          const body    = Buffer.concat(chunks).toString('utf8');
           const payload = JSON.parse(body);
-          const result  = payload.target === 'copilot'
+          const valid   = _validatePayload(payload);
+          if (valid.error) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: valid.error }));
+            return;
+          }
+          const result = payload.target === 'copilot'
             ? await handleInjectCopilot(payload)
             : await handleInjectVscode(payload);
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -108,6 +160,35 @@ function stopBridge() {
 // ---------------------------------------------------------------------------
 // Shared: save images to temp dir
 // ---------------------------------------------------------------------------
+
+function _validatePayload(p) {
+  if (!p || typeof p !== 'object') return { error: 'payload must be an object' };
+  if (!ALLOWED_TARGETS.has(p.target)) {
+    return { error: 'invalid target (expected: ' + Array.from(ALLOWED_TARGETS).join(', ') + ')' };
+  }
+  if (p.text != null && typeof p.text !== 'string') return { error: 'text must be a string' };
+  if (typeof p.text === 'string' && Buffer.byteLength(p.text, 'utf8') > MAX_TEXT_BYTES) {
+    return { error: 'text too large (> ' + MAX_TEXT_BYTES + ' bytes)' };
+  }
+  if (p.images != null && !Array.isArray(p.images)) return { error: 'images must be an array' };
+  if (Array.isArray(p.images)) {
+    if (p.images.length > MAX_IMAGE_COUNT) {
+      return { error: 'too many images (max ' + MAX_IMAGE_COUNT + ')' };
+    }
+    for (let i = 0; i < p.images.length; i++) {
+      const u = p.images[i];
+      if (typeof u !== 'string' || !/^data:image\/(png|jpeg|gif|webp);base64,/.test(u)) {
+        return { error: 'image[' + i + '] must be a data:image/* base64 URL' };
+      }
+      // Rough decoded-size estimate: 3/4 of the base64 payload.
+      const b64 = u.slice(u.indexOf(',') + 1);
+      if (b64.length * 0.75 > MAX_IMAGE_BYTES) {
+        return { error: 'image[' + i + '] too large (> ' + MAX_IMAGE_BYTES + ' bytes)' };
+      }
+    }
+  }
+  return { ok: true };
+}
 
 function _saveImages(images) {
   const cfg     = vscode.workspace.getConfiguration('biaif');

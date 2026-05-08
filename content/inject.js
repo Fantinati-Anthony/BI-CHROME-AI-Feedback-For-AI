@@ -9,9 +9,9 @@
   if (window.__BIAIF_INJECT__) return;
   window.__BIAIF_INJECT__ = true;
 
-  // Claude Code web uses a Tiptap ProseMirror editor; try multiple selectors
-  // in order of specificity.
-  var EDITOR_SELECTORS = [
+  // Editor selectors come from shared/ai-adapters.js (per-host config).
+  // Generic fallback list for unknown hosts.
+  var FALLBACK_EDITORS = [
     'div[contenteditable="true"][aria-label="Prompt"].ProseMirror',
     'div.tiptap[contenteditable="true"]',
     'div.ProseMirror[contenteditable="true"]',
@@ -19,9 +19,17 @@
     'div[contenteditable="true"]',
   ];
 
+  function _editorSelectors() {
+    var utils = window.BIAIF && window.BIAIF.utils;
+    var adapter = utils && utils.findAiAdapter ? utils.findAiAdapter(location.hostname) : null;
+    if (adapter && adapter.editor && adapter.editor.length) return adapter.editor;
+    return FALLBACK_EDITORS;
+  }
+
   function findEditor() {
-    for (var i = 0; i < EDITOR_SELECTORS.length; i++) {
-      var el = document.querySelector(EDITOR_SELECTORS[i]);
+    var selectors = _editorSelectors();
+    for (var i = 0; i < selectors.length; i++) {
+      var el = document.querySelector(selectors[i]);
       if (el) return el;
     }
     return null;
@@ -110,13 +118,9 @@
   // Submit button helpers
   // -----------------------------------------------------------------------
   var SUBMIT_SELECTORS = (function () {
-    var adapters = (window.BIAIF && window.BIAIF.AI_ADAPTERS) || [];
-    var h = location.hostname;
-    for (var i = 0; i < adapters.length; i++) {
-      var a = adapters[i];
-      if (h === a.host || h.endsWith('.' + a.host)) return a.submitBtn || [];
-    }
-    return [];
+    var utils   = window.BIAIF && window.BIAIF.utils;
+    var adapter = utils && utils.findAiAdapter ? utils.findAiAdapter(location.hostname) : null;
+    return (adapter && adapter.submitBtn) || [];
   })();
 
   function findSubmitBtn() {

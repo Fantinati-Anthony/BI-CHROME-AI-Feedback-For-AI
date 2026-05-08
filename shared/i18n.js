@@ -219,12 +219,20 @@
     'archive.sec':                      { fr: '{n} s',                                                    en: '{n}s',                                              es: '{n}s',                                             de: '{n}s',                                             it: '{n}s',                                             pt: '{n}s',                                             nl: '{n}s' },
     'archive.min':                      { fr: '{n} min',                                                  en: '{n} min',                                           es: '{n} min',                                          de: '{n} Min.',                                         it: '{n} min',                                          pt: '{n} min',                                          nl: '{n} min' },
 
+    // ===== Errors / accessibility / validation =====
+    'err.content_script_not_ready':     { fr: "content script pas prêt — rechargez l'onglet",           en: 'content script not ready — reload the tab',         es: 'script no listo — recarga la pestaña',             de: 'Content Script nicht bereit — Tab neu laden',     it: 'content script non pronto — ricarica la scheda',   pt: 'content script não pronto — recarregue a aba',     nl: 'content script niet gereed — laad het tabblad opnieuw' },
+    'err.bridge_invalid_json':          { fr: 'réponse bridge invalide (JSON malformé)',                en: 'invalid bridge response (malformed JSON)',          es: 'respuesta bridge inválida (JSON malformado)',      de: 'ungültige Bridge-Antwort (fehlerhaftes JSON)',     it: 'risposta bridge non valida (JSON malformato)',     pt: 'resposta bridge inválida (JSON malformado)',       nl: 'ongeldig bridge-antwoord (JSON onjuist)' },
+    'toast.demande_truncated':          { fr: 'Texte tronqué à {n} caractères.',                        en: 'Text truncated to {n} characters.',                 es: 'Texto truncado a {n} caracteres.',                 de: 'Text auf {n} Zeichen gekürzt.',                    it: 'Testo troncato a {n} caratteri.',                  pt: 'Texto truncado em {n} caracteres.',                nl: 'Tekst ingekort tot {n} tekens.' },
+    'aria.merge_handle':                { fr: 'Glisser ou Alt+↑/↓ pour fusionner avec une demande voisine', en: 'Drag or Alt+↑/↓ to merge with a neighbouring request', es: 'Arrastrar o Alt+↑/↓ para fusionar con una vecina', de: 'Ziehen oder Alt+↑/↓ zum Zusammenführen',         it: 'Trascina o Alt+↑/↓ per unire con una vicina',      pt: 'Arrastar ou Alt+↑/↓ para mesclar com vizinha',     nl: 'Sleep of Alt+↑/↓ om samen te voegen' },
+    'seg.merge_handle_tip':             { fr: 'Glisser sur une autre demande pour fusionner — ou Alt+↑/↓ au clavier', en: 'Drag onto another request to merge — or Alt+↑/↓ on keyboard', es: 'Arrastra sobre otra solicitud para fusionar — o Alt+↑/↓', de: 'Auf andere Anfrage ziehen zum Zusammenführen — oder Alt+↑/↓', it: 'Trascina su un\'altra richiesta — o Alt+↑/↓ da tastiera', pt: 'Arraste sobre outra solicitação — ou Alt+↑/↓ no teclado', nl: 'Sleep op een andere aanvraag — of Alt+↑/↓ op toetsenbord' },
+
     // ===== Mic =====
     'mic.test_running':                 { fr: 'Test micro en cours — parle pour voir le niveau.',       en: 'Mic test running — speak to see the level.',        es: 'Test de micrófono en curso — habla para ver el nivel.', de: 'Mikrofontest läuft — sprich, um den Pegel zu sehen.', it: 'Test microfono in corso — parla per vedere il livello.', pt: 'Teste de microfone em andamento — fale para ver o nível.', nl: 'Microfoontest actief — spreek om het niveau te zien.' },
     'mic.test_fail':                    { fr: 'Test micro KO : {err}',                                  en: 'Mic test failed: {err}',                            es: 'Test de micrófono falló: {err}',                   de: 'Mikrofontest fehlgeschlagen: {err}',               it: 'Test microfono fallito: {err}',                    pt: 'Teste de microfone falhou: {err}',                 nl: 'Microfoontest mislukt: {err}' },
     'mic.test_btn_default':             { fr: '🔊 Tester',                                              en: '🔊 Test',                                           es: '🔊 Probar',                                        de: '🔊 Testen',                                        it: '🔊 Testa',                                         pt: '🔊 Testar',                                        nl: '🔊 Testen' },
     'mic.test_btn_stop':                { fr: '⏹ Stop test',                                            en: '⏹ Stop test',                                       es: '⏹ Detener test',                                   de: '⏹ Test stoppen',                                   it: '⏹ Stop test',                                      pt: '⏹ Parar teste',                                    nl: '⏹ Stop test' },
     'mic.error_prefix':                 { fr: 'Micro : {err}',                                          en: 'Mic: {err}',                                        es: 'Micrófono: {err}',                                 de: 'Mikrofon: {err}',                                  it: 'Microfono: {err}',                                 pt: 'Microfone: {err}',                                 nl: 'Microfoon: {err}' },
+    'mic.permission_denied_help':       { fr: 'Micro bloqué. Onglet Réglages ouvert : autorisez le micro puis recliquez sur ▶.', en: 'Mic blocked. Settings tab opened — allow mic access then click ▶ again.', es: 'Micro bloqueado. Pestaña Ajustes abierta — autoriza el micro y vuelve a pulsar ▶.', de: 'Mikrofon blockiert. Einstellungen-Tab geöffnet — erlauben und ▶ erneut drücken.', it: 'Microfono bloccato. Scheda Impostazioni aperta — autorizza e ripremere ▶.', pt: 'Microfone bloqueado. Aba de Configurações aberta — autorize e clique ▶ de novo.', nl: 'Microfoon geblokkeerd. Instellingen geopend — sta toegang toe en klik weer op ▶.' },
     'mic.idle_warning':                 { fr: 'Aucun signal audio depuis 12 s — vérifiez le micro par défaut dans Chrome.', en: 'No audio signal for 12 s — check default mic in Chrome.', es: 'Sin señal de audio durante 12 s — comprueba el micro predeterminado en Chrome.', de: 'Kein Audiosignal seit 12 s — prüfe den Standard-Mikrofon in Chrome.', it: 'Nessun segnale audio da 12 s — verifica il microfono predefinito in Chrome.', pt: 'Sem sinal de áudio por 12 s — verifique o microfone padrão no Chrome.', nl: 'Geen audiosignaal sinds 12 s — controleer de standaard microfoon in Chrome.' },
     'mic.label_active':                 { fr: 'Micro ✓',                                                en: 'Mic ✓',                                             es: 'Micro ✓',                                          de: 'Mikro ✓',                                          it: 'Micro ✓',                                          pt: 'Micro ✓',                                          nl: 'Micro ✓' },
     'mic.err.denied':                   { fr: "micro bloqué pour BIAIF — clique ici pour ouvrir la page de permissions de l'extension", en: 'mic blocked for BIAIF — click here to open the extension permissions page', es: 'micrófono bloqueado para BIAIF — haz clic aquí para abrir los permisos', de: 'Mikrofon für BIAIF blockiert — hier klicken zum Öffnen der Berechtigungen', it: 'microfono bloccato per BIAIF — clicca qui per aprire le autorizzazioni', pt: 'microfone bloqueado para BIAIF — clique aqui para abrir as permissões', nl: 'microfoon geblokkeerd voor BIAIF — klik hier om machtigingen te openen' },
@@ -260,10 +268,32 @@
     });
   }
 
+  // Track keys we've already warned about so we don't spam the console.
+  var _missingKeysSeen = {};
+  var _missingLangSeen = {};
+
   function t(key, vars) {
     var entry = TRANSLATIONS[key];
-    if (!entry) return _format(key, vars);
-    var raw = entry[_lang] || entry['fr'] || key;
+    if (!entry) {
+      if (!_missingKeysSeen[key]) {
+        _missingKeysSeen[key] = 1;
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[BIAIF i18n] missing translation key:', key);
+        }
+      }
+      return _format(key, vars);
+    }
+    var raw = entry[_lang];
+    if (!raw) {
+      var sig = key + '@' + _lang;
+      if (!_missingLangSeen[sig]) {
+        _missingLangSeen[sig] = 1;
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[BIAIF i18n] missing locale "' + _lang + '" for key:', key);
+        }
+      }
+      raw = entry['fr'] || entry['en'] || key;
+    }
     return _format(raw, vars);
   }
 
