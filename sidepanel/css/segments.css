@@ -312,25 +312,31 @@
   display: flex;
 }
 
-/* Bouton "Éditer" / "Terminer" du segment historique */
+/* Bouton crayon (éditer) / "Terminer ✓" du segment historique */
 .seg-edit-btn {
   margin-left: auto;
-  background: var(--bg-app); border: 1px solid var(--border-card);
+  background: transparent; border: 1px solid transparent;
   color: var(--text-muted);
-  cursor: pointer; padding: 3px 8px; border-radius: var(--radius-pill);
+  cursor: pointer; padding: 3px 7px; border-radius: var(--radius-pill);
   display: inline-flex; align-items: center; gap: 4px;
   font-family: inherit; font-size: 10px; font-weight: 600;
   transition: all 0.15s;
+  flex-shrink: 0;
 }
 .seg-edit-btn:hover {
+  background: var(--bg-app);
   color: var(--accent-blue); border-color: var(--accent-blue);
-  box-shadow: 0 0 8px rgba(14, 165, 183, 0.25);
+  box-shadow: 0 0 8px rgba(14, 165, 183, 0.2);
 }
+/* État actif : mode édition — s'affiche comme tag coloré "Terminer ✓" */
 .seg-edit-btn.is-active {
   background: linear-gradient(120deg, #06b6d4, #4f46e5, #8b5cf6);
+  background-size: 200% 200%;
+  animation: ai-gradient 4s ease-in-out infinite;
   color: #fff; border-color: transparent;
-  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
-  padding-right: 10px;
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.45);
+  padding: 4px 12px;
+  font-size: 11px;
 }
 .seg-edit-btn svg { flex-shrink: 0; }
 

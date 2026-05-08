@@ -58,14 +58,42 @@
   0%   { background-position: -120% 0; }
   100% { background-position: 220% 0; }
 }
-.session-stop {
-  width: 44px; padding: 0; border: none; border-radius: var(--radius-pill);
-  background: var(--danger); color: #fff;
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-  transition: opacity 0.15s, transform 0.15s;
+/* Session main — état désactivé (éditeur vide) */
+.session-main:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  animation: none !important;
+  background: var(--bg-card);
+  box-shadow: none;
+  color: var(--text-muted);
 }
-.session-stop:hover { transform: scale(1.05); }
-.session-stop[hidden] { display: none; }
+.session-main:disabled::before { display: none; }
+
+/* Bouton "Nouvelle conversation" */
+.session-new-conv {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.session-new-conv:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-50);
+  box-shadow: 0 0 10px rgba(14,165,183,0.18);
+}
+.session-new-conv svg { flex-shrink: 0; }
+
+/* Stop button hidden in new UX */
+.session-stop { display: none !important; }
 
 .biaif-buffer-preview {
   font-size: 11px; color: var(--text-muted); font-style: italic;

@@ -52,6 +52,11 @@
       if (!on && cbHideTa.checked) { cbHideTa.checked = false; STATE.hideAiTextarea = false; }
     }
 
+    // Panel side preference
+    var cbPanelLeft = document.getElementById('panel-side-left');
+    if (cbPanelLeft) cbPanelLeft.checked = STATE.panelSide === 'left';
+    document.body.classList.toggle('panel-side-left', STATE.panelSide === 'left');
+
     H.updateSpFontVal();
     window.BIAIFRenderer.updateSortToggleLabel();
     window.BIAIFRenderer.applySegFontSize();
