@@ -451,6 +451,22 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
           <span class="label"><span data-i18n="tools.errors">Erreurs</span> <span class="tool-badge" data-count="0" aria-hidden="true">0</span></span>
         </button>
+        <button class="tool-btn tool-btn--templates" data-act="open-templates" aria-label="Modèles de prompts" aria-expanded="false" title="Modèles">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+          <span class="label" data-i18n="tools.templates">Modèles</span>
+        </button>
+      </div>
+
+      <!-- Templates popover (list + save current) -->
+      <div class="quick-tools-subline templates-popover" id="templates-popover" hidden role="dialog" aria-label="Modèles de prompts">
+        <div class="templates-toolbar">
+          <button class="subline-btn templates-save-btn" data-act="template-save-current" type="button" title="Enregistrer la saisie actuelle comme modèle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span data-i18n="templates.save_current">Enregistrer la saisie</span>
+          </button>
+        </div>
+        <ul class="templates-list" role="list"></ul>
+        <p class="templates-empty" data-i18n="templates.empty">Aucun modèle. Tapez votre prompt et cliquez « Enregistrer la saisie ».</p>
       </div>
 
       <!-- Capture subline: radio-style mode picker -->
@@ -584,6 +600,7 @@
   <script src="sidepanel/undo.js"></script>
   <script src="sidepanel/imaging.js"></script>
   <script src="sidepanel/storage.js"></script>
+  <script src="sidepanel/templates.js"></script>
   <script src="sidepanel/export.js"></script>
   <script src="sidepanel/speech.js"></script>
 

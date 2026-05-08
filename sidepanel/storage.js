@@ -98,6 +98,7 @@
       if (typeof saved.showConsoleBtn         === 'boolean') STATE.showConsoleBtn         = saved.showConsoleBtn;
       if (saved.topbarPosition === 'top' || saved.topbarPosition === 'bottom') STATE.topbarPosition = saved.topbarPosition;
       if (saved.theme === 'dark' || saved.theme === 'light' || saved.theme === 'auto') STATE.theme = saved.theme;
+      if (Array.isArray(saved.templates)) STATE.templates = saved.templates;
 
     } catch (e) {
       console.warn('[BIAIF Storage] hydrate failed', e && e.message);
@@ -156,6 +157,7 @@
       showConsoleBtn:        STATE.showConsoleBtn,
       topbarPosition:        STATE.topbarPosition,
       theme:                 STATE.theme,
+      templates:             STATE.templates,
     };
   }
 

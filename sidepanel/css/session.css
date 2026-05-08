@@ -333,3 +333,53 @@
 [data-act="open-errors"]:hover              { border-color: var(--danger); background: rgba(255,69,58,0.08); }
 [data-act="open-errors"].has-errors         { border-color: rgba(255,69,58,0.45); background: rgba(255,69,58,0.08); }
 [data-act="open-errors"].has-errors svg     { color: var(--danger); }
+
+/* Modèles → amber */
+[data-act="open-templates"] svg             { color: #f59e0b; }
+[data-act="open-templates"]:hover           { border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+[data-act="open-templates"][aria-expanded="true"] {
+  border-color: #f59e0b; background: rgba(245,158,11,0.10);
+  box-shadow: 0 0 10px rgba(245,158,11,0.20);
+}
+
+/* Templates popover (reuses .quick-tools-subline base) */
+.templates-popover {
+  flex-direction: column !important; gap: 4px;
+}
+.templates-toolbar { display: flex; gap: 4px; }
+.templates-save-btn { flex: 1; }
+.templates-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 3px;
+  max-height: 220px; overflow-y: auto;
+}
+.templates-list:empty + .templates-empty { display: block; }
+.templates-list:not(:empty) ~ .templates-empty { display: none; }
+.templates-empty {
+  font-size: 11px; color: var(--text-muted); margin: 4px 0 0;
+  font-style: italic; text-align: center;
+}
+.template-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 7px;
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: 6px;
+  cursor: pointer; transition: border-color 0.12s, background 0.12s;
+}
+.template-item:hover { border-color: #f59e0b; background: rgba(245,158,11,0.06); }
+.template-item-name {
+  flex: 1; font-size: 11px; font-weight: 600; color: var(--text-main);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.template-item-preview {
+  font-size: 10px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 60%;
+}
+.template-item-del {
+  flex-shrink: 0; background: transparent; border: none;
+  color: var(--text-muted); cursor: pointer; padding: 2px 5px;
+  font-size: 13px; line-height: 1; border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+.template-item-del:hover { color: var(--danger); background: rgba(255,69,58,0.10); }

@@ -67,6 +67,7 @@
     showConsoleBtn:         false,
     topbarPosition:         'top',
     theme:                  'dark',
+    templates:              [],
   };
 
   const REFS = {};
@@ -124,6 +125,7 @@
     window.BIAIFRenderer.init(STATE, REFS);
     window.BIAIFSpeech.init(STATE, REFS);
     window.BIAIFSession.init(STATE, REFS);
+    if (window.BIAIFTemplates) window.BIAIFTemplates.init(STATE);
     window.BIAIFExport.init(STATE, REFS);
 
     // Wire UI events, runtime messages, keyboard, and tab lifecycle.
