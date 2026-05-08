@@ -486,7 +486,44 @@
         onStartLinkedSegment(msg.conversationUrl, msg.repoId || null);
         return;
       }
+      if (msg.type === _MSG('AI_STATUS_UPDATE')) {
+        onAiStatusUpdate(msg.conversationUrl, msg.status);
+        return;
+      }
+      if (msg.type === _MSG('AI_RESPONSE_DONE')) {
+        onAiResponseDone(msg.conversationUrl);
+        return;
+      }
     });
+  }
+
+  function onAiStatusUpdate(conversationUrl, status) {
+    if (status !== 'generating') return;
+    // Re-render to show generating pulse on any 'submitted' segment linked to this conversation
+    var matched = STATE.demandes.some(function (d) {
+      return d.conversationUrl === conversationUrl && d.status === 'submitted';
+    });
+    if (matched) window.BIAIFRenderer.renderSegments();
+  }
+
+  function onAiResponseDone(conversationUrl) {
+    var matched = false;
+    STATE.demandes.forEach(function (dem) {
+      if (dem.conversationUrl === conversationUrl && dem.status === 'submitted') {
+        dem.status = 'done';
+        dem.responseReceivedAt = Date.now();
+        matched = true;
+      }
+    });
+    if (!matched) return;
+    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    window.BIAIFRenderer.renderSegments();
+    window.BIAIFToast.show(
+      window.BIAIFi18n
+        ? window.BIAIFi18n.t('toast.ai_response_done')
+        : '✓ Réponse reçue !',
+      'success', 3500
+    );
   }
 
   function onOpenWithFilter(conversationUrl, repoId) {

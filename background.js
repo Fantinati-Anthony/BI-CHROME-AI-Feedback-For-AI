@@ -217,6 +217,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return;
   }
 
+  // Content script → SW → sidepanel: AI generating / response done
+  if (msg.type === MSG.AI_STATUS_UPDATE || msg.type === MSG.AI_RESPONSE_DONE) {
+    chrome.runtime.sendMessage(msg).catch(() => {});
+    return;
+  }
+
   // Content script → SW : captureVisibleTab
   if (msg.type === MSG.CAPTURE_TAB) {
     const windowId = sender.tab?.windowId;

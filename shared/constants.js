@@ -49,6 +49,10 @@
     OPEN_WITH_FILTER:      'biaif:open-with-filter',
     // Content script → SW → sidepanel: start new session linked to a conversation
     START_LINKED_SEGMENT:  'biaif:start-linked-segment',
+    // AI watcher → SW → sidepanel: AI started or stopped generating
+    AI_STATUS_UPDATE:      'biaif:ai-status-update',
+    // AI watcher → SW → sidepanel: AI response completed
+    AI_RESPONSE_DONE:      'biaif:ai-response-done',
   });
 
   root.BIAIF.VSCODE_BRIDGE_PORT = 51473;

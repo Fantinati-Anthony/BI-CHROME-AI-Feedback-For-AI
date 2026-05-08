@@ -179,6 +179,20 @@
     // Meta-tags bar: clickable filter badges (repo, conversation, captured domains)
     var pageTag = _buildMetaTags(dem);
 
+    // Status badge
+    var statusHtml = '';
+    if (dem.status === 'submitted') {
+      var toLabel = dem.submittedTo ? esc(dem.submittedTo) : 'IA';
+      statusHtml = '<span class="seg-status seg-status--submitted" title="' + _t('seg.status_submitted_tip', 'En attente de réponse de ' + (dem.submittedTo || 'l\'IA')) + '">' +
+        '<span class="seg-status-pulse"></span>' +
+        _t('seg.status_submitted', '⌛ Envoyé à ' + toLabel) +
+      '</span>';
+    } else if (dem.status === 'done') {
+      statusHtml = '<span class="seg-status seg-status--done" title="' + _t('seg.status_done_tip', 'Réponse reçue') + '">' +
+        '✓ ' + _t('seg.status_done', 'Réponse reçue') +
+      '</span>';
+    }
+
     // Edit button
     var editBtnHtml = isEditing
       ? '<button class="seg-edit-btn is-active" data-i="' + origIndex + '" aria-label="Terminer l\'édition" title="Terminer l\'édition"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Terminer</span></button>'
@@ -189,6 +203,7 @@
         '<button class="seg-drag-handle" data-i="' + origIndex + '" aria-label="Glisser pour fusionner" title="Glisser sur une autre demande pour fusionner">⋮⋮</button>' +
         '<span class="seg-num" aria-label="Demande ' + num + '">#' + num + '</span>' +
         '<span class="seg-meta">' + dt + ' · <span aria-label="' + refsCount + ' références">' + esc(refsLabel) + '</span></span>' +
+        statusHtml +
         editBtnHtml +
         '<button class="seg-del" data-i="' + origIndex + '" aria-label="Supprimer la demande ' + num + '" title="Supprimer">×</button>' +
       '</header>' +
