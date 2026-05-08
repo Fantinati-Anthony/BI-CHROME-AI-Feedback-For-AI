@@ -16,6 +16,7 @@
     "@vitest/coverage-v8": "^1.6.0",
     "jsdom":               "^24.0.0",
     "eslint":              "^8.57.0",
-    "esbuild":             "^0.21.0"
+    "esbuild":             "^0.21.0",
+    "fake-indexeddb":      "^5.0.2"
   }
 }

@@ -8,6 +8,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// IndexedDB shim — jsdom doesn't ship one. Loaded eagerly so any
+// module that does `indexedDB.open(...)` at import time resolves.
+import 'fake-indexeddb/auto';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT      = path.resolve(__dirname, '..');
 
