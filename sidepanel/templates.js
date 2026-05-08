@@ -65,18 +65,33 @@
   //   {{aiLang}} (speech-recognition lang), {{n}} (number of demandes)
   // Custom prompts: {{var:label}} or {{var:label?default}} — popped via
   //                 prompt() at insertion time.
+  // Best-effort title pulled async on each focusedTab change. Cached
+  // synchronously here so {{title}} can resolve in interpolate().
+  var _activeTabTitle = '';
+  function _refreshActiveTabTitle() {
+    try {
+      if (chrome && chrome.tabs && chrome.tabs.query) {
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+          var t = tabs && tabs[0] && tabs[0].title;
+          if (typeof t === 'string') _activeTabTitle = t;
+        });
+      }
+    } catch (_) {}
+  }
+
   function _builtins() {
     var now  = new Date();
     var pad  = function (n) { return String(n).padStart(2, '0'); };
     var date = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
     var time = pad(now.getHours()) + ':' + pad(now.getMinutes());
     var url  = (STATE.currentDemande && STATE.currentDemande.pageUrl) || '';
-    var title = '';
-    try { title = (chrome.tabs && chrome.tabs.query) ? '' : ''; } catch (_) {}
     // Pull the last interactive picker selection if any.
     var lastRef = (STATE.currentDemande && (STATE.currentDemande.refs || []).slice(-1)[0]) || null;
     var selection = lastRef && (lastRef.text || lastRef.selector || '') || '';
     var repo = STATE.pendingRepoId || (lastRef && lastRef.repoId) || '';
+    // Title cache — refreshed lazily for the next call.
+    var title = _activeTabTitle;
+    _refreshActiveTabTitle();
     return {
       date: date, time: time, datetime: date + ' ' + time,
       url: url, title: title, selection: selection, repo: repo,
