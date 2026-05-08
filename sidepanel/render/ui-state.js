@@ -38,13 +38,14 @@
     var root  = document.querySelector('.biaif-root');
     var editing = typeof STATE.editingDemandeIdx === 'number';
     var hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
-    var empty   = !editing && !STATE.demandes.length && !hasContent;
+    var empty   = !STATE.armed && !editing && !STATE.demandes.length && !hasContent;
     if (root) {
       root.classList.toggle('is-armed', !!STATE.armed);
       root.classList.toggle('is-editing-segment', editing);
       root.classList.toggle('is-empty-state', empty);
     }
-    // Quick tools always accessible — no is-hidden / is-locked toggling
+    var dz = document.querySelector('.demande-zone');
+    if (dz) dz.classList.toggle('is-locked', !STATE.armed && !editing);
   }
 
   function updateErrorsBadges() {
