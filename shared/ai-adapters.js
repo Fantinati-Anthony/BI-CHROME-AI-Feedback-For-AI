@@ -8,6 +8,8 @@
   root.BIAIF.AI_ADAPTERS = [
     {
       host: 'claude.ai',
+      label: 'Claude.ai',
+      webUrl: 'https://claude.ai/new',
       // Tiptap/ProseMirror editor selectors (most specific first).
       editor: [
         'div[contenteditable="true"][aria-label="Prompt"].ProseMirror',
@@ -52,6 +54,8 @@
     },
     {
       host: 'chatgpt.com',
+      label: 'ChatGPT',
+      webUrl: 'https://chatgpt.com/',
       stopBtn: [
         'button[data-testid="stop-button"]',
         'button[aria-label="Stop streaming"]',
@@ -61,6 +65,8 @@
     },
     {
       host: 'gemini.google.com',
+      label: 'Gemini',
+      webUrl: 'https://gemini.google.com/app',
       stopBtn: [
         'button[aria-label*="Stop"]',
         '.stop-button',
@@ -69,26 +75,36 @@
     },
     {
       host: 'grok.com',
+      label: 'Grok',
+      webUrl: 'https://grok.com/',
       stopBtn: ['button[aria-label*="Stop" i]', '[data-testid="stop-button"]'],
     },
     {
       host: 'x.com',
+      label: 'X',
       stopBtn: ['button[aria-label*="Stop" i]'],
     },
     {
       host: 'perplexity.ai',
+      label: 'Perplexity',
+      webUrl: 'https://www.perplexity.ai/',
       stopBtn: ['button[aria-label*="Stop" i]', '.stop-button'],
     },
     {
       host: 'chat.mistral.ai',
+      label: 'Le Chat',
+      webUrl: 'https://chat.mistral.ai/chat',
       stopBtn: ['button[aria-label*="Stop" i]', '.stop-button', 'button[class*="stop" i]'],
     },
     {
       host: 'mistral.ai',
+      label: 'Mistral',
       stopBtn: ['button[aria-label*="Stop" i]', '.stop-button'],
     },
     {
       host: 'chat.deepseek.com',
+      label: 'DeepSeek',
+      webUrl: 'https://chat.deepseek.com/',
       stopBtn: ['button[aria-label*="Stop" i]', '[class*="stop" i]'],
     },
   ];

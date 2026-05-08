@@ -324,4 +324,15 @@
     _scanAll();
   }
 
+  /* ── lifecycle cleanup ──────────────────────────────────────────────────── */
+  // On pagehide / bfcache eviction: detach every tracked input (which also
+  // disconnects per-element ResizeObserver + IntersectionObserver) and stop
+  // the global MutationObserver. Prevents observer leaks across SPA nav.
+  window.addEventListener('pagehide', function () {
+    try {
+      _tracked.forEach(function (_, el) { try { _detach(el); } catch (_e) {} });
+    } catch (_) {}
+    try { _mo.disconnect(); } catch (_) {}
+  }, { once: true });
+
 })();

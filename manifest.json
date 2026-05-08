@@ -7,6 +7,9 @@
   "minimum_chrome_version": "114",
   "permissions": ["activeTab", "storage", "clipboardWrite", "sidePanel", "contextMenus"],
   "host_permissions": ["<all_urls>"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://127.0.0.1:* http://localhost:*; img-src 'self' data: blob:"
+  },
   "background": {
     "service_worker": "background.js"
   },

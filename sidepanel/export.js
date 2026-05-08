@@ -154,13 +154,24 @@
     _stampSubmitted(STATE.demandes[idx], name);
   }
 
-  function openInClaudeOnline(idx) { return _copyAndOpen(idx, 'https://claude.ai/new',          'Claude.ai'); }
-  function openInChatgpt(idx)      { return _copyAndOpen(idx, 'https://chatgpt.com/',           'ChatGPT'); }
-  function openInGemini(idx)       { return _copyAndOpen(idx, 'https://gemini.google.com/app',  'Gemini'); }
-  function openInPerplexity(idx)   { return _copyAndOpen(idx, 'https://www.perplexity.ai/',     'Perplexity'); }
-  function openInGrok(idx)         { return _copyAndOpen(idx, 'https://grok.com/',              'Grok'); }
-  function openInLechat(idx)       { return _copyAndOpen(idx, 'https://chat.mistral.ai/chat',   'Le Chat'); }
-  function openInDeepseek(idx)     { return _copyAndOpen(idx, 'https://chat.deepseek.com/',     'DeepSeek'); }
+  // URLs and labels are sourced from shared/ai-adapters.js (host-keyed). Falls
+  // back to the original hard-coded values if an adapter is missing webUrl.
+  function _adapterByHost(host) {
+    var list = (window.BIAIF && window.BIAIF.AI_ADAPTERS) || [];
+    for (var i = 0; i < list.length; i++) if (list[i].host === host) return list[i];
+    return null;
+  }
+  function _openByHost(idx, host, fallbackUrl, fallbackLabel) {
+    var a = _adapterByHost(host);
+    return _copyAndOpen(idx, (a && a.webUrl) || fallbackUrl, (a && a.label) || fallbackLabel);
+  }
+  function openInClaudeOnline(idx) { return _openByHost(idx, 'claude.ai',         'https://claude.ai/new',         'Claude.ai'); }
+  function openInChatgpt(idx)      { return _openByHost(idx, 'chatgpt.com',       'https://chatgpt.com/',          'ChatGPT'); }
+  function openInGemini(idx)       { return _openByHost(idx, 'gemini.google.com', 'https://gemini.google.com/app', 'Gemini'); }
+  function openInPerplexity(idx)   { return _openByHost(idx, 'perplexity.ai',     'https://www.perplexity.ai/',    'Perplexity'); }
+  function openInGrok(idx)         { return _openByHost(idx, 'grok.com',          'https://grok.com/',             'Grok'); }
+  function openInLechat(idx)       { return _openByHost(idx, 'chat.mistral.ai',   'https://chat.mistral.ai/chat',  'Le Chat'); }
+  function openInDeepseek(idx)     { return _openByHost(idx, 'chat.deepseek.com', 'https://chat.deepseek.com/',    'DeepSeek'); }
 
   // -----------------------------------------------------------------------
   // Download

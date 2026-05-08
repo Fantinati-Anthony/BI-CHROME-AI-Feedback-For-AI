@@ -1,0 +1,4 @@
+vscode-extension/node_modules/
+**/*.min.js
+CHANGELOG.md
+LICENSE

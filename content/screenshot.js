@@ -595,20 +595,38 @@
         });
         document.body.appendChild(loader);
       }
-      const progress = current && total
-        ? `<div style="font-size:13px;color:#94a3b8;margin-top:8px">Section ${current}/${total}</div>`
-        : '';
-      loader.innerHTML = `
-        <div style="
-          width:46px;height:46px;border:4px solid rgba(255,255,255,0.1);
-          border-top-color:#2bd4d9;border-radius:50%;
-          animation:biaif-spin 1s linear infinite;
-        "></div>
-        <div style="color:#fff;font-size:16px;margin-top:18px;text-align:center">${message}</div>
-        ${progress}
-        <div style="color:#94a3b8;font-size:12px;margin-top:14px">Merci de ne rien toucher</div>
-        <style>@keyframes biaif-spin{to{transform:rotate(360deg)}}</style>
-      `;
+      // Build via DOM API (avoid innerHTML interpolation of message/current/total).
+      while (loader.firstChild) loader.removeChild(loader.firstChild);
+
+      const spinner = document.createElement('div');
+      spinner.style.cssText =
+        'width:46px;height:46px;border:4px solid rgba(255,255,255,0.1);' +
+        'border-top-color:#2bd4d9;border-radius:50%;' +
+        'animation:biaif-spin 1s linear infinite;';
+      loader.appendChild(spinner);
+
+      const msg = document.createElement('div');
+      msg.style.cssText = 'color:#fff;font-size:16px;margin-top:18px;text-align:center';
+      msg.textContent = String(message || '');
+      loader.appendChild(msg);
+
+      if (current && total) {
+        const prog = document.createElement('div');
+        prog.style.cssText = 'font-size:13px;color:#94a3b8;margin-top:8px';
+        prog.textContent = 'Section ' + Number(current) + '/' + Number(total);
+        loader.appendChild(prog);
+      }
+
+      const hint = document.createElement('div');
+      hint.style.cssText = 'color:#94a3b8;font-size:12px;margin-top:14px';
+      hint.textContent = 'Merci de ne rien toucher';
+      loader.appendChild(hint);
+
+      // Spin keyframes (static — innerHTML is safe here, no interpolation).
+      const styleEl = document.createElement('style');
+      styleEl.textContent = '@keyframes biaif-spin{to{transform:rotate(360deg)}}';
+      loader.appendChild(styleEl);
+
       loader.style.display = 'flex';
     },
 

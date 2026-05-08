@@ -232,6 +232,7 @@
     'mic.test_btn_default':             { fr: '🔊 Tester',                                              en: '🔊 Test',                                           es: '🔊 Probar',                                        de: '🔊 Testen',                                        it: '🔊 Testa',                                         pt: '🔊 Testar',                                        nl: '🔊 Testen' },
     'mic.test_btn_stop':                { fr: '⏹ Stop test',                                            en: '⏹ Stop test',                                       es: '⏹ Detener test',                                   de: '⏹ Test stoppen',                                   it: '⏹ Stop test',                                      pt: '⏹ Parar teste',                                    nl: '⏹ Stop test' },
     'mic.error_prefix':                 { fr: 'Micro : {err}',                                          en: 'Mic: {err}',                                        es: 'Micrófono: {err}',                                 de: 'Mikrofon: {err}',                                  it: 'Microfono: {err}',                                 pt: 'Microfone: {err}',                                 nl: 'Microfoon: {err}' },
+    'mic.permission_denied_help':       { fr: 'Micro bloqué. Onglet Réglages ouvert : autorisez le micro puis recliquez sur ▶.', en: 'Mic blocked. Settings tab opened — allow mic access then click ▶ again.', es: 'Micro bloqueado. Pestaña Ajustes abierta — autoriza el micro y vuelve a pulsar ▶.', de: 'Mikrofon blockiert. Einstellungen-Tab geöffnet — erlauben und ▶ erneut drücken.', it: 'Microfono bloccato. Scheda Impostazioni aperta — autorizza e ripremere ▶.', pt: 'Microfone bloqueado. Aba de Configurações aberta — autorize e clique ▶ de novo.', nl: 'Microfoon geblokkeerd. Instellingen geopend — sta toegang toe en klik weer op ▶.' },
     'mic.idle_warning':                 { fr: 'Aucun signal audio depuis 12 s — vérifiez le micro par défaut dans Chrome.', en: 'No audio signal for 12 s — check default mic in Chrome.', es: 'Sin señal de audio durante 12 s — comprueba el micro predeterminado en Chrome.', de: 'Kein Audiosignal seit 12 s — prüfe den Standard-Mikrofon in Chrome.', it: 'Nessun segnale audio da 12 s — verifica il microfono predefinito in Chrome.', pt: 'Sem sinal de áudio por 12 s — verifique o microfone padrão no Chrome.', nl: 'Geen audiosignaal sinds 12 s — controleer de standaard microfoon in Chrome.' },
     'mic.label_active':                 { fr: 'Micro ✓',                                                en: 'Mic ✓',                                             es: 'Micro ✓',                                          de: 'Mikro ✓',                                          it: 'Micro ✓',                                          pt: 'Micro ✓',                                          nl: 'Micro ✓' },
     'mic.err.denied':                   { fr: "micro bloqué pour BIAIF — clique ici pour ouvrir la page de permissions de l'extension", en: 'mic blocked for BIAIF — click here to open the extension permissions page', es: 'micrófono bloqueado para BIAIF — haz clic aquí para abrir los permisos', de: 'Mikrofon für BIAIF blockiert — hier klicken zum Öffnen der Berechtigungen', it: 'microfono bloccato per BIAIF — clicca qui per aprire le autorizzazioni', pt: 'microfone bloqueado para BIAIF — clique aqui para abrir as permissões', nl: 'microfoon geblokkeerd voor BIAIF — klik hier om machtigingen te openen' },
@@ -267,10 +268,32 @@
     });
   }
 
+  // Track keys we've already warned about so we don't spam the console.
+  var _missingKeysSeen = {};
+  var _missingLangSeen = {};
+
   function t(key, vars) {
     var entry = TRANSLATIONS[key];
-    if (!entry) return _format(key, vars);
-    var raw = entry[_lang] || entry['fr'] || key;
+    if (!entry) {
+      if (!_missingKeysSeen[key]) {
+        _missingKeysSeen[key] = 1;
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[BIAIF i18n] missing translation key:', key);
+        }
+      }
+      return _format(key, vars);
+    }
+    var raw = entry[_lang];
+    if (!raw) {
+      var sig = key + '@' + _lang;
+      if (!_missingLangSeen[sig]) {
+        _missingLangSeen[sig] = 1;
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[BIAIF i18n] missing locale "' + _lang + '" for key:', key);
+        }
+      }
+      raw = entry['fr'] || entry['en'] || key;
+    }
     return _format(raw, vars);
   }
 

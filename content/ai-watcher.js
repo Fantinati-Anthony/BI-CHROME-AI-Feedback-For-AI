@@ -142,12 +142,14 @@
     }
   }
 
-  // Poll every 700ms as safety net
-  setInterval(_tick, 700);
+  // Lifecycle handles — cleared on pagehide / bfcache to avoid leaks.
+  var _tickInterval = setInterval(_tick, 700);
+  var _attrObs = null;
+  var _streamObs = null;
 
   // MutationObserver: near-instant re-check when DOM attributes/children change
   try {
-    new MutationObserver(function (mutations) {
+    _attrObs = new MutationObserver(function (mutations) {
       var relevant = mutations.some(function (m) {
         return m.type === 'childList' ||
           (m.type === 'attributes' &&
@@ -156,7 +158,8 @@
              m.attributeName === 'disabled'));
       });
       if (relevant) _tick();
-    }).observe(document.body, {
+    });
+    _attrObs.observe(document.body, {
       childList: true, subtree: true,
       attributes: true,
       attributeFilter: ['class', 'aria-label', 'data-testid', 'hidden', 'disabled'],
@@ -183,7 +186,7 @@
   }
 
   try {
-    new MutationObserver(function (mutations) {
+    _streamObs = new MutationObserver(function (mutations) {
       var hasAiText = false;
       outer: for (var i = 0; i < mutations.length; i++) {
         var m = mutations[i];
@@ -211,9 +214,23 @@
         clearTimeout(_doneTimer);
         _doneTimer = null;
       }
-    }).observe(document.body, {
+    });
+    _streamObs.observe(document.body, {
       childList: true, subtree: true, characterData: true,
     });
   } catch (_) {}
+
+  // Cleanup on page hide / bfcache eviction — avoids leaking observers + interval
+  // across SPA navigations and tab close.
+  function _teardown() {
+    try { clearInterval(_tickInterval); } catch (_) {}
+    try { clearTimeout(_doneTimer); } catch (_) {}
+    try { clearTimeout(_burstTimer); } catch (_) {}
+    try { if (_attrObs)   _attrObs.disconnect(); }   catch (_) {}
+    try { if (_streamObs) _streamObs.disconnect(); } catch (_) {}
+    _tickInterval = null; _doneTimer = null; _burstTimer = null;
+    _attrObs = null; _streamObs = null;
+  }
+  window.addEventListener('pagehide', _teardown, { once: true });
 
 })();

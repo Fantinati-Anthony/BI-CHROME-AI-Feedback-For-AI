@@ -1,11 +1,11 @@
 /**
  * BIAIF Toast — compact notification bar above footer.
- * Shows up to 2 toasts; oldest is dismissed when the bar is full.
+ * Shows up to 4 toasts; oldest is dismissed when the bar is full.
  */
 (function (window) {
   'use strict';
 
-  var MAX_TOASTS = 2;
+  var MAX_TOASTS = 4;
   var container  = null;
 
   function ensureContainer() {

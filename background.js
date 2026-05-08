@@ -102,7 +102,23 @@ async function writeLastCaptureAt(ts) {
   try { await chrome.storage.session.set({ [LAST_CAPTURE_KEY]: ts }); } catch (_) {}
 }
 
-async function captureWithRateLimit(windowId) {
+// Global serialization lock — prevents concurrent captures (across windows /
+// sidepanels) from tripping Chrome's MAX_CAPTURE_VISIBLE_TAB rate-limit.
+let _captureChain = Promise.resolve();
+
+function captureWithRateLimit(windowId) {
+  const next = _captureChain.then(function () {
+    return _captureOnce(windowId);
+  }, function () {
+    // Previous capture failed — don't propagate, just continue the chain.
+    return _captureOnce(windowId);
+  });
+  // Keep the chain advancing even if this caller's promise rejects.
+  _captureChain = next.catch(function () {});
+  return next;
+}
+
+async function _captureOnce(windowId) {
   const lastCaptureAt = await readLastCaptureAt();
   const now = Date.now();
   const wait = Math.max(0, MIN_CAPTURE_INTERVAL_MS - (now - lastCaptureAt));
@@ -184,7 +200,11 @@ async function injectWithRetry(tabId, msg, { intervalMs = 400, maxMs = 15000 } =
     if (resp && resp.error === 'editor not found') continue; // editor DOM not ready yet
     return resp || {}; // any other response (including unexpected errors) — return as-is
   }
-  return { error: 'injection timeout: editor not found after ' + Math.round(maxMs / 1000) + 's' };
+  return {
+    error: 'editor not found after ' + Math.round(maxMs / 1000) + 's — open Claude.ai in the target tab and try again',
+    code: 'editor_timeout',
+    seconds: Math.round(maxMs / 1000),
+  };
 }
 
 // ---------- auto-open sidepanel when switching to known tab URL -----------

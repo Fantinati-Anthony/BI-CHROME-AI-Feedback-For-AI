@@ -284,10 +284,19 @@
 
   function _onVoiceError(code) {
     var isPermDenied = code === 'not-allowed' || code === 'service-not-allowed' || code === 'denied-extension';
-    if (window.BIAIFToast) window.BIAIFToast.show(_t('mic.error_prefix', 'Micro : ' + voiceErrorFr(code), { err: voiceErrorFr(code) }), 'error');
     if (isPermDenied) {
+      // Explicit, actionable guidance — show longer (8s) and open the relevant
+      // Chrome settings page so the user can flip the permission immediately.
+      if (window.BIAIFToast) {
+        window.BIAIFToast.show(
+          _t('mic.permission_denied_help', 'Micro bloqué. Onglet Réglages ouvert : autorisez le micro puis recliquez sur ▶.'),
+          'error', 8000,
+        );
+      }
       try { chrome.tabs.create({ url: 'chrome://settings/content/siteDetails?site=chrome-extension%3A%2F%2F' + chrome.runtime.id }); } catch (_) {}
+      return;
     }
+    if (window.BIAIFToast) window.BIAIFToast.show(_t('mic.error_prefix', 'Micro : ' + voiceErrorFr(code), { err: voiceErrorFr(code) }), 'error');
   }
 
   function _startWatchdog() {
