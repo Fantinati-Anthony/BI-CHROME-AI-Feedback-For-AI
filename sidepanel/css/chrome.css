@@ -102,13 +102,19 @@
   overflow-y: auto; flex: 1; font-size: 11px;
 }
 
-/* ============== Status ============== */
+/* ============== Status (sticky at bottom of sidebar, above toasts) ============== */
 .biaif-status {
+  position: fixed;
+  left: var(--pad-md); right: var(--pad-md); bottom: var(--pad-md);
+  z-index: 49;
   font-size: 11px; color: var(--text-muted); text-align: center;
   padding: 4px 8px; border-radius: 6px;
   background: var(--bg-card); border: 1px solid var(--border-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 .biaif-status:empty { display: none; }
+/* Push toasts above the status when status is shown */
+.biaif-status:not(:empty) ~ #toast-container { bottom: calc(var(--pad-md) + 32px); }
 .biaif-status[data-kind="error"]   { color: var(--danger);  border-color: rgba(255, 69, 58, 0.3); cursor: pointer; }
 .biaif-status[data-kind="success"] { color: var(--success); border-color: rgba(48, 209, 88, 0.3); }
 
@@ -156,12 +162,16 @@
 }
 .reload-dismiss:hover { color: var(--text-main); }
 
-/* ============== Toast notifications (bar above footer) ============== */
+/* ============== Toast notifications (sticky at bottom of sidebar) ============== */
 #toast-container {
+  position: fixed;
+  left: var(--pad-md); right: var(--pad-md); bottom: var(--pad-md);
+  z-index: 50; pointer-events: none;
   display: flex; flex-direction: column; gap: 4px;
   overflow: hidden;
 }
 #toast-container:empty { display: none; }
+#toast-container > * { pointer-events: auto; }
 .biaif-toast {
   display: flex; align-items: center; gap: 7px;
   padding: 6px 10px;

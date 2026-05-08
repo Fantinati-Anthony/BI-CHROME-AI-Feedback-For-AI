@@ -67,7 +67,6 @@ html, body {
 
 /* Armed: hide the history, focus on the editor zone */
 .biaif-root.is-armed .biaif-segments-wrap { display: none !important; }
-.biaif-root.is-armed .biaif-footer-area   { display: none !important; }
 
 /* "Nouvelle conv." rebranded to entry point at rest — keep it visible */
 .biaif-root.is-armed .session-new-conv    { display: none; }
@@ -83,16 +82,12 @@ html, body {
 .biaif-root.is-empty-state .biaif-segments-wrap {
   display: none !important;
 }
-.biaif-root.is-empty-state .biaif-footer-area {
-  display: none !important;
-}
 .biaif-root.is-empty-state .session-bar {
   order: 2; margin-top: 0; margin-bottom: auto;
 }
 .biaif-root.is-empty-state .biaif-empty-state {
   order: 1; margin-top: auto; margin-bottom: 0;
 }
-.biaif-root.is-empty-state .biaif-footer-area { margin-top: 0; }
 
 /* Orb pulsant en haut du hero : signature visuelle "AI" */
 .empty-state-orb {

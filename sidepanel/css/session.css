@@ -70,27 +70,45 @@
 }
 .session-main:disabled::before { display: none; }
 
-/* Bouton "Nouvelle conversation" */
+/* Bouton "Nouvelle conversation" — point d'entrée principal en mode repos.
+   Reprend le gradient AI animé du bouton master (mêmes effets visuels). */
 .session-new-conv {
-  display: flex; align-items: center; justify-content: center; gap: 5px;
-  padding: 10px 14px;
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-pill);
-  background: var(--bg-card);
-  color: var(--text-muted);
-  font-family: inherit; font-size: 12px; font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-  flex-shrink: 0;
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 12px 18px;
+  border: none; border-radius: var(--radius-pill);
+  color: #fff;
+  font-family: inherit; font-size: 14px; font-weight: 700; letter-spacing: 0.3px;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  position: relative; overflow: hidden;
+  background: linear-gradient(120deg, #4f46e5 0%, #06b6d4 35%, #8b5cf6 70%, #4f46e5 100%);
+  background-size: 220% 220%;
+  animation: ai-gradient 6s ease-in-out infinite;
+  box-shadow:
+    0 0 22px rgba(139, 92, 246, 0.35),
+    0 0 44px rgba(6, 182, 212, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.18s ease, box-shadow 0.25s ease;
+}
+.session-new-conv::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: ai-shine 3.5s linear infinite;
+  pointer-events: none;
 }
 .session-new-conv:hover {
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
-  background: var(--accent-blue-50);
-  box-shadow: 0 0 10px rgba(14,165,183,0.18);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 0 36px rgba(139, 92, 246, 0.55),
+    0 0 70px rgba(6, 182, 212, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
-.session-new-conv svg { flex-shrink: 0; }
+.session-new-conv:active { transform: translateY(0) scale(0.99); }
+.session-new-conv svg, .session-new-conv span {
+  position: relative; z-index: 1;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  flex-shrink: 0;
+}
 
 /* Stop button hidden in new UX */
 .session-stop { display: none !important; }
@@ -110,6 +128,29 @@
   border-color: var(--danger);
   color: var(--danger);
   background: rgba(255, 69, 58, 0.08);
+}
+
+/* Top-bar icon buttons (Logs, Settings) — discrete, top-right of the bar */
+.topbar-icon-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer; transition: all 0.15s;
+  padding: 0;
+}
+.topbar-icon-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-50);
+  box-shadow: 0 0 8px rgba(14,165,183,0.18);
+}
+.topbar-icon-btn[aria-expanded="true"] {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-50);
 }
 
 .biaif-buffer-preview {
