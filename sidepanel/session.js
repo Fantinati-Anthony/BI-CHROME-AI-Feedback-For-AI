@@ -250,7 +250,12 @@
     }
     STATE.lastShot     = compressedUrl;
     STATE.lastShotMode = mode;
-    var ref  = { type: 'screenshot', mode: mode, dataUrl: compressedUrl, ts: Date.now() };
+    // Move the heavy bytes to IndexedDB; keep dataUrl in memory for live render.
+    var blobId = null;
+    if (window.BIAIFBlobStore) {
+      try { blobId = await window.BIAIFBlobStore.put(compressedUrl); } catch (_) {}
+    }
+    var ref  = { type: 'screenshot', mode: mode, dataUrl: compressedUrl, blobId: blobId, ts: Date.now() };
     var tIdx = activeTargetIdx();
     addRefToTarget(ref);
     _toast(typeof tIdx === 'number'

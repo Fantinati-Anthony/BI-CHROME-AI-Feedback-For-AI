@@ -105,6 +105,18 @@
     } catch (e) {
       console.warn('[BIAIF Storage] hydrate failed', e && e.message);
     }
+    // Rehydrate IndexedDB-backed screenshot blobs (in-memory only).
+    if (window.BIAIFBlobStore) {
+      try {
+        var allRefs = (STATE.demandes || []).reduce(function (acc, d) {
+          return acc.concat(d.refs || []);
+        }, (STATE.currentDemande && STATE.currentDemande.refs) || []);
+        await window.BIAIFBlobStore.rehydrateRefs(allRefs);
+        // GC blobs that no longer have a referencing ref in STATE.
+        var alive = allRefs.map(function (r) { return r && r.blobId; }).filter(Boolean);
+        window.BIAIFBlobStore.gc(alive).catch(function () {});
+      } catch (_) {}
+    }
     if (onDone) onDone();
   }
 
@@ -121,6 +133,9 @@
     }
 
     var payload = _buildPayload(STATE);
+    // For refs that have an IndexedDB blobId, drop the inline dataUrl
+    // before persist. We re-resolve on hydrate.
+    payload = _externalizeBlobs(payload);
 
     chrome.storage.local.set({ [KEY]: payload }).then(function () {
       _checkQuota();
@@ -201,6 +216,25 @@
       privacyScrub:          STATE.privacyScrub,
       syncEnabled:           STATE.syncEnabled,
     };
+  }
+
+  // Strip inline dataUrls only from refs that have a blobId pointer.
+  // The bytes already live in IndexedDB → no info loss.
+  function _externalizeBlobs(payload) {
+    function externalize(refs) {
+      return (refs || []).map(function (r) {
+        if (r && r.blobId && r.dataUrl) return Object.assign({}, r, { dataUrl: null });
+        return r;
+      });
+    }
+    return Object.assign({}, payload, {
+      demandes: (payload.demandes || []).map(function (d) {
+        return Object.assign({}, d, { refs: externalize(d.refs) });
+      }),
+      currentDemande: Object.assign({}, payload.currentDemande, {
+        refs: externalize(payload.currentDemande && payload.currentDemande.refs),
+      }),
+    });
   }
 
   function _stripDataUrls(payload) {

@@ -163,6 +163,7 @@
 
     // Init every domain module that exposes init(state, refs).
     window.BIAIFRenderer.init(STATE, REFS);
+    if (window.BIAIFPerf) { window.BIAIFPerf.mark('boot'); window.BIAIFPerf.observeWebVitals(); }
     window.BIAIFSpeech.init(STATE, REFS);
     window.BIAIFSession.init(STATE, REFS);
     if (window.BIAIFTemplates) window.BIAIFTemplates.init(STATE);
