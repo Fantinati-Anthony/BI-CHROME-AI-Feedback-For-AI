@@ -95,6 +95,7 @@
       if (typeof saved.hideAiTextarea         === 'boolean') STATE.hideAiTextarea         = saved.hideAiTextarea;
       if (typeof saved.autoSubmitAfterInject  === 'boolean') STATE.autoSubmitAfterInject  = saved.autoSubmitAfterInject;
       if (typeof saved.archiveExpanded        === 'boolean') STATE.archiveExpanded        = saved.archiveExpanded;
+      if (typeof saved.showConsoleBtn         === 'boolean') STATE.showConsoleBtn         = saved.showConsoleBtn;
 
     } catch (e) {
       console.warn('[BIAIF Storage] hydrate failed', e && e.message);
@@ -150,6 +151,7 @@
       hideAiTextarea:        STATE.hideAiTextarea,
       autoSubmitAfterInject: STATE.autoSubmitAfterInject,
       archiveExpanded:       STATE.archiveExpanded,
+      showConsoleBtn:        STATE.showConsoleBtn,
     };
   }
 

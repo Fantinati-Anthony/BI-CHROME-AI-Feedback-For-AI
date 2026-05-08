@@ -63,10 +63,11 @@
   }
 
   function updateSortToggleLabel() {
-    var REFS = ctx.REFS;
-    if (!REFS.sortToggle) return;
-    var lbl = REFS.sortToggle.querySelector('.sort-label');
-    if (lbl) lbl.textContent = ctx.STATE.sortOrder === 'desc' ? 'Z→A' : 'A→Z';
+    var order = ctx.STATE.sortOrder;
+    var asc   = document.querySelector('[data-act="sort-asc"]');
+    var desc  = document.querySelector('[data-act="sort-desc"]');
+    if (asc)  asc.classList.toggle('is-active',  order !== 'desc');
+    if (desc) desc.classList.toggle('is-active', order === 'desc');
   }
 
   function applySegFontSize() {

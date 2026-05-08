@@ -44,6 +44,10 @@
     var cbAutoSub = document.getElementById('auto-submit-inject');
     if (cbHideTa)  cbHideTa.checked  = !!STATE.hideAiTextarea;
     if (cbAutoSub) cbAutoSub.checked = !!STATE.autoSubmitAfterInject;
+    var cbConsole = document.getElementById('show-console-btn');
+    var logsBtn   = document.querySelector('.topbar-logs-btn');
+    if (cbConsole) cbConsole.checked = !!STATE.showConsoleBtn;
+    if (logsBtn)   logsBtn.hidden    = !STATE.showConsoleBtn;
     if (cbHideTa && cbAutoSub) {
       var on = cbAutoSub.checked;
       cbHideTa.disabled = !on;

@@ -158,8 +158,21 @@
     if (isEditing) card.classList.add('is-editing');
     card.dataset.i = String(origIndex);
 
+    var ariaMerge = esc(_t('aria.merge_handle',
+      'Glisser ou Alt+↑/↓ pour fusionner avec une demande voisine'));
+    var titleMerge = esc(_t('seg.merge_handle_tip',
+      'Glisser pour fusionner — ou Alt+↑/↓ au clavier'));
+
     card.innerHTML =
       '<header>' +
+        '<button class="seg-drag-handle" data-i="' + origIndex +
+          '" aria-label="' + ariaMerge + '" title="' + titleMerge + '">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+            '<circle cx="9" cy="6" r="0.8"/><circle cx="15" cy="6" r="0.8"/>' +
+            '<circle cx="9" cy="12" r="0.8"/><circle cx="15" cy="12" r="0.8"/>' +
+            '<circle cx="9" cy="18" r="0.8"/><circle cx="15" cy="18" r="0.8"/>' +
+          '</svg>' +
+        '</button>' +
         '<span class="seg-num" aria-label="Demande ' + num + '">#' + num + '</span>' +
         '<span class="seg-meta">' + dt + ' · <span aria-label="' + refsCount + ' références">' +
           esc(refsLabel) + '</span></span>' +
@@ -266,13 +279,43 @@
         'info');
     });
 
-    // ── Keyboard merge: Alt+↑/↓ on the card ───────────────────────────
-    card.addEventListener('keydown', function (e) {
+    // ── Drag-drop merge (handle) + Alt+↑/↓ keyboard merge ────────────
+    var dragHandle = card.querySelector('.seg-drag-handle');
+    dragHandle.draggable = true;
+    dragHandle.setAttribute('tabindex', '0');
+    dragHandle.addEventListener('keydown', function (e) {
       if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
       var dst = e.key === 'ArrowUp' ? origIndex - 1 : origIndex + 1;
       if (dst < 0 || dst >= STATE.demandes.length) return;
       e.preventDefault();
       if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(origIndex, dst);
+    });
+    dragHandle.addEventListener('dragstart', function (e) {
+      e.stopPropagation();
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', '__biaif_segment__'); } catch (_) {}
+      ctx.SEG_DRAG.sourceIdx = origIndex;
+      card.classList.add('is-dragging-seg');
+    });
+    dragHandle.addEventListener('dragend', function () {
+      ctx.SEG_DRAG.sourceIdx = -1;
+      document.querySelectorAll('.biaif-segment.is-dragging-seg, .biaif-segment.is-drop-target')
+        .forEach(function (c) { c.classList.remove('is-dragging-seg', 'is-drop-target'); });
+    });
+    card.addEventListener('dragover', function (e) {
+      if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      card.classList.add('is-drop-target');
+    });
+    card.addEventListener('dragleave', function (e) {
+      if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+      card.classList.remove('is-drop-target');
+    });
+    card.addEventListener('drop', function (e) {
+      if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
+      e.preventDefault(); card.classList.remove('is-drop-target');
+      var src = ctx.SEG_DRAG.sourceIdx; ctx.SEG_DRAG.sourceIdx = -1;
+      if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(src, origIndex);
     });
 
     return card;

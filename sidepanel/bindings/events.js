@@ -159,14 +159,39 @@
   }
 
   function _bindSortToggle() {
-    var REFS = ctx.REFS, STATE = ctx.STATE;
-    if (REFS.sortToggle) REFS.sortToggle.addEventListener('click', function () {
-      STATE.sortOrder = STATE.sortOrder === 'desc' ? 'asc' : 'desc';
+    var STATE = ctx.STATE;
+    function setSort(order) {
+      STATE.sortOrder = order;
       window.BIAIFRenderer.updateSortToggleLabel();
       window.BIAIFRenderer.renderSegments();
       window.BIAIFStorage.persist(STATE);
-    });
+    }
+    var ascBtn  = document.querySelector('[data-act="sort-asc"]');
+    var descBtn = document.querySelector('[data-act="sort-desc"]');
+    if (ascBtn)  ascBtn.addEventListener('click',  function () { setSort('asc'); });
+    if (descBtn) descBtn.addEventListener('click', function () { setSort('desc'); });
     window.BIAIFRenderer.updateSortToggleLabel();
+  }
+
+  // Toggle search input visibility (loupe button)
+  function _bindSearchToggle() {
+    var btn   = document.querySelector('[data-act="search-toggle"]');
+    var input = document.getElementById('history-search');
+    if (!btn || !input) return;
+    btn.addEventListener('click', function () {
+      var willOpen = input.hasAttribute('hidden');
+      if (willOpen) {
+        input.removeAttribute('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        setTimeout(function () { input.focus(); }, 30);
+      } else {
+        input.setAttribute('hidden', '');
+        btn.setAttribute('aria-expanded', 'false');
+        ctx.STATE.searchQuery = '';
+        input.value = '';
+        window.BIAIFRenderer.renderSegments();
+      }
+    });
   }
 
   function _bindFontSize() {
@@ -274,6 +299,19 @@
         window.BIAIFStorage.persist(STATE);
       });
     });
+  }
+
+  function _bindShowConsoleBtn() {
+    var STATE = ctx.STATE;
+    var cb  = document.getElementById('show-console-btn');
+    var btn = document.querySelector('.topbar-logs-btn');
+    function apply() { if (btn) btn.hidden = !STATE.showConsoleBtn; }
+    if (cb) cb.addEventListener('change', function () {
+      STATE.showConsoleBtn = cb.checked;
+      apply();
+      window.BIAIFStorage.persist(STATE);
+    });
+    apply();
   }
 
   function _bindBehaviourToggles() {
@@ -427,6 +465,7 @@
     _bindFileImport();
     _bindErrorsButton();
     _bindSortToggle();
+    _bindSearchToggle();
     _bindFontSize();
     _bindHistorySearch();
     _bindSettingsPopover();
@@ -435,6 +474,7 @@
     _bindButtonVisibility();
     _bindAutoOpenToggles();
     _bindBehaviourToggles();
+    _bindShowConsoleBtn();
     _bindUiLangButtons();
     _bindMicSettings();
     _bindEditorLiveSync();
