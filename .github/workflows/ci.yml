@@ -56,8 +56,10 @@ jobs:
       - name: Prettier check
         run: npx prettier --check '**/*.{js,mjs,json,md,html,css}' --ignore-path .prettierignore || echo "::warning::Prettier found formatting issues"
 
-      - name: TypeScript type-check
-        run: npx -y -p typescript@5.4.5 tsc -p jsconfig.json --noEmit || echo "::warning::TS check soft-failed (JS-only project, opt-in via // @ts-check)"
+      - name: TypeScript type-check (// @ts-check files)
+        run: npx -y -p typescript@5.4.5 tsc -p jsconfig.json --noEmit
+        # Hard fail. Files without // @ts-check are skipped (jsconfig has
+        # checkJs: false). Adding @ts-check to a file opts it into gating.
 
       - name: Run tests
         run: npm test

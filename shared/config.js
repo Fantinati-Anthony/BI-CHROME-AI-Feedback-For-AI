@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * BIAIF Config — every magic number, debounce, and limit in one place.
  *

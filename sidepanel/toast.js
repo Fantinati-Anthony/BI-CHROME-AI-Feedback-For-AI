@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * BIAIF Toast — compact notification bar above footer.
  * Shows up to BIAIF.config.ui.MAX_TOASTS toasts; oldest dismissed when full.

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * BIAIF Render Context
  *
