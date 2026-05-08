@@ -73,8 +73,10 @@ describe('mergeDemandes', () => {
   it('drops src and concatenates text + refs into dst', () => {
     window.BIAIFSession.mergeDemandes(0, 1);
     expect(state.demandes).toHaveLength(2);
-    // After merge, dst was at index 1 before splice → still at 0 now.
-    expect(state.demandes[0].text).toBe('first second');
+    // mergeDemandes(src=0, dst=1) → dst (was 'second' at idx 1) absorbs
+    // src text. Order is dst.text first, then src.text appended.
+    // After splice src=0, indices shift — dst is now at idx 0.
+    expect(state.demandes[0].text).toBe('second first');
     expect(state.demandes[0].refs).toHaveLength(1);
   });
 

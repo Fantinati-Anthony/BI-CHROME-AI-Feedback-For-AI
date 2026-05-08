@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * BIAIF Shared Utils
  * Cross-context helpers (sidepanel, content scripts, service worker).

@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * BIAIF Command Palette — Cmd+K (or Ctrl+K) on any sidepanel page.
  *

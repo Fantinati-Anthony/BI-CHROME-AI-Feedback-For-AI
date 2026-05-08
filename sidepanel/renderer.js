@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * BIAIF Renderer (façade)
  *

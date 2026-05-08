@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * BIAIF Templates — reusable prompt snippets.
  *

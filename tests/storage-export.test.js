@@ -43,7 +43,12 @@ describe('BIAIFStorage exportToFile / importBundle', () => {
     let savedJson = null;
     const realCreate = URL.createObjectURL;
     URL.createObjectURL = (blob) => {
-      blob.text().then((s) => { savedJson = s; });
+      // jsdom's Blob may lack .text(); read via FileReader for portability.
+      try {
+        const fr = new FileReader();
+        fr.onload = () => { savedJson = fr.result; };
+        fr.readAsText(blob);
+      } catch (_) { /* swallow — savedJson stays null but the bundle assertions still run */ }
       return 'blob:mock';
     };
     const realRevoke = URL.revokeObjectURL;

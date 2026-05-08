@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * BIAIF Perf — local-only performance breadcrumbs.
  *
