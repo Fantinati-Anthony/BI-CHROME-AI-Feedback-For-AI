@@ -80,6 +80,63 @@
     setTimeout(remove, 400);
   }
 
-  window.BIAIFToast = { show: show };
+  /**
+   * Toast with an inline action button (e.g. "Annuler" right after a delete).
+   * onClick fires when the user clicks the action button; the toast then dismisses.
+   *
+   * @param {string} message
+   * @param {string} actionLabel
+   * @param {Function} onClick
+   * @param {object} [opts]  { kind?: 'info'|'success'|'error', duration?: number }
+   */
+  function showAction(message, actionLabel, onClick, opts) {
+    opts     = opts     || {};
+    var kind = opts.kind || 'info';
+    var duration = opts.duration !== undefined ? opts.duration : 5000;
+
+    var c = ensureContainer();
+    if (!c) return;
+    while (c.children.length >= MAX_TOASTS) dismiss(c.firstElementChild, true);
+
+    var toast = document.createElement('div');
+    toast.className = 'biaif-toast biaif-toast--' + kind + ' biaif-toast--with-action';
+    toast.setAttribute('role', 'status');
+
+    var icons = { success: '✓', error: '✕', info: 'ℹ' };
+    var iconSpan = document.createElement('span');
+    iconSpan.className = 'toast-icon'; iconSpan.setAttribute('aria-hidden', 'true');
+    iconSpan.textContent = icons[kind] || icons.info;
+    toast.appendChild(iconSpan);
+
+    var msgSpan = document.createElement('span');
+    msgSpan.className = 'toast-msg';
+    msgSpan.title = message; msgSpan.textContent = message;
+    toast.appendChild(msgSpan);
+
+    var actBtn = document.createElement('button');
+    actBtn.className = 'toast-action';
+    actBtn.textContent = actionLabel;
+    actBtn.addEventListener('click', function () {
+      if (typeof onClick === 'function') onClick();
+      dismiss(toast);
+    });
+    toast.appendChild(actBtn);
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close';
+    closeBtn.setAttribute('aria-label', 'Fermer');
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', function () { dismiss(toast); });
+    toast.appendChild(closeBtn);
+
+    c.appendChild(toast);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { toast.classList.add('is-visible'); });
+    });
+    if (duration > 0) setTimeout(function () { dismiss(toast); }, duration);
+    return toast;
+  }
+
+  window.BIAIFToast = { show: show, showAction: showAction };
 
 })(window);

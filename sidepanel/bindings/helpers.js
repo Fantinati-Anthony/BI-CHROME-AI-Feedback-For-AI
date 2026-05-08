@@ -228,7 +228,12 @@
   // ── Clear-all ──────────────────────────────────────────────────────
   function clearAll() {
     var STATE = ctx.STATE, REFS = ctx.REFS;
-    if (!confirm(_t('confirm.clear_all', 'Tout effacer ?'))) return;
+    if (!STATE.demandes.length && !(STATE.currentDemande.text || '').trim() && !STATE.currentDemande.refs.length) return;
+    // Snapshot BEFORE wiping so the toast's "Annuler" can restore it.
+    if (window.BIAIFUndo) window.BIAIFUndo.push({
+      demandes:       JSON.parse(JSON.stringify(STATE.demandes)),
+      currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)),
+    });
     if (STATE.editingDemandeIdx !== null) window.BIAIFSession.exitEditMode({ silent: true });
     STATE.demandes       = [];
     STATE.currentDemande = { text: '', refs: [], pageUrl: null };
@@ -237,12 +242,16 @@
     STATE.lastShotMode   = null;
     if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
     window.BIAIFSpeech.clearInterimGhost();
-    window.BIAIFUndo.clear();
     window.BIAIFRenderer.renderDemandeRefsStrip();
     window.BIAIFRenderer.renderSegments();
     window.BIAIFRenderer.updateArmedUi();
-    window.BIAIFStorage.persist(STATE);
-    window.BIAIFToast.show(_t('toast.cleared', 'Tout effacé.'), 'info');
+    window.BIAIFStorage.persist(STATE, { skipUndo: true });
+    window.BIAIFToast.showAction(
+      _t('toast.cleared', 'Tout effacé.'),
+      _t('toast.undo_action', 'Annuler'),
+      performUndo,
+      { duration: 6000 }
+    );
   }
 
   // ── Undo (Ctrl+Z) ──────────────────────────────────────────────────

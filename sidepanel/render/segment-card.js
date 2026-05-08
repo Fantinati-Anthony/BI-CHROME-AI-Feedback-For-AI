@@ -263,20 +263,25 @@
       else window.BIAIFSession.enterEditMode(i);
     });
     card.querySelector('.seg-del').addEventListener('click', function (e) {
-      var i   = Number(e.currentTarget.dataset.i);
-      var d   = STATE.demandes[i];
-      var prv = (d && d.text || '').replace(/\{\{ref:\d+\}\}/g, '…').trim().slice(0, 60) || '(vide)';
-      if (!confirm(_t('confirm.delete_demande',
-        'Supprimer la demande #' + (i + 1) + ' ?\n\n' + prv,
-        { n: i + 1, preview: prv }))) return;
+      var i = Number(e.currentTarget.dataset.i);
+      // Capture undo snapshot, then delete immediately. Toast offers "Annuler".
       if (STATE.editingDemandeIdx === i && window.BIAIFSession) window.BIAIFSession.exitEditMode({ silent: true });
       if (typeof STATE.editingDemandeIdx === 'number' && STATE.editingDemandeIdx > i) STATE.editingDemandeIdx--;
       STATE.demandes.splice(i, 1);
       if (window.BIAIFRender.segments) window.BIAIFRender.segments.render();
       if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
-      if (window.BIAIFToast) window.BIAIFToast.show(
-        _t('toast.demande_deleted', 'Demande #' + (i + 1) + ' supprimée.', { n: i + 1 }),
-        'info');
+      if (window.BIAIFToast && window.BIAIFToast.showAction) {
+        window.BIAIFToast.showAction(
+          _t('toast.demande_deleted', 'Demande #' + (i + 1) + ' supprimée.', { n: i + 1 }),
+          _t('toast.undo_action', 'Annuler'),
+          function () {
+            if (window.BIAIFBindings && window.BIAIFBindings.helpers && window.BIAIFBindings.helpers.performUndo) {
+              window.BIAIFBindings.helpers.performUndo();
+            }
+          },
+          { duration: 6000 }
+        );
+      }
     });
 
     // ── Drag-drop merge (handle) + Alt+↑/↓ keyboard merge ────────────
