@@ -2,30 +2,31 @@
  * BIAIF Bindings — UI events
  *
  * All click / change / input listeners on the side panel UI. Grouped by
- * feature in the order they were declared in the original sidepanel.js
- * (kept stable so a `git blame` still tells the story).
+ * concern. Search by `_bindXxx` to jump.
  *
- * Sections:
- *   1. Session master button + stop
- *   2. Picker / mic toggle
- *   3. Footer (clear / copy / download)
- *   4. Speech language select
- *   5. Shot mode buttons + capture subline
- *   6. File import button
- *   7. Errors button
- *   8. Sort toggle
- *   9. Segment font size +/-
- *  10. History search (debounced)
- *  11. Settings popover open/close + shortcuts page
- *  12. Reload modal
- *  13. Onboarding wizard re-open
- *  14. Button-visibility checkboxes
- *  15. Auto-open / behaviour toggles (with hide-textarea ↔ auto-submit dep)
- *  16. UI language buttons
- *  17. Mic settings (device, test, refresh)
- *  18. Demande editor live sync (debounced)
- *  19. Delegated handlers: ref-chip Modifier, filter badges, filter chip ✕
- *  20. Status bar click (legacy)
+ * Sub-modules (live in their own files, called from bind() below):
+ *   - events-templates.js   →  templates popover (open / list / save)
+ *
+ * Sections in this file (in declaration order):
+ *
+ *   ── Session ─────────────────────────────────
+ *   _autoArm, _bindSessionButtons, _bindTools, _bindFooter,
+ *   _bindLangSelect, _bindShotButtons, _bindFileImport,
+ *   _bindErrorsButton
+ *
+ *   ── Topbar tools ────────────────────────────
+ *   _bindSortToggle, _bindSearchToggle, _bindFontSize, _bindHistorySearch
+ *
+ *   ── Settings panel ──────────────────────────
+ *   _bindSettingsPopover, _bindReloadModal, _bindSyncToggle,
+ *   _bindExportImport, _bindWizardReopen, _bindButtonVisibility,
+ *   _bindAutoOpenToggles, _bindTheme, _bindTopbarPosition,
+ *   _bindPrivacyScrub, _bindShowConsoleBtn, _bindBehaviourToggles,
+ *   _bindUiLangButtons, _bindMicSettings
+ *
+ *   ── Editor + content ────────────────────────
+ *   _bindEditorLiveSync, _bindRefChipEdit, _bindFilterBadges,
+ *   _bindStatusBar
  */
 (function (window) {
   'use strict';
@@ -153,76 +154,7 @@
     });
   }
 
-  function _bindTemplatesPopover() {
-    var STATE   = ctx.STATE;
-    var btn     = document.querySelector('[data-act="open-templates"]');
-    var popover = document.getElementById('templates-popover');
-    var list    = popover && popover.querySelector('.templates-list');
-    var saveBtn = popover && popover.querySelector('[data-act="template-save-current"]');
-    if (!btn || !popover || !list) return;
-
-    function renderList() {
-      list.innerHTML = '';
-      var items = (window.BIAIFTemplates && window.BIAIFTemplates.list()) || [];
-      items.forEach(function (t) {
-        var li = document.createElement('li');
-        li.className = 'template-item';
-        li.dataset.id = t.id;
-        var name = document.createElement('span');
-        name.className = 'template-item-name'; name.textContent = t.name;
-        var prev = document.createElement('span');
-        prev.className = 'template-item-preview';
-        prev.textContent = t.body.replace(/\s+/g, ' ').slice(0, 60);
-        prev.title = t.body;
-        var del = document.createElement('button');
-        del.className = 'template-item-del'; del.textContent = '×';
-        del.setAttribute('aria-label', _t('templates.delete', 'Supprimer ce modèle'));
-        del.addEventListener('click', function (e) {
-          e.stopPropagation();
-          window.BIAIFTemplates.remove(t.id);
-          renderList();
-        });
-        li.appendChild(name); li.appendChild(prev); li.appendChild(del);
-        li.addEventListener('click', function () {
-          _autoArm();
-          window.BIAIFTemplates.insertIntoEditor(t.id);
-          close();
-          window.BIAIFToast.show(_t('toast.template_inserted', 'Modèle inséré.'), 'success', 1800);
-        });
-        list.appendChild(li);
-      });
-    }
-
-    function open()  {
-      _autoArm();
-      H.closeCaptureSubline();
-      renderList();
-      popover.removeAttribute('hidden');
-      btn.setAttribute('aria-expanded', 'true');
-    }
-    function close() {
-      popover.setAttribute('hidden', '');
-      btn.setAttribute('aria-expanded', 'false');
-    }
-    function toggle() { popover.hasAttribute('hidden') ? open() : close(); }
-
-    btn.addEventListener('click', function (e) { e.stopPropagation(); toggle(); });
-    if (saveBtn) saveBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var entry = window.BIAIFTemplates && window.BIAIFTemplates.saveCurrentAsTemplate();
-      if (!entry) {
-        window.BIAIFToast.show(_t('toast.template_empty', 'Rien à enregistrer — saisissez du texte.'), 'info');
-        return;
-      }
-      renderList();
-      window.BIAIFToast.show(_t('toast.template_saved', 'Modèle enregistré.'), 'success');
-    });
-    document.addEventListener('click', function (e) {
-      if (popover.hasAttribute('hidden')) return;
-      if (e.target.closest('#templates-popover') || e.target.closest('[data-act="open-templates"]')) return;
-      close();
-    });
-  }
+  // _bindTemplatesPopover lives in bindings/events-templates.js — see bind() below.
 
   function _bindErrorsButton() {
     var btn = document.querySelector('[data-act="open-errors"]');
@@ -679,7 +611,9 @@
     _bindShotButtons();
     _bindFileImport();
     _bindErrorsButton();
-    _bindTemplatesPopover();
+    if (window.BIAIFBindings.bindTemplatesPopover) {
+      window.BIAIFBindings.bindTemplatesPopover(_autoArm);
+    }
     _bindSortToggle();
     _bindSearchToggle();
     _bindFontSize();
