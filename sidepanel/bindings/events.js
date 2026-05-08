@@ -350,6 +350,27 @@
     });
   }
 
+  function _bindTheme() {
+    var STATE = ctx.STATE;
+    var grid  = document.getElementById('sp-theme-grid');
+    function apply(theme) {
+      document.documentElement.setAttribute('data-theme', theme || 'dark');
+      if (grid) Array.prototype.forEach.call(grid.querySelectorAll('.sp-theme-btn'), function (b) {
+        var on = b.dataset.theme === theme;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+    }
+    if (grid) grid.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-theme]');
+      if (!btn) return;
+      STATE.theme = btn.dataset.theme;
+      apply(STATE.theme);
+      window.BIAIFStorage.persist(STATE);
+    });
+    apply(STATE.theme || 'dark');
+  }
+
   function _bindTopbarPosition() {
     var STATE = ctx.STATE;
     var cb   = document.getElementById('topbar-bottom');
@@ -539,6 +560,7 @@
     _bindBehaviourToggles();
     _bindShowConsoleBtn();
     _bindTopbarPosition();
+    _bindTheme();
     _bindUiLangButtons();
     _bindMicSettings();
     _bindEditorLiveSync();

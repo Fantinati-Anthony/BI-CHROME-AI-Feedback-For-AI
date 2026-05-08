@@ -47,11 +47,10 @@
     consoleErrors:          [],
     editingDemandeIdx:      null,
     searchQuery:            '',
-    visibleButtons: {
-      inject: true, vscode: true, copilot: true, copy: true, download: true,
-      claude_online: false, chatgpt: false, gemini: false, perplexity: false,
-      grok: false, lechat: false, deepseek: false,
-    },
+    // Defaults derived from BIAIF.ALL_BUTTONS (single source of truth).
+    visibleButtons: ((window.BIAIF && window.BIAIF.ALL_BUTTONS) || []).reduce(function (acc, def) {
+      acc[def.key] = !!def.defaultVisible; return acc;
+    }, {}),
     uiLang:                 '',
     conversationFilter:     '',     // exact AI conversation URL filter
     repoFilter:             '',     // "owner/repo" filter
@@ -65,6 +64,9 @@
     hideAiTextarea:         false,
     autoSubmitAfterInject:  false,
     archiveExpanded:        false,
+    showConsoleBtn:         false,
+    topbarPosition:         'top',
+    theme:                  'dark',
   };
 
   const REFS = {};

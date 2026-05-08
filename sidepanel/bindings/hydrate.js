@@ -16,6 +16,8 @@
 
   function applyToDOM() {
     var STATE = ctx.STATE, REFS = ctx.REFS;
+    // Apply theme as the very first DOM mutation to avoid flash-of-wrong-theme.
+    document.documentElement.setAttribute('data-theme', STATE.theme || 'dark');
     if (REFS.langSelect && STATE.lang) REFS.langSelect.value = STATE.lang;
 
     // Button-visibility checkboxes — derived from BIAIF.ALL_BUTTONS registry.

@@ -241,3 +241,26 @@
 .sp-lang-btn:hover { border-color: var(--accent-blue-100); background: var(--bg-card-hover); }
 .sp-lang-btn.is-active { border-color: var(--accent-blue); background: var(--accent-blue-50); color: var(--accent-blue); }
 
+/* ── Settings: Theme picker (3-button grid) ── */
+.sp-theme-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 4px;
+}
+.sp-theme-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 8px 6px; border-radius: 8px;
+  background: var(--bg-card); border: 1.5px solid var(--border-card);
+  font-family: inherit; font-size: 11px; font-weight: 600; color: var(--text-main);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.sp-theme-btn svg { color: var(--text-muted); transition: color 0.15s; }
+.sp-theme-btn:hover {
+  border-color: var(--accent-blue-100); background: var(--bg-card-hover);
+}
+.sp-theme-btn:hover svg { color: var(--accent-blue); }
+.sp-theme-btn.is-active {
+  border-color: var(--accent-blue); background: var(--accent-blue-50); color: var(--accent-blue);
+  box-shadow: 0 0 8px rgba(14,165,183,0.2);
+}
+.sp-theme-btn.is-active svg { color: var(--accent-blue); }
+

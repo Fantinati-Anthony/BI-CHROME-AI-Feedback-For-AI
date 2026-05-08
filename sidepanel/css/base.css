@@ -1,4 +1,9 @@
-:root {
+/* ─── Theme tokens ─────────────────────────────────────────────────
+   Three modes: dark (default), light, auto (follows OS).
+   Mode is selected via [data-theme] on the :root element.
+   Auto = neither dark nor light → uses prefers-color-scheme. */
+:root,
+:root[data-theme="dark"] {
   --bg-app: #000000;
   --bg-card: #0d0d0f;
   --bg-card-hover: #17171a;
@@ -27,6 +32,50 @@
   --pad-sm: 8px;
   --pad-md: 12px;
   --pad-lg: 24px;
+}
+
+/* Light palette — desaturated cool grey + brighter cyan */
+:root[data-theme="light"] {
+  --bg-app: #f7f7f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f1f5;
+  --border-card: #e2e4ea;
+
+  --text-main: #0d0d0f;
+  --text-muted: #5a5e6b;
+  --text-inverse: #ffffff;
+
+  --accent-blue: #0e92a3;
+  --accent-blue-50: rgba(14, 146, 163, 0.10);
+  --accent-blue-100: rgba(14, 146, 163, 0.22);
+  --accent-blue-hover: #0aa3b6;
+
+  --accent-purple: #6c47ff;
+  --accent-purple-50: rgba(108, 71, 255, 0.10);
+
+  --danger: #d93025;
+  --success: #1c8c4a;
+}
+
+/* Auto = follow OS preference */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="auto"] {
+    --bg-app: #f7f7f9;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f0f1f5;
+    --border-card: #e2e4ea;
+    --text-main: #0d0d0f;
+    --text-muted: #5a5e6b;
+    --text-inverse: #ffffff;
+    --accent-blue: #0e92a3;
+    --accent-blue-50: rgba(14, 146, 163, 0.10);
+    --accent-blue-100: rgba(14, 146, 163, 0.22);
+    --accent-blue-hover: #0aa3b6;
+    --accent-purple: #6c47ff;
+    --accent-purple-50: rgba(108, 71, 255, 0.10);
+    --danger: #d93025;
+    --success: #1c8c4a;
+  }
 }
 
 * { box-sizing: border-box; }

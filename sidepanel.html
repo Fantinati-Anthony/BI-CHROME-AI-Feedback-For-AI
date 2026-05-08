@@ -238,6 +238,23 @@
             <svg class="sp-section-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
           </summary>
           <div class="sp-section-body">
+            <div class="sp-field">
+              <span class="sp-field-label" data-i18n="settings.display.theme_label">Thème</span>
+              <div class="sp-theme-grid" id="sp-theme-grid" role="radiogroup" aria-label="Thème">
+                <button class="sp-theme-btn" data-theme="dark"  type="button" role="radio" aria-checked="false">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  <span data-i18n="settings.display.theme_dark">Sombre</span>
+                </button>
+                <button class="sp-theme-btn" data-theme="light" type="button" role="radio" aria-checked="false">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                  <span data-i18n="settings.display.theme_light">Clair</span>
+                </button>
+                <button class="sp-theme-btn" data-theme="auto"  type="button" role="radio" aria-checked="false">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M3 12h9"/></svg>
+                  <span data-i18n="settings.display.theme_auto">Auto</span>
+                </button>
+              </div>
+            </div>
             <div class="sp-field sp-field-inline">
               <span class="sp-field-label" data-i18n="settings.display.font_label">Taille du texte des demandes</span>
               <div class="sp-font-ctrl">
