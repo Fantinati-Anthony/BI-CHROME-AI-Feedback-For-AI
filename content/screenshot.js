@@ -716,20 +716,34 @@
       };
     },
 
+    // Look up the picker overlay/tag inside the picker host's shadow root,
+    // with a fallback to the legacy IDs on document for older builds.
+    _pickerEls() {
+      const host = document.getElementById('biaif-picker-host');
+      const root = host && host.shadowRoot;
+      const fromShadow = root ? {
+        ov: root.getElementById('biaif-picker-overlay'),
+        tg: root.getElementById('biaif-picker-tag'),
+      } : null;
+      if (fromShadow && fromShadow.ov) return fromShadow;
+      return {
+        ov: document.getElementById('biaif-picker-overlay'),
+        tg: document.getElementById('biaif-picker-tag'),
+      };
+    },
+
     hideWidget() {
-      const host = document.getElementById('biaif-sidebar-host');
-      if (host) host.style.visibility = 'hidden';
-      const ov = document.getElementById('biaif-picker-overlay');
-      const tg = document.getElementById('biaif-picker-tag');
+      const sb = document.getElementById('biaif-sidebar-host');
+      if (sb) sb.style.visibility = 'hidden';
+      const { ov, tg } = this._pickerEls();
       if (ov) { ov.dataset.prevDisplay = ov.style.display; ov.style.display = 'none'; }
       if (tg) { tg.dataset.prevDisplay = tg.style.display; tg.style.display = 'none'; }
     },
 
     showWidget() {
-      const host = document.getElementById('biaif-sidebar-host');
-      if (host) host.style.visibility = 'visible';
-      const ov = document.getElementById('biaif-picker-overlay');
-      const tg = document.getElementById('biaif-picker-tag');
+      const sb = document.getElementById('biaif-sidebar-host');
+      if (sb) sb.style.visibility = 'visible';
+      const { ov, tg } = this._pickerEls();
       if (ov && ov.dataset.prevDisplay !== undefined) ov.style.display = ov.dataset.prevDisplay;
       if (tg && tg.dataset.prevDisplay !== undefined) tg.style.display = tg.dataset.prevDisplay;
     },

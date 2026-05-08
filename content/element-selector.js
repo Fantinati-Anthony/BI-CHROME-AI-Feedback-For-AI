@@ -14,6 +14,7 @@
 (function (window, document) {
   'use strict';
 
+  const HOST_ID    = 'biaif-picker-host';
   const OVERLAY_ID = 'biaif-picker-overlay';
   const TAG_ID     = 'biaif-picker-tag';
   let _rafPending  = false;
@@ -24,11 +25,23 @@
       lastTarget: null,
     },
 
+    host:    null,   // Shadow root host (sees no host-page CSS)
     overlay: null,
-    tag: null,
+    tag:     null,
 
     ensureOverlay() {
       if (this.overlay) return;
+      // Host element + Shadow DOM — picker UI is fully isolated from
+      // the visited page's CSS (no leaks in either direction).
+      let host = document.getElementById(HOST_ID);
+      if (!host) {
+        host = document.createElement('div');
+        host.id = HOST_ID;
+        host.style.cssText = 'all:initial;position:fixed;top:0;left:0;width:0;height:0;z-index:2147483647;pointer-events:none';
+        document.documentElement.appendChild(host);
+      }
+      const root = host.shadowRoot || host.attachShadow({ mode: 'closed' });
+
       const overlay = document.createElement('div');
       overlay.id = OVERLAY_ID;
       overlay.style.cssText = [
@@ -54,15 +67,17 @@
         'display:none',
       ].join(';');
 
-      document.documentElement.appendChild(overlay);
-      document.documentElement.appendChild(tag);
+      root.appendChild(overlay);
+      root.appendChild(tag);
+      this.host    = host;
       this.overlay = overlay;
-      this.tag = tag;
+      this.tag     = tag;
     },
 
     isOverlayElement(el) {
       if (!el) return false;
-      if (el.id === OVERLAY_ID || el.id === TAG_ID) return true;
+      // Anything inside the picker host falls back to the host id check.
+      if (el.id === HOST_ID || el.id === OVERLAY_ID || el.id === TAG_ID) return true;
       if (el.id === 'biaif-screenshot-loader') return true;
       if (el.id === 'biaif-shot-element-overlay' || el.id === 'biaif-shot-selection-overlay') return true;
       return false;
