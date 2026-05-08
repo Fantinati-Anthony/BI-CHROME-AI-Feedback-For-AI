@@ -44,8 +44,11 @@
       root.classList.toggle('is-editing-segment', editing);
       root.classList.toggle('is-empty-state', empty);
     }
+    var locked = !STATE.armed && !editing;
     var dz = document.querySelector('.demande-zone');
-    if (dz) dz.classList.toggle('is-locked', !STATE.armed && !editing);
+    if (dz) dz.classList.toggle('is-locked', locked);
+    var qt = document.querySelector('.biaif-quick-tools');
+    if (qt) qt.classList.toggle('is-locked', locked);
   }
 
   function updateErrorsBadges() {
