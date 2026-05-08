@@ -16,7 +16,7 @@
     if (!ed) return;
     ed.innerHTML = '';
     var text = ctx.STATE.currentDemande.text, refs = ctx.STATE.currentDemande.refs;
-    if (!text) { renderRefsStrip(); return; }
+    if (!text) { renderRefsStrip(); _attachTextBlocks(ed); return; }
     var re = /\{\{ref:(\d+)\}\}/g, last = 0, m;
     var Chips = window.BIAIFRender.chips;
     while ((m = re.exec(text)) !== null) {
@@ -27,6 +27,19 @@
     }
     if (last < text.length) ed.appendChild(document.createTextNode(text.slice(last)));
     renderRefsStrip();
+    _attachTextBlocks(ed);
+  }
+
+  // Wire the margin-drag-handle reorder helper on the live demande editor.
+  // Idempotent — safe to call after every render().
+  function _attachTextBlocks(ed) {
+    var TB = window.BIAIFRender.textBlocks;
+    if (!TB) return;
+    TB.attach(ed, function () {
+      if (window.BIAIFSession) window.BIAIFSession.syncCurrentDemandeFromEditor();
+      renderRefsStrip();
+      if (window.BIAIFStorage) window.BIAIFStorage.persist(ctx.STATE);
+    });
   }
 
   function renderRefsStrip() {
