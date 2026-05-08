@@ -31,6 +31,7 @@
       "run_at": "document_idle",
       "js": [
         "shared/constants.js",
+        "shared/ai-adapters.js",
         "content/css-selector.js",
         "content/element-selector.js",
         "content/screenshot.js",
@@ -44,6 +45,7 @@
       "run_at": "document_idle",
       "js": [
         "shared/constants.js",
+        "shared/ai-adapters.js",
         "content/textarea-injector.js"
       ]
     },

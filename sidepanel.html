@@ -183,6 +183,44 @@
             </span>
             <span class="sp-switch"><input type="checkbox" id="aop-done" aria-label="Ouvrir si segment archivé"><span class="sp-switch-track"><span class="sp-switch-thumb"></span></span></span>
           </label>
+
+          <label class="sp-toggle-row" for="aop-ai">
+            <span class="sp-toggle-info">
+              <span class="sp-toggle-name" data-i18n="settings.auto_open.ai_label">Page IA</span>
+              <span class="sp-toggle-hint" data-i18n="settings.auto_open.ai_hint">Ouvre le panneau dès que vous visitez claude.ai, chatgpt.com, etc.</span>
+            </span>
+            <span class="sp-switch"><input type="checkbox" id="aop-ai" aria-label="Ouvrir si sur une page IA"><span class="sp-switch-track"><span class="sp-switch-thumb"></span></span></span>
+          </label>
+        </section>
+
+        <!-- ── Zone de texte IA ── -->
+        <section class="sp-section">
+          <h3 class="sp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+            <span data-i18n="settings.hide_textarea.title">IA — Zone de texte</span>
+          </h3>
+          <label class="sp-toggle-row" for="hide-ai-textarea">
+            <span class="sp-toggle-info">
+              <span class="sp-toggle-name" data-i18n="settings.hide_textarea.label">Masquer la zone de saisie</span>
+              <span class="sp-toggle-hint" data-i18n="settings.hide_textarea.hint">Rend invisible la zone de texte native — seuls les boutons BIAIF restent visibles</span>
+            </span>
+            <span class="sp-switch"><input type="checkbox" id="hide-ai-textarea" aria-label="Masquer la zone de saisie native"><span class="sp-switch-track"><span class="sp-switch-thumb"></span></span></span>
+          </label>
+        </section>
+
+        <!-- ── Injection ── -->
+        <section class="sp-section">
+          <h3 class="sp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m16 6-4 4-4-4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>
+            <span data-i18n="settings.auto_submit.title">Injection — Envoi automatique</span>
+          </h3>
+          <label class="sp-toggle-row" for="auto-submit-inject">
+            <span class="sp-toggle-info">
+              <span class="sp-toggle-name" data-i18n="settings.auto_submit.label">Envoyer après injection</span>
+              <span class="sp-toggle-hint" data-i18n="settings.auto_submit.hint">Clique automatiquement sur le bouton d'envoi après avoir injecté le prompt dans Claude.ai</span>
+            </span>
+            <span class="sp-switch"><input type="checkbox" id="auto-submit-inject" aria-label="Envoyer automatiquement après injection"><span class="sp-switch-track"><span class="sp-switch-thumb"></span></span></span>
+          </label>
         </section>
 
         <!-- ── Affichage ── -->

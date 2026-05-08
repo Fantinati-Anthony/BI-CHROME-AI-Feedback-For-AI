@@ -720,6 +720,57 @@ html, body {
   50%       { opacity: 0.4; transform: scale(0.7); }
 }
 
+/* ── Archive zone (done segments) ────────────────────────────────────────── */
+.biaif-archive-zone {
+  margin-top: 4px;
+}
+.biaif-archive-header {
+  width: 100%;
+  background: none;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+}
+.biaif-archive-header:hover {
+  border-color: var(--accent-blue-50);
+  color: var(--text-main);
+}
+.biaif-archive-chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.biaif-archive-zone.is-expanded .biaif-archive-chevron {
+  transform: rotate(180deg);
+}
+.biaif-archive-label {
+  flex: 1;
+}
+.biaif-archive-updated {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.biaif-archive-body {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+.biaif-archive-zone.is-expanded .biaif-archive-body {
+  display: flex;
+}
+
 /* Bouton "Éditer" / "Terminer" du segment historique */
 .seg-edit-btn {
   margin-left: auto;
