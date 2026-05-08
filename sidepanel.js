@@ -55,6 +55,10 @@
     pendingRepoId:          null,  // tags next segments with this GitHub repo
     autoOpenOnKnownActive:  false, // open sidepanel when switching to a tab linked to an active segment
     autoOpenOnKnownDone:    false, // open sidepanel when switching to a tab linked to a done/archived segment
+    autoOpenOnAiPage:       false, // open sidepanel whenever switching to any known AI page (claude.ai, chatgpt.com, etc.)
+    hideAiTextarea:         false, // hide the native textarea on AI pages (leave only BIAIF buttons)
+    autoSubmitAfterInject:  false, // auto-click submit after injecting into Claude.ai
+    archiveExpanded:        false, // whether the archive zone (done segments) is expanded
   };
 
   const REFS = {};
@@ -94,8 +98,15 @@
       // Sync auto-open checkboxes
       const cbActive = document.getElementById('aop-active');
       const cbDone   = document.getElementById('aop-done');
+      const cbAiPage = document.getElementById('aop-ai');
       if (cbActive) cbActive.checked = !!STATE.autoOpenOnKnownActive;
       if (cbDone)   cbDone.checked   = !!STATE.autoOpenOnKnownDone;
+      if (cbAiPage) cbAiPage.checked = !!STATE.autoOpenOnAiPage;
+      // Sync behaviour checkboxes
+      const cbHideTa    = document.getElementById('hide-ai-textarea');
+      const cbAutoSub   = document.getElementById('auto-submit-inject');
+      if (cbHideTa)  cbHideTa.checked  = !!STATE.hideAiTextarea;
+      if (cbAutoSub) cbAutoSub.checked = !!STATE.autoSubmitAfterInject;
       _updateSpFontVal();
       window.BIAIFRenderer.updateSortToggleLabel();
       window.BIAIFRenderer.applySegFontSize();
@@ -323,14 +334,33 @@
     });
 
     // Auto-open toggles
-    ['aop-active', 'aop-done'].forEach((id) => {
+    ['aop-active', 'aop-done', 'aop-ai'].forEach((id) => {
       const cb = document.getElementById(id);
       if (!cb) return;
       cb.addEventListener('change', () => {
         if (id === 'aop-active') STATE.autoOpenOnKnownActive = cb.checked;
         if (id === 'aop-done')   STATE.autoOpenOnKnownDone   = cb.checked;
+        if (id === 'aop-ai')     STATE.autoOpenOnAiPage      = cb.checked;
         window.BIAIFStorage.persist(STATE);
       });
+    });
+
+    // Behaviour toggles
+    const cbHideTa = document.getElementById('hide-ai-textarea');
+    if (cbHideTa) cbHideTa.addEventListener('change', () => {
+      STATE.hideAiTextarea = cbHideTa.checked;
+      window.BIAIFStorage.persist(STATE);
+      // Notify active tab content script to apply/remove hide style
+      try {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs && tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'biaif:hide-ai-textarea', hide: cbHideTa.checked }).catch(() => {});
+        });
+      } catch (_) {}
+    });
+    const cbAutoSub = document.getElementById('auto-submit-inject');
+    if (cbAutoSub) cbAutoSub.addEventListener('change', () => {
+      STATE.autoSubmitAfterInject = cbAutoSub.checked;
+      window.BIAIFStorage.persist(STATE);
     });
 
     // UI language buttons

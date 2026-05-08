@@ -106,6 +106,54 @@
   // -----------------------------------------------------------------------
   // Message listener
   // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // Submit button helpers
+  // -----------------------------------------------------------------------
+  var SUBMIT_SELECTORS = (function () {
+    var adapters = (window.BIAIF && window.BIAIF.AI_ADAPTERS) || [];
+    var h = location.hostname;
+    for (var i = 0; i < adapters.length; i++) {
+      var a = adapters[i];
+      if (h === a.host || h.endsWith('.' + a.host)) return a.submitBtn || [];
+    }
+    return [];
+  })();
+
+  function findSubmitBtn() {
+    // Try adapter-specific selectors first
+    for (var i = 0; i < SUBMIT_SELECTORS.length; i++) {
+      try {
+        var el = document.querySelector(SUBMIT_SELECTORS[i]);
+        if (el && !el.disabled) return el;
+      } catch (_) {}
+    }
+    // Generic fallback: button with a send/arrow SVG near the editor
+    try {
+      var btns = document.querySelectorAll('button[type="submit"], button[aria-label*="Send" i], button[aria-label*="Envoyer" i]');
+      for (var j = 0; j < btns.length; j++) {
+        if (!btns[j].disabled) return btns[j];
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  async function clickSubmit() {
+    await sleep(300); // let editor settle after injection
+    for (var attempt = 0; attempt < 8; attempt++) {
+      var btn = findSubmitBtn();
+      if (btn) { btn.click(); return true; }
+      await sleep(200);
+    }
+    // Last resort: press Enter in the editor
+    var editor = findEditor();
+    if (editor) {
+      editor.focus();
+      await sleep(80);
+      editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }));
+    }
+    return false;
+  }
+
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     if (!msg || msg.type !== window.BIAIF.MSG.INJECT_TO_EDITOR) return;
     if (sender.id && sender.id !== chrome.runtime.id) return;
@@ -139,6 +187,9 @@
         }).catch(function () {});
         await sleep(150);
       }
+
+      // 3. Optional auto-submit
+      if (msg.autoSubmit) await clickSubmit();
 
       sendResponse({ ok: true, text: !!msg.text, images: images.length });
     })();

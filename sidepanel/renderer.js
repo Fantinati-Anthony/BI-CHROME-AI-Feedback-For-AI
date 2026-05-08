@@ -90,14 +90,107 @@
     var display = filtered.slice();
     if (STATE.sortOrder === 'desc') display.reverse();
 
-    display.forEach(function (item) {
+    // Split into active (non-done) and archived (done)
+    var active   = display.filter(function (item) { return item.dem.status !== 'done'; });
+    var archived = display.filter(function (item) { return item.dem.status === 'done'; });
+
+    active.forEach(function (item) {
       var card = _buildSegmentCard(item.dem, item.origIndex);
       REFS.segments.appendChild(card);
     });
 
+    // Archive zone
+    if (archived.length) {
+      var zone = _buildArchiveZone(archived);
+      REFS.segments.appendChild(zone);
+    }
+
     _reattach(qt);
     updateMasterBtnLabel();
     updateArmedUi();
+  }
+
+  // -----------------------------------------------------------------------
+  // Archive zone (collapsible, contains "done" segments)
+  // -----------------------------------------------------------------------
+
+  function _relTime(ts) {
+    if (!ts) return '';
+    var sec = Math.round((Date.now() - ts) / 1000);
+    if (sec < 60) return _t('archive.sec', sec + ' s', { n: sec });
+    var min = Math.round(sec / 60);
+    return _t('archive.min', min + ' min', { n: min });
+  }
+
+  // Compute latest responseReceivedAt across archived items
+  function _latestArchiveTs(archived) {
+    var latest = 0;
+    archived.forEach(function (item) {
+      var t = item.dem.responseReceivedAt || item.dem.submittedAt || item.dem.ts || 0;
+      if (t > latest) latest = t;
+    });
+    return latest;
+  }
+
+  function _buildArchiveZone(archived) {
+    var zone = document.createElement('div');
+    zone.className = 'biaif-archive-zone' + (STATE.archiveExpanded ? ' is-expanded' : '');
+
+    var ts     = _latestArchiveTs(archived);
+    var relT   = _relTime(ts);
+    var countLabel = _t('archive.toggle', archived.length + ' archivée(s)', { n: archived.length });
+    var updLabel   = relT ? _t('archive.updated', 'MAJ il y a ' + relT, { t: relT }) : '';
+
+    var header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'biaif-archive-header';
+    header.setAttribute('aria-expanded', STATE.archiveExpanded ? 'true' : 'false');
+    header.innerHTML =
+      '<svg class="biaif-archive-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
+      '<span class="biaif-archive-label">' + _t('archive.toggle', '{n} archivée(s)', { n: archived.length }) + '</span>' +
+      (updLabel ? '<span class="biaif-archive-updated">' + updLabel + '</span>' : '');
+
+    header.addEventListener('click', function () {
+      STATE.archiveExpanded = !STATE.archiveExpanded;
+      zone.classList.toggle('is-expanded', STATE.archiveExpanded);
+      header.setAttribute('aria-expanded', STATE.archiveExpanded ? 'true' : 'false');
+      if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    });
+
+    var body = document.createElement('div');
+    body.className = 'biaif-archive-body';
+
+    archived.forEach(function (item) {
+      var card = _buildSegmentCard(item.dem, item.origIndex);
+      body.appendChild(card);
+    });
+
+    zone.appendChild(header);
+    zone.appendChild(body);
+
+    // Update archive header relative time every 30s
+    if (!window.__biaif_archive_timer__) {
+      window.__biaif_archive_timer__ = setInterval(function () {
+        document.querySelectorAll('.biaif-archive-updated').forEach(function (el) {
+          var zone2 = el.closest('.biaif-archive-zone');
+          if (!zone2) return;
+          var cards = zone2.querySelectorAll('.biaif-segment');
+          var latest = 0;
+          cards.forEach(function (card) {
+            var idx = Number(card.dataset.i);
+            var dem = STATE.demandes[idx];
+            if (!dem) return;
+            var t = dem.responseReceivedAt || dem.submittedAt || dem.ts || 0;
+            if (t > latest) latest = t;
+          });
+          if (!latest) return;
+          var rel = _relTime(latest);
+          if (rel) el.textContent = _t('archive.updated', 'MAJ il y a ' + rel, { t: rel });
+        });
+      }, 30000);
+    }
+
+    return zone;
   }
 
   function _hostname(url) {

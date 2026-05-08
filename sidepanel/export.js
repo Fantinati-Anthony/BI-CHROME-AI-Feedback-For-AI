@@ -286,10 +286,11 @@
     try {
       var resp = await new Promise(function (resolve, reject) {
         chrome.runtime.sendMessage({
-          type:      window.BIAIF.MSG.INJECT_TO_EDITOR,
-          text:      text,
-          images:    images,
-          targetUrl: dem.conversationUrl || null,
+          type:        window.BIAIF.MSG.INJECT_TO_EDITOR,
+          text:        text,
+          images:      images,
+          targetUrl:   dem.conversationUrl || null,
+          autoSubmit:  !!(STATE.autoSubmitAfterInject),
         }, function (r) {
           if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
           else resolve(r || {});

@@ -3,6 +3,7 @@
  */
 
 importScripts('shared/constants.js');
+importScripts('shared/ai-adapters.js');
 
 const MIN_CAPTURE_INTERVAL_MS = 1500;
 const MAX_CAPTURE_ATTEMPTS = 3;
@@ -193,8 +194,21 @@ async function checkAutoOpenForTab(tabId, tabUrl) {
     const result = await chrome.storage.local.get(self.BIAIF.STORAGE_KEY);
     const saved = result[self.BIAIF.STORAGE_KEY];
     if (!saved) return;
-    const onActive = !!saved.autoOpenOnKnownActive;
-    const onDone   = !!saved.autoOpenOnKnownDone;
+    const onActive  = !!saved.autoOpenOnKnownActive;
+    const onDone    = !!saved.autoOpenOnKnownDone;
+    const onAiPage  = !!saved.autoOpenOnAiPage;
+
+    // Feature: open on any known AI page (claude.ai, chatgpt.com, etc.)
+    if (onAiPage) {
+      try {
+        const tabHostname = new URL(tabUrl).hostname;
+        const isAiPage = (self.BIAIF.AI_ADAPTERS || []).some((a) =>
+          tabHostname === a.host || tabHostname.endsWith('.' + a.host)
+        );
+        if (isAiPage) { await chrome.sidePanel.open({ tabId }); return; }
+      } catch (_) {}
+    }
+
     if (!onActive && !onDone) return;
     const demandes = saved.demandes || [];
     const shouldOpen = demandes.some((dem) => {

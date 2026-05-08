@@ -25,6 +25,20 @@
         // fallback: no opacity class (element simply disappears when done)
         'div.text-assistant-secondary.tabular-nums:not(.opacity-0)',
       ],
+      // CSS selectors for the native input area to hide (opacity:0, keeping layout).
+      // Applied when hideAiTextarea setting is on.
+      inputHide: [
+        'div[contenteditable="true"][aria-label="Prompt"].ProseMirror',
+        'div.tiptap[contenteditable="true"]',
+        'div.ProseMirror[contenteditable="true"]',
+      ],
+      // Submit button selectors (for auto-submit after injection)
+      submitBtn: [
+        'button[aria-label="Send message"]',
+        'button[aria-label*="Send"]',
+        'button[data-testid="send-button"]',
+        'button[type="submit"]',
+      ],
     },
     {
       host: 'chatgpt.com',

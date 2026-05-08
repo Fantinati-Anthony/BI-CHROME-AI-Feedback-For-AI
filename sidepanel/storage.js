@@ -35,6 +35,12 @@
       if (saved.visibleButtons && typeof saved.visibleButtons === 'object')
         STATE.visibleButtons = Object.assign({}, STATE.visibleButtons, saved.visibleButtons);
       if (typeof saved.uiLang === 'string' && saved.uiLang) STATE.uiLang = saved.uiLang;
+      if (typeof saved.autoOpenOnKnownActive  === 'boolean') STATE.autoOpenOnKnownActive  = saved.autoOpenOnKnownActive;
+      if (typeof saved.autoOpenOnKnownDone    === 'boolean') STATE.autoOpenOnKnownDone    = saved.autoOpenOnKnownDone;
+      if (typeof saved.autoOpenOnAiPage       === 'boolean') STATE.autoOpenOnAiPage       = saved.autoOpenOnAiPage;
+      if (typeof saved.hideAiTextarea         === 'boolean') STATE.hideAiTextarea         = saved.hideAiTextarea;
+      if (typeof saved.autoSubmitAfterInject  === 'boolean') STATE.autoSubmitAfterInject  = saved.autoSubmitAfterInject;
+      if (typeof saved.archiveExpanded        === 'boolean') STATE.archiveExpanded        = saved.archiveExpanded;
 
     } catch (e) {
       console.warn('[BIAIF Storage] hydrate failed', e && e.message);
@@ -75,14 +81,20 @@
   // -----------------------------------------------------------------------
   function _buildPayload(STATE) {
     return {
-      demandes:       STATE.demandes,
-      currentDemande: STATE.currentDemande,
-      lang:           STATE.lang,
-      micDeviceId:    STATE.micDeviceId,
-      sortOrder:      STATE.sortOrder,
-      segFontSize:    STATE.segFontSize,
-      visibleButtons: STATE.visibleButtons,
-      uiLang:         STATE.uiLang,
+      demandes:              STATE.demandes,
+      currentDemande:        STATE.currentDemande,
+      lang:                  STATE.lang,
+      micDeviceId:           STATE.micDeviceId,
+      sortOrder:             STATE.sortOrder,
+      segFontSize:           STATE.segFontSize,
+      visibleButtons:        STATE.visibleButtons,
+      uiLang:                STATE.uiLang,
+      autoOpenOnKnownActive: STATE.autoOpenOnKnownActive,
+      autoOpenOnKnownDone:   STATE.autoOpenOnKnownDone,
+      autoOpenOnAiPage:      STATE.autoOpenOnAiPage,
+      hideAiTextarea:        STATE.hideAiTextarea,
+      autoSubmitAfterInject: STATE.autoSubmitAfterInject,
+      archiveExpanded:       STATE.archiveExpanded,
     };
   }
 

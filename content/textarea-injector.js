@@ -76,6 +76,57 @@
     (document.head || document.documentElement).appendChild(s);
   }
 
+  /* ── hide-textarea feature ──────────────────────────────────────────────── */
+
+  var HIDE_STYLE_ID = '__biaif_hide_ta__';
+  var _adapter = null;
+
+  (function _initAdapter() {
+    var h = location.hostname;
+    var adapters = (window.BIAIF && window.BIAIF.AI_ADAPTERS) || [];
+    for (var i = 0; i < adapters.length; i++) {
+      if (h === adapters[i].host || h.endsWith('.' + adapters[i].host)) {
+        _adapter = adapters[i];
+        break;
+      }
+    }
+  })();
+
+  function _applyHideTextarea(hide) {
+    var existing = document.getElementById(HIDE_STYLE_ID);
+    if (!hide) {
+      if (existing) existing.remove();
+      return;
+    }
+    if (!_adapter || !_adapter.inputHide || !_adapter.inputHide.length) return;
+    var selectors = _adapter.inputHide.join(', ');
+    var css = selectors + ' { opacity: 0 !important; caret-color: transparent !important; }';
+    if (existing) { existing.textContent = css; return; }
+    var s = document.createElement('style');
+    s.id = HIDE_STYLE_ID;
+    s.textContent = css;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  // Load initial setting from storage
+  if (_adapter) {
+    try {
+      var _storageKey = (window.BIAIF && window.BIAIF.STORAGE_KEY) || 'biaif:v04:state';
+      chrome.storage.local.get([_storageKey], function (result) {
+        var saved = result && result[_storageKey];
+        if (saved && saved.hideAiTextarea) _applyHideTextarea(true);
+      });
+    } catch (_) {}
+  }
+
+  // Listen for runtime messages to toggle
+  try {
+    chrome.runtime.onMessage.addListener(function (msg) {
+      if (!msg || msg.type !== 'biaif:hide-ai-textarea') return;
+      _applyHideTextarea(!!msg.hide);
+    });
+  } catch (_) {}
+
   /* ── tracked elements ───────────────────────────────────────────────────── */
 
   // Map<Element, { pair:Element, ro:ResizeObserver, io:IntersectionObserver }>
