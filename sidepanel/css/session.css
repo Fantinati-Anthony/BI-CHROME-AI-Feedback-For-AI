@@ -130,12 +130,20 @@
   background: rgba(255, 69, 58, 0.08);
 }
 
-/* ─── Topbar tools row (search / sort / font / settings) ─────────── */
+/* ─── Topbar row : [session-bar | topbar-tools] on a single line ── */
+.topbar-row {
+  display: flex; align-items: stretch; gap: 8px;
+  min-width: 0;
+}
+.topbar-row .session-bar {
+  flex: 1; min-width: 0;
+}
+
+/* ─── Topbar tools (search / sort / font / settings) ─────────── */
 .topbar-tools {
   display: flex; align-items: center; gap: 6px;
-  padding-top: 2px;
+  flex-shrink: 0;
 }
-.topbar-tools .topbar-icon-btn:last-child { margin-left: auto; }
 
 /* Expandable search input */
 .topbar-search-input {
