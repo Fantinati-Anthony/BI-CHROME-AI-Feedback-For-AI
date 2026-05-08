@@ -301,7 +301,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           }
           // Retry until the content script + editor are both ready (max 15s)
           const resp = await injectWithRetry(targetTabId, msg);
-          sendResponse(resp);
+          // Include the tab ID so the sidepanel can match AI_RESPONSE_DONE by tab
+          sendResponse(Object.assign({}, resp, { targetTabId }));
         } else {
           const resp = await sendToActiveTabContent(msg);
           sendResponse(resp);
@@ -334,7 +335,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   // Content script → SW → sidepanel: AI generating / response done
   if (msg.type === MSG.AI_STATUS_UPDATE || msg.type === MSG.AI_RESPONSE_DONE) {
-    chrome.runtime.sendMessage(msg).catch(() => {});
+    // Include the sender tab ID so the sidepanel can match regardless of URL navigation
+    chrome.runtime.sendMessage(Object.assign({}, msg, { tabId: sender.tab && sender.tab.id })).catch(() => {});
     return;
   }
 
