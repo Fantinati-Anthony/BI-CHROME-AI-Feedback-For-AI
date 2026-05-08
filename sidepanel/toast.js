@@ -29,8 +29,15 @@
     var c = ensureContainer();
     if (!c) return;
 
-    // Evict oldest toast if bar is full
-    while (c.children.length >= MAX_TOASTS) {
+    // If full, replace the oldest *real* toast with an overflow badge
+    // ("+N autres") instead of dropping silently — feedback never lost.
+    var nonBadge = function () {
+      return Array.prototype.filter.call(c.children, function (el) {
+        return !el.classList.contains('biaif-toast--overflow');
+      });
+    };
+    while (nonBadge().length >= MAX_TOASTS) {
+      _bumpOverflow(c);
       dismiss(c.firstElementChild, true);
     }
 
@@ -65,6 +72,30 @@
     }
 
     return toast;
+  }
+
+  // Overflow badge: increments a "+N autres" pill at the top of the stack.
+  // Auto-dismisses when its count drops to zero (rare in practice).
+  function _bumpOverflow(c) {
+    var badge = c.querySelector('.biaif-toast--overflow');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'biaif-toast biaif-toast--overflow biaif-toast--info is-visible';
+      badge.setAttribute('role', 'status');
+      badge.dataset.count = '0';
+      var msg = document.createElement('span');
+      msg.className = 'toast-msg';
+      badge.appendChild(msg);
+      c.insertBefore(badge, c.firstChild);
+      // Auto-clear after 8s.
+      setTimeout(function () { dismiss(badge); }, 8000);
+    }
+    var n = (Number(badge.dataset.count) || 0) + 1;
+    badge.dataset.count = String(n);
+    var label = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.t)
+      ? window.BIAIF.utils.t('toast.overflow', '+ {n} autres', { n: n })
+      : '+ ' + n + ' autres';
+    badge.querySelector('.toast-msg').textContent = label.replace('{n}', n);
   }
 
   function dismiss(toast, immediate) {

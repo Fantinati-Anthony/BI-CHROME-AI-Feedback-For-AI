@@ -189,6 +189,35 @@
     });
   }
 
+  // Live cross-device sync — listen for changes pushed from another machine
+  // and merge them into STATE without losing local-only fields. Last-write
+  // wins for any whitelisted key; for templates we replace wholesale (the
+  // sync payload always carries the full list).
+  function watchSync(STATE, onPulled) {
+    if (!chrome.storage || !chrome.storage.onChanged) return function () {};
+    var lastTs = 0;
+    var listener = function (changes, area) {
+      if (area !== 'sync' || !changes[SYNC_KEY]) return;
+      var d = changes[SYNC_KEY].newValue;
+      if (!d || typeof d !== 'object') return;
+      // Ignore the change we just wrote ourselves (loop-back)
+      if (d._ts && d._ts <= lastTs) return;
+      lastTs = d._ts || Date.now();
+      var changed = false;
+      SYNC_KEYS_WHITELIST.forEach(function (k) {
+        if (d[k] !== undefined && JSON.stringify(STATE[k]) !== JSON.stringify(d[k])) {
+          STATE[k] = d[k]; changed = true;
+        }
+      });
+      if (Array.isArray(d.templates) && JSON.stringify(STATE.templates) !== JSON.stringify(d.templates)) {
+        STATE.templates = d.templates; changed = true;
+      }
+      if (changed && typeof onPulled === 'function') onPulled();
+    };
+    chrome.storage.onChanged.addListener(listener);
+    return function () { chrome.storage.onChanged.removeListener(listener); };
+  }
+
   // -----------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------
@@ -408,6 +437,7 @@
     exportToFile: exportToFile,
     importBundle: importBundle,
     pullFromSync: pullFromSync,
+    watchSync:    watchSync,
   };
 
 })(window);

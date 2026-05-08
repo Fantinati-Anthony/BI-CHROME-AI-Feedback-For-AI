@@ -333,24 +333,43 @@
     if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', function () { H.hideReloadModal(); });
   }
 
+  var _syncUnsubscribe = null;
+  function _ensureSyncWatcher(STATE) {
+    if (_syncUnsubscribe) return;
+    if (!window.BIAIFStorage.watchSync) return;
+    _syncUnsubscribe = window.BIAIFStorage.watchSync(STATE, function () {
+      // Live update from another device → re-render visible UI.
+      window.BIAIFRenderer.renderSegments();
+      window.BIAIFRenderer.updateMasterBtnLabel();
+      window.BIAIFRenderer.updateArmedUi();
+      window.BIAIFToast.show(_t('toast.sync_remote_update', 'Réglages synchronisés depuis un autre appareil.'), 'info', 2500);
+    });
+  }
+
   function _bindSyncToggle() {
     var STATE = ctx.STATE;
     var cb = document.getElementById('sync-enabled');
     if (!cb) return;
     cb.checked = !!STATE.syncEnabled;
+    if (STATE.syncEnabled) _ensureSyncWatcher(STATE);
     cb.addEventListener('change', async function () {
       STATE.syncEnabled = cb.checked;
       window.BIAIFStorage.persist(STATE);
-      if (cb.checked && window.BIAIFStorage.pullFromSync) {
-        var pulled = await window.BIAIFStorage.pullFromSync(STATE);
-        if (pulled) {
-          window.BIAIFRenderer.renderSegments();
-          window.BIAIFRenderer.updateMasterBtnLabel();
-          window.BIAIFRenderer.updateArmedUi();
-          window.BIAIFToast.show(_t('toast.sync_pulled', 'Synchronisation réussie.'), 'success');
-        } else {
-          window.BIAIFToast.show(_t('toast.sync_enabled', 'Sync activée — vos réglages seront partagés.'), 'info');
+      if (cb.checked) {
+        _ensureSyncWatcher(STATE);
+        if (window.BIAIFStorage.pullFromSync) {
+          var pulled = await window.BIAIFStorage.pullFromSync(STATE);
+          if (pulled) {
+            window.BIAIFRenderer.renderSegments();
+            window.BIAIFRenderer.updateMasterBtnLabel();
+            window.BIAIFRenderer.updateArmedUi();
+            window.BIAIFToast.show(_t('toast.sync_pulled', 'Synchronisation réussie.'), 'success');
+          } else {
+            window.BIAIFToast.show(_t('toast.sync_enabled', 'Sync activée — vos réglages seront partagés.'), 'info');
+          }
         }
+      } else if (_syncUnsubscribe) {
+        _syncUnsubscribe(); _syncUnsubscribe = null;
       }
     });
   }
