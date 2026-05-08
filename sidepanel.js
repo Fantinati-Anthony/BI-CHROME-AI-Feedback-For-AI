@@ -505,29 +505,40 @@
         return;
       }
       if (msg.type === _MSG('AI_STATUS_UPDATE')) {
-        onAiStatusUpdate(msg.conversationUrl, msg.status);
+        onAiStatusUpdate(msg.conversationUrl, msg.status, msg.tabId);
         return;
       }
       if (msg.type === _MSG('AI_RESPONSE_DONE')) {
-        onAiResponseDone(msg.conversationUrl);
+        onAiResponseDone(msg.conversationUrl, msg.tabId);
         return;
       }
     });
   }
 
-  function onAiStatusUpdate(conversationUrl, status) {
+  function _matchesAiEvent(dem, conversationUrl, tabId) {
+    if (dem.status !== 'submitted') return false;
+    // 1. Tab ID match — most reliable (survives URL navigation e.g. /new → /chat/UUID)
+    if (tabId && dem.submittedTabId === tabId) return true;
+    // 2. Exact URL match
+    if (dem.conversationUrl && dem.conversationUrl === conversationUrl) return true;
+    // 3. Same hostname fallback — handles copy-open where URL was /new at stamp time
+    try {
+      if (dem.conversationUrl && conversationUrl &&
+          new URL(dem.conversationUrl).hostname === new URL(conversationUrl).hostname) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  function onAiStatusUpdate(conversationUrl, status, tabId) {
     if (status !== 'generating') return;
-    // Re-render to show generating pulse on any 'submitted' segment linked to this conversation
-    var matched = STATE.demandes.some(function (d) {
-      return d.conversationUrl === conversationUrl && d.status === 'submitted';
-    });
+    var matched = STATE.demandes.some(function (d) { return _matchesAiEvent(d, conversationUrl, tabId); });
     if (matched) window.BIAIFRenderer.renderSegments();
   }
 
-  function onAiResponseDone(conversationUrl) {
+  function onAiResponseDone(conversationUrl, tabId) {
     var matched = false;
     STATE.demandes.forEach(function (dem) {
-      if (dem.conversationUrl === conversationUrl && dem.status === 'submitted') {
+      if (_matchesAiEvent(dem, conversationUrl, tabId)) {
         dem.status = 'done';
         dem.responseReceivedAt = Date.now();
         matched = true;

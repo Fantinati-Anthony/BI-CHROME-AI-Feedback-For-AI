@@ -302,7 +302,9 @@
       } else {
         var imgInfo = images.length ? ' + ' + images.length + ' image(s)' : '';
         _toast(_t('toast.injected', 'Demande #' + (idx + 1) + ' injectée' + imgInfo + '.', { n: idx + 1, imgs: imgInfo }), 'success');
-        _stampSubmitted(STATE.demandes[idx], 'Claude Code');
+        var dem = STATE.demandes[idx];
+        if (dem && resp.targetTabId) dem.submittedTabId = resp.targetTabId;
+        _stampSubmitted(dem, 'Claude Code');
       }
     } catch (e) {
       _hideProgress();

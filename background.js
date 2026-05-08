@@ -143,7 +143,7 @@ function waitForTabLoaded(tabId, timeoutMs) {
     const timer = setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(listener);
       resolve();
-    }, timeoutMs || 10000);
+    }, timeoutMs || 15000);
     function listener(id, changeInfo) {
       if (id === tabId && changeInfo.status === 'complete') {
         clearTimeout(timer);
@@ -153,6 +153,36 @@ function waitForTabLoaded(tabId, timeoutMs) {
     }
     chrome.tabs.onUpdated.addListener(listener);
   });
+}
+
+/**
+ * Retry sending msg to tabId until the content script confirms the editor is
+ * ready (resp.ok) or we hit the timeout.  Two expected "retry" signals:
+ *   - sendMessage throws  → content script not yet injected (document_idle pending)
+ *   - resp.error === 'editor not found' → page loaded but editor DOM not rendered yet
+ */
+async function injectWithRetry(tabId, msg, { intervalMs = 400, maxMs = 15000 } = {}) {
+  const deadline = Date.now() + maxMs;
+  while (Date.now() < deadline) {
+    await sleep(intervalMs);
+    let resp;
+    try {
+      resp = await chrome.tabs.sendMessage(tabId, msg);
+    } catch (e) {
+      const err = e?.message || String(e);
+      // Content script not loaded yet — keep retrying
+      if (err.includes('Could not establish connection') ||
+          err.includes('Receiving end does not exist') ||
+          err.includes('No tab with id')) {
+        continue;
+      }
+      return { error: err };
+    }
+    if (resp && resp.ok) return resp;
+    if (resp && resp.error === 'editor not found') continue; // editor DOM not ready yet
+    return resp || {}; // any other response (including unexpected errors) — return as-is
+  }
+  return { error: 'injection timeout: editor not found after ' + Math.round(maxMs / 1000) + 's' };
 }
 
 // ---------- auto-open sidepanel when switching to known tab URL -----------
@@ -254,7 +284,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     (async () => {
       try {
         if (msg.targetUrl) {
-          // Find an existing tab whose URL matches the conversation URL
           const allTabs = await chrome.tabs.query({});
           const baseUrl = msg.targetUrl.split('?')[0];
           const existing = allTabs.find((t) =>
@@ -265,15 +294,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             await chrome.tabs.update(existing.id, { active: true });
             try { await chrome.windows.update(existing.windowId, { focused: true }); } catch (_) {}
             targetTabId = existing.id;
-            await sleep(400); // wait for tab activation
           } else {
             const newTab = await chrome.tabs.create({ url: msg.targetUrl });
             targetTabId = newTab.id;
             await waitForTabLoaded(targetTabId);
-            await sleep(1000); // wait for page scripts to settle
           }
-          const resp = await chrome.tabs.sendMessage(targetTabId, msg).catch((e) => ({ error: e?.message || String(e) }));
-          sendResponse(resp || {});
+          // Retry until the content script + editor are both ready (max 15s)
+          const resp = await injectWithRetry(targetTabId, msg);
+          // Include the tab ID so the sidepanel can match AI_RESPONSE_DONE by tab
+          sendResponse(Object.assign({}, resp, { targetTabId }));
         } else {
           const resp = await sendToActiveTabContent(msg);
           sendResponse(resp);
@@ -306,7 +335,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   // Content script → SW → sidepanel: AI generating / response done
   if (msg.type === MSG.AI_STATUS_UPDATE || msg.type === MSG.AI_RESPONSE_DONE) {
-    chrome.runtime.sendMessage(msg).catch(() => {});
+    // Include the sender tab ID so the sidepanel can match regardless of URL navigation
+    chrome.runtime.sendMessage(Object.assign({}, msg, { tabId: sender.tab && sender.tab.id })).catch(() => {});
     return;
   }
 
