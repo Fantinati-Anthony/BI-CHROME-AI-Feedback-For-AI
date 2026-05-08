@@ -1,0 +1,18 @@
+{
+  "name": "biaif",
+  "version": "0.4.0",
+  "private": true,
+  "description": "BIAIF — BI Chrome AI Feedback For AI (Chrome MV3 extension).",
+  "scripts": {
+    "test":          "vitest run",
+    "test:watch":    "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint":          "eslint . --ext .js"
+  },
+  "devDependencies": {
+    "vitest":              "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "jsdom":               "^24.0.0",
+    "eslint":              "^8.57.0"
+  }
+}
