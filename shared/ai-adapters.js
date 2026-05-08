@@ -16,12 +16,14 @@
         'button.stop-button',
         'button[data-value="stop"]',
       ],
-      // Element visible ONLY while Claude is thinking or generating
-      // ("2m 45s" reflection timer shown during extended thinking / streaming)
+      // Element visible ONLY while Claude is thinking or generating.
+      // After generation Claude sets opacity-0 (transition-opacity) without
+      // removing the element from the DOM — require opacity-100 to be present.
       generatingEl: [
-        'div.text-assistant-secondary.tabular-nums',
-        'div.tabular-nums.text-assistant-secondary',
-        '[class*="tabular-nums"][class*="assistant-secondary"]',
+        'div.text-assistant-secondary.tabular-nums.opacity-100',
+        'div.tabular-nums.text-assistant-secondary.opacity-100',
+        // fallback: no opacity class (element simply disappears when done)
+        'div.text-assistant-secondary.tabular-nums:not(.opacity-0)',
       ],
     },
     {

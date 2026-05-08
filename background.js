@@ -301,11 +301,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           }
           // Retry until the content script + editor are both ready (max 15s)
           const resp = await injectWithRetry(targetTabId, msg);
-          // Include the tab ID so the sidepanel can match AI_RESPONSE_DONE by tab
-          sendResponse(Object.assign({}, resp, { targetTabId }));
+          // Return tabId + actual URL (may differ from targetUrl after SPA navigation)
+          const tabAfter = await chrome.tabs.get(targetTabId).catch(() => null);
+          sendResponse(Object.assign({}, resp, {
+            targetTabId,
+            tabUrl: tabAfter && tabAfter.url,
+          }));
         } else {
+          // No targetUrl: inject into whichever tab is active; still return its ID
+          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => [null]);
           const resp = await sendToActiveTabContent(msg);
-          sendResponse(resp);
+          sendResponse(Object.assign({}, resp, {
+            targetTabId: activeTab && activeTab.id,
+            tabUrl:      activeTab && activeTab.url,
+          }));
         }
       } catch (e) {
         sendResponse({ error: e?.message || String(e) });
