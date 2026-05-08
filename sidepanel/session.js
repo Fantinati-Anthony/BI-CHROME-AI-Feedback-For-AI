@@ -51,7 +51,15 @@
   var MAX_DEMANDE_LEN = 50000;
 
   function finalizeDemande(silent) {
-    if (STATE.editingDemandeIdx !== null) { exitEditMode(); return; }
+    if (STATE.editingDemandeIdx !== null) {
+      // Unified editor → save changes back to the segment then exit
+      _saveEditToDemande();
+      var updatedIdx = STATE.editingDemandeIdx;
+      exitEditMode({ silent: true });
+      window.BIAIFStorage.persist(STATE);
+      if (!silent) _toast(_t('toast.demande_updated', 'Demande #' + (updatedIdx + 1) + ' mise à jour.', { n: updatedIdx + 1 }), 'success');
+      return;
+    }
     // Auto-arm silently on first save (no mic/picker forced, user controls those).
     if (!STATE.armed) {
       STATE.armed = true;
@@ -95,37 +103,77 @@
   function nextVoiceSegment() { finalizeDemande(false); }
 
   // -----------------------------------------------------------------------
-  // Edit mode
+  // Edit mode — unified editor zone (top editor is reused for both new and edit)
   // -----------------------------------------------------------------------
   function enterEditMode(idx) {
-    if (idx == null || idx === STATE.editingDemandeIdx) return;
+    if (idx == null || idx === STATE.editingDemandeIdx) {
+      // Second click on same card → save and exit
+      if (idx === STATE.editingDemandeIdx) finalizeDemande(false);
+      return;
+    }
     if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
+    var dem = STATE.demandes[idx];
+    if (!dem) return;
     window.BIAIFSpeech.clearInterimGhost();
+
+    // Backup the new-demande draft so we can restore it when exiting edit mode
+    STATE._draftBackup = {
+      text: STATE.currentDemande.text,
+      refs: STATE.currentDemande.refs.slice(),
+      pageUrl: STATE.currentDemande.pageUrl,
+    };
+
+    // Load the segment into the top editor via currentDemande
+    STATE.currentDemande = { text: dem.text || '', refs: (dem.refs || []).slice(), pageUrl: dem.url || null };
     STATE.editingDemandeIdx = idx;
-    STATE.dictationTarget   = idx;
+    STATE.dictationTarget   = 'current';
     STATE.modalTarget       = 'current';
+
     if (!STATE.micActive) window.BIAIFSpeech.startMic();
     if (!STATE.pickerActive) _sendBg({ type: _MSG('PICKER_ENABLE') });
+
+    window.BIAIFRenderer.renderDemandeEditor();
     window.BIAIFRenderer.renderSegments();
     window.BIAIFRenderer.updateArmedUi();
+    window.BIAIFRenderer.updateMasterBtnLabel();
+    window.BIAIFRenderer.updateEditorContext(idx, dem.url || null);
+
     setTimeout(function () {
-      var card   = document.querySelector('.biaif-segment[data-i="' + idx + '"]');
-      if (card)  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      var textEl = document.querySelector('.demande-text[data-i="' + idx + '"]');
-      if (textEl) textEl.focus();
+      if (REFS.demandeEditor) REFS.demandeEditor.focus();
     }, 30);
     _toast(_t('toast.edit_mode_entered', 'Édition de la demande #' + (idx + 1) + ' — voix, picker, capture s\'y insèrent.', { n: idx + 1 }), 'info', 3000);
   }
 
+  function _saveEditToDemande() {
+    var idx = STATE.editingDemandeIdx;
+    if (idx === null || idx === undefined) return;
+    var dem = STATE.demandes[idx];
+    if (!dem) return;
+    syncCurrentDemandeFromEditor();
+    dem.text = STATE.currentDemande.text;
+    dem.refs = STATE.currentDemande.refs.slice();
+  }
+
   function exitEditMode(opts) {
     if (STATE.editingDemandeIdx === null) return;
+    if (!opts || !opts.silent) _saveEditToDemande();
     window.BIAIFSpeech.clearInterimGhost();
+
+    // Restore the new-demande draft
+    STATE.currentDemande = STATE._draftBackup || { text: '', refs: [], pageUrl: null };
+    STATE._draftBackup   = null;
     STATE.editingDemandeIdx = null;
     STATE.dictationTarget   = 'current';
+
     if (!STATE.armed && STATE.pickerActive) _sendBg({ type: _MSG('PICKER_DISABLE') });
+
+    window.BIAIFRenderer.renderDemandeEditor();
     window.BIAIFRenderer.renderSegments();
     window.BIAIFRenderer.updateArmedUi();
-    if (!opts || !opts.silent) _toast(_t('toast.edit_mode_exited', 'Mode édition terminé.'), 'info');
+    window.BIAIFRenderer.updateMasterBtnLabel();
+    window.BIAIFRenderer.updateEditorContext(null, null);
+
+    if (!opts || !opts.silent) _toast(_t('toast.edit_mode_exited', 'Demande mise à jour.'), 'success');
   }
 
   // -----------------------------------------------------------------------
@@ -149,25 +197,12 @@
       }
     } catch (_) {}
 
-    var idx = activeTargetIdx();
-    if (typeof idx === 'number') {
-      var dem = STATE.demandes[idx];
-      if (!dem) return false;
-      dem.refs = dem.refs || [];
-      dem.refs.push(ref);
-      // Propagate repoId to segment if not already set
-      if (!dem.repoId && ref.repoId) dem.repoId = ref.repoId;
-      var newIdx = dem.refs.length - 1;
-      var cur    = (dem.text || '').replace(/\s+$/, '');
-      dem.text   = (cur + (cur ? ' ' : '') + '{{ref:' + newIdx + '}} ').replace(/\s{2,}/g, ' ');
-      window.BIAIFRenderer.renderSegments();
-      window.BIAIFStorage.persist(STATE);
-      return true;
-    }
+    // Always insert into the top editor (currentDemande),
+    // whether creating new or editing an existing segment.
     STATE.currentDemande.refs.push(ref);
     var absIdx = STATE.currentDemande.refs.length - 1;
     window.BIAIFRenderer.appendChipToEditor(absIdx, ref);
-    rememberPageUrl();
+    if (!STATE.editingDemandeIdx) rememberPageUrl();
     window.BIAIFRenderer.updateMasterBtnLabel();
     return true;
   }
@@ -180,22 +215,7 @@
 
   function addTextToTarget(text) {
     if (!text) return;
-    var idx = activeTargetIdx();
-    if (typeof idx === 'number') {
-      var dem    = STATE.demandes[idx];
-      if (!dem) return;
-      var textEl = document.querySelector('.demande-text[data-i="' + idx + '"]');
-      if (textEl) {
-        insertTextAtSelection(textEl, text);
-        syncDemandeFromTextEl(textEl, dem);
-      } else {
-        var cur = dem.text || '';
-        dem.text = (cur + (cur && !/\s$/.test(cur) ? ' ' : '') + text.trim() + ' ').replace(/\s{2,}/g, ' ');
-        window.BIAIFRenderer.renderSegments();
-      }
-      window.BIAIFStorage.persist(STATE);
-      return;
-    }
+    // Always target the top editor (works for both new and edit mode)
     if (REFS.demandeEditor) {
       REFS.demandeEditor.focus();
       insertTextAtSelection(REFS.demandeEditor, text);
@@ -436,7 +456,6 @@
     runShotMode:                runShotMode,
     mergeDemandes:              mergeDemandes,
     syncCurrentDemandeFromEditor: syncCurrentDemandeFromEditor,
-    syncDemandeFromTextEl:      syncDemandeFromTextEl,
     insertTextAtSelection:      insertTextAtSelection,
     rememberPageUrl:            rememberPageUrl,
     editRef:                    editRef,

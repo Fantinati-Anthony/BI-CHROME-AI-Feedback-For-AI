@@ -433,14 +433,13 @@
 
 .demande-text {
   font-size: 13px; color: var(--text-main); line-height: 1.5;
-  outline: none; cursor: text;
   border-left: 2px solid var(--accent-purple); padding-left: 8px;
   word-wrap: break-word;
-  transition: background 0.15s;
   border-radius: 0 4px 4px 0;
+  user-select: text;
 }
-.demande-text:hover { background: rgba(255,255,255,0.02); }
-.demande-text:focus { background: rgba(139, 92, 246, 0.06); border-left-color: var(--accent-blue); }
+/* Card being edited gets a cyan accent to show it's loaded in the top editor */
+.biaif-segment.is-editing .demande-text { border-left-color: var(--accent-blue); }
 .demande-text-empty { color: var(--text-muted); font-style: italic; }
 
 /* Chip : pliée par défaut (pill inline). Au clic, .expanded devient un

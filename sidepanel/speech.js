@@ -179,13 +179,9 @@
     if (!text) return;
     STATE.currentInterim = '';
     clearInterimGhost();
-    if (typeof STATE.editingDemandeIdx === 'number') {
-      _appendVoiceToDemande(STATE.editingDemandeIdx, text);
-    } else if (typeof STATE.dictationTarget === 'number') {
-      _appendVoiceToDemande(STATE.dictationTarget, text);
-    } else {
-      _appendVoiceToEditor(text);
-    }
+    // Unified editor: voice always goes to the top editor
+    // (which holds segment content during edit mode)
+    _appendVoiceToEditor(text);
   }
 
   function clearInterimGhost() {
@@ -313,8 +309,8 @@
   function _stopWatchdog() { if (srWatchdog) { clearInterval(srWatchdog); srWatchdog = null; } }
 
   function _getActiveEditable() {
-    if (typeof STATE.editingDemandeIdx === 'number')
-      return document.querySelector('.demande-text[data-i="' + STATE.editingDemandeIdx + '"]');
+    // Unified editor: voice always targets the top demandeEditor
+    // (it holds the segment content when in edit mode)
     return REFS.demandeEditor;
   }
 

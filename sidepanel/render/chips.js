@@ -133,13 +133,13 @@
   function bindDragEvents() {
     document.addEventListener('dragover', function (e) {
       if (!ctx.DRAG.chip) return;
-      var ed = e.target.closest && e.target.closest('.demande-editor, .demande-text');
+      var ed = e.target.closest && e.target.closest('.demande-editor');
       if (!ed || ed !== ctx.DRAG.sourceContainer) return;
       e.preventDefault(); e.dataTransfer.dropEffect = 'move';
     });
     document.addEventListener('drop', function (e) {
       if (!ctx.DRAG.chip) return;
-      var ed = e.target.closest && e.target.closest('.demande-editor, .demande-text');
+      var ed = e.target.closest && e.target.closest('.demande-editor');
       if (!ed || ed !== ctx.DRAG.sourceContainer) return;
       e.preventDefault();
       var range = null;
@@ -150,13 +150,8 @@
       }
       if (!range || !ed.contains(range.startContainer)) ed.appendChild(ctx.DRAG.chip);
       else { ctx.DRAG.chip.remove(); range.insertNode(ctx.DRAG.chip); }
-      if (ed === ctx.REFS.demandeEditor) {
-        if (window.BIAIFSession) window.BIAIFSession.syncCurrentDemandeFromEditor();
-        if (window.BIAIFRender.editor) window.BIAIFRender.editor.renderRefsStrip();
-      } else {
-        var idx = Number(ed.dataset.i), dem = ctx.STATE.demandes[idx];
-        if (dem && window.BIAIFSession) window.BIAIFSession.syncDemandeFromTextEl(ed, dem);
-      }
+      if (window.BIAIFSession) window.BIAIFSession.syncCurrentDemandeFromEditor();
+      if (window.BIAIFRender.editor) window.BIAIFRender.editor.renderRefsStrip();
       if (window.BIAIFStorage) window.BIAIFStorage.persist(ctx.STATE);
       ctx.DRAG.chip.classList.remove('is-dragging');
       ctx.DRAG.chip = null; ctx.DRAG.sourceContainer = null;
