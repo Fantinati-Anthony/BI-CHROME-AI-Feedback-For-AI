@@ -279,15 +279,17 @@
 
     if (!total) { _toast(_t('toast.nothing_to_inject', 'Rien à injecter dans cette demande.'), 'info'); return; }
 
-    _toast(_t('toast.injecting', "Injection en cours dans l'éditeur Claude Code…"), 'info');
-    _updateProgress(0, total, 'Connexion à l\'éditeur…');
+    var hasTarget = !!(dem.conversationUrl);
+    _toast(_t(hasTarget ? 'toast.injecting_to_conv' : 'toast.injecting', hasTarget ? "Ouverture de la conversation et injection…" : "Injection en cours dans l'éditeur Claude Code…"), 'info');
+    _updateProgress(0, total, hasTarget ? 'Ouverture de la conversation…' : 'Connexion à l\'éditeur…');
 
     try {
       var resp = await new Promise(function (resolve, reject) {
         chrome.runtime.sendMessage({
-          type: window.BIAIF.MSG.INJECT_TO_EDITOR,
-          text: text,
-          images: images,
+          type:      window.BIAIF.MSG.INJECT_TO_EDITOR,
+          text:      text,
+          images:    images,
+          targetUrl: dem.conversationUrl || null,
         }, function (r) {
           if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
           else resolve(r || {});

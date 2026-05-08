@@ -136,6 +136,25 @@ async function sendToActiveTabContent(payload) {
   }
 }
 
+// ---------- helpers -------------------------------------------------------
+
+function waitForTabLoaded(tabId, timeoutMs) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      resolve();
+    }, timeoutMs || 10000);
+    function listener(id, changeInfo) {
+      if (id === tabId && changeInfo.status === 'complete') {
+        clearTimeout(timer);
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }
+    }
+    chrome.tabs.onUpdated.addListener(listener);
+  });
+}
+
 // ---------- auto-open sidepanel when switching to known tab URL -----------
 
 async function checkAutoOpenForTab(tabId, tabUrl) {
@@ -230,9 +249,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
-  // Sidepanel → active tab : inject text + images into external editor
+  // Sidepanel → target/active tab : inject text + images into external editor
   if (msg.type === MSG.INJECT_TO_EDITOR) {
-    sendToActiveTabContent(msg).then(function (resp) { sendResponse(resp); });
+    (async () => {
+      try {
+        if (msg.targetUrl) {
+          // Find an existing tab whose URL matches the conversation URL
+          const allTabs = await chrome.tabs.query({});
+          const baseUrl = msg.targetUrl.split('?')[0];
+          const existing = allTabs.find((t) =>
+            t.url && (t.url === msg.targetUrl || t.url.startsWith(baseUrl))
+          );
+          let targetTabId;
+          if (existing) {
+            await chrome.tabs.update(existing.id, { active: true });
+            try { await chrome.windows.update(existing.windowId, { focused: true }); } catch (_) {}
+            targetTabId = existing.id;
+            await sleep(400); // wait for tab activation
+          } else {
+            const newTab = await chrome.tabs.create({ url: msg.targetUrl });
+            targetTabId = newTab.id;
+            await waitForTabLoaded(targetTabId);
+            await sleep(1000); // wait for page scripts to settle
+          }
+          const resp = await chrome.tabs.sendMessage(targetTabId, msg).catch((e) => ({ error: e?.message || String(e) }));
+          sendResponse(resp || {});
+        } else {
+          const resp = await sendToActiveTabContent(msg);
+          sendResponse(resp);
+        }
+      } catch (e) {
+        sendResponse({ error: e?.message || String(e) });
+      }
+    })();
     return true;
   }
 
