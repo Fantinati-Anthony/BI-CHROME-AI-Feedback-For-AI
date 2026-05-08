@@ -107,52 +107,45 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
 }
 
-/* ── Block reorder handle (margin grip on hover, drop indicator on drag) ── */
-.demande-text-blockable {
-  position: relative;
-}
-/* Singleton handle lives in document.body (position: fixed) so editor
-   re-renders that clear children don't tear it down. */
-.biaif-block-handle {
-  position: fixed;
-  width: 16px;
-  height: 18px;
-  display: none;          /* shown by JS only when relevant */
+/* ── Draggable text chips (text blocks rendered as inline pills) ── */
+.text-chip {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  cursor: grab;
-  background: transparent;
-  border: 0;
-  color: var(--text-muted);
-  font-family: 'Inter', sans-serif;
+  padding: 1px 8px;
+  margin: 0 2px;
+  background: rgba(120, 120, 140, 0.12);
+  border: 1px solid rgba(120, 120, 140, 0.28);
+  border-radius: var(--radius-pill);
+  color: var(--text-main);
   font-size: 13px;
-  line-height: 1;
-  padding: 0;
+  font-family: inherit;
+  line-height: 1.5;
+  cursor: grab;
   user-select: none;
   -webkit-user-select: none;
-  z-index: 2147483646;
-  opacity: 0.55;
-  transition: opacity 100ms, color 100ms;
+  white-space: pre-wrap;
+  vertical-align: baseline;
+  transition: background 100ms, border-color 100ms, box-shadow 100ms;
 }
-.biaif-block-handle:hover {
-  opacity: 1;
-  color: var(--accent-blue);
+.text-chip:hover {
+  background: rgba(120, 120, 140, 0.2);
+  border-color: rgba(120, 120, 140, 0.45);
+  box-shadow: 0 0 0 2px rgba(120, 120, 140, 0.08);
 }
-.biaif-block-handle:active {
+.text-chip:active {
   cursor: grabbing;
 }
-.biaif-block-drop-line {
-  position: fixed;
-  height: 2px;
-  background: var(--accent-blue);
-  pointer-events: none;
-  z-index: 2147483645;
-  border-radius: 1px;
-  box-shadow: 0 0 6px rgba(14, 165, 183, 0.7);
+.text-chip.is-dragging {
+  opacity: 0.4;
 }
-.biaif-block-dragging-node {
-  outline: 1px dashed var(--accent-blue);
-  outline-offset: 2px;
-  border-radius: 4px;
-  background: var(--accent-blue-50);
+/* Edit mode — chip becomes transparent, text is directly editable */
+.text-chip.text-chip--editing {
+  background: transparent;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(14, 165, 183, 0.18);
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  outline: none;
+  white-space: pre-wrap;
 }
