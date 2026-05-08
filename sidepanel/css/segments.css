@@ -395,10 +395,6 @@
     rgba(20, 20, 25, 1) 30%,
     rgba(13, 13, 15, 1) 100%);
 }
-/* La barre d'outils relogée dans le segment édité retrouve un peu de marge */
-.biaif-segment.is-editing > .biaif-quick-tools {
-  margin: 4px 0;
-}
 .seg-del {
   background: transparent; border: none; color: var(--text-muted);
   cursor: pointer; padding: 2px 6px; border-radius: 4px;

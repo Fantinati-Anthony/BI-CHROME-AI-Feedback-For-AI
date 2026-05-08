@@ -69,16 +69,8 @@
 
   function _reattachQuickTools(qt) {
     if (!qt) return;
-    var STATE = ctx.STATE;
-    if (typeof STATE.editingDemandeIdx === 'number') {
-      var card = document.querySelector('.biaif-segment[data-i="' + STATE.editingDemandeIdx + '"]');
-      if (card) {
-        var hdr = card.querySelector('header');
-        if (hdr && hdr.nextSibling) hdr.parentNode.insertBefore(qt, hdr.nextSibling);
-        else card.appendChild(qt);
-        return;
-      }
-    }
+    // Unified zone: quick-tools always live next to the session-bar at the
+    // top of the panel — never moved into a segment card.
     var sessionBar = document.querySelector('.session-bar');
     if (sessionBar && sessionBar.parentNode) sessionBar.parentNode.insertBefore(qt, sessionBar.nextSibling);
     else { var r = document.querySelector('.biaif-root'); if (r) r.appendChild(qt); }
