@@ -60,11 +60,19 @@
       var num = document.createElement('span');
       num.className = 'ref-mini-num'; num.textContent = '#' + (i + 1);
       mini.appendChild(num);
-      if (ref.type === 'screenshot' && ref.dataUrl) {
-        var img = document.createElement('img');
-        img.className = 'ref-mini-thumb';
-        img.src = ref.dataUrl; img.alt = 'capture #' + (i + 1);
-        mini.appendChild(img);
+      if (ref.type === 'screenshot') {
+        if (ref.dataUrl) {
+          var img = document.createElement('img');
+          img.className = 'ref-mini-thumb';
+          img.src = ref.dataUrl; img.alt = 'capture #' + (i + 1);
+          mini.appendChild(img);
+        } else if (ref.blobId) {
+          // Blob hasn't been rehydrated yet — show a skeleton placeholder.
+          var sk = document.createElement('span');
+          sk.className = 'ref-mini-thumb is-skeleton';
+          sk.setAttribute('aria-label', 'capture #' + (i + 1) + ' (chargement…)');
+          mini.appendChild(sk);
+        }
       }
       var lbl = document.createElement('span');
       lbl.className = 'ref-mini-label';

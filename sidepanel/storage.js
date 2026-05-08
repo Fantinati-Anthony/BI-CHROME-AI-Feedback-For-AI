@@ -105,19 +105,30 @@
     } catch (e) {
       console.warn('[BIAIF Storage] hydrate failed', e && e.message);
     }
-    // Rehydrate IndexedDB-backed screenshot blobs (in-memory only).
+    // Hand control back to the caller IMMEDIATELY so the panel renders
+    // (with skeleton placeholders for screenshots). Rehydrate IndexedDB
+    // blobs in the background and re-render when they're ready.
+    if (onDone) onDone();
     if (window.BIAIFBlobStore) {
       try {
         var allRefs = (STATE.demandes || []).reduce(function (acc, d) {
           return acc.concat(d.refs || []);
         }, (STATE.currentDemande && STATE.currentDemande.refs) || []);
-        await window.BIAIFBlobStore.rehydrateRefs(allRefs);
+        var hadBlobIds = allRefs.some(function (r) { return r && r.blobId && !r.dataUrl; });
+        if (hadBlobIds) {
+          window.BIAIFBlobStore.rehydrateRefs(allRefs).then(function () {
+            // Re-render to swap skeletons for the actual thumbnails.
+            if (window.BIAIFRenderer) {
+              if (window.BIAIFRenderer.renderSegments)         window.BIAIFRenderer.renderSegments();
+              if (window.BIAIFRenderer.renderDemandeRefsStrip) window.BIAIFRenderer.renderDemandeRefsStrip();
+            }
+          }).catch(function () {});
+        }
         // GC blobs that no longer have a referencing ref in STATE.
         var alive = allRefs.map(function (r) { return r && r.blobId; }).filter(Boolean);
         window.BIAIFBlobStore.gc(alive).catch(function () {});
       } catch (_) {}
     }
-    if (onDone) onDone();
   }
 
   // -----------------------------------------------------------------------

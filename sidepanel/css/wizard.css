@@ -42,6 +42,10 @@
 @keyframes wiz-bwd { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
 .wiz-body.wiz-anim-fwd { animation: wiz-fwd 0.22s ease-out both; }
 .wiz-body.wiz-anim-bwd { animation: wiz-bwd 0.22s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .wiz-body.wiz-anim-fwd,
+  .wiz-body.wiz-anim-bwd { animation: none; }
+}
 
 /* ── Footer ── */
 .wiz-footer {
