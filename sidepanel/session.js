@@ -131,6 +131,9 @@
     STATE.editingDemandeIdx = idx;
     STATE.dictationTarget   = 'current';
     STATE.modalTarget       = 'current';
+    // Arm the session so the unified zone shows (history hidden, tools visible)
+    STATE.armed = true;
+    if (REFS && REFS.masterBtn) REFS.masterBtn.classList.add('armed');
 
     if (!STATE.micActive) window.BIAIFSpeech.startMic();
     if (!STATE.pickerActive) _sendBg({ type: _MSG('PICKER_ENABLE') });
