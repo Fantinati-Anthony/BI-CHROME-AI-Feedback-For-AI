@@ -45,6 +45,7 @@
     updateSortToggleLabel:  function () { R.uiState.updateSortToggleLabel(); },
     applySegFontSize:       function () { R.uiState.applySegFontSize(); },
     bumpSegFontSize:        function (delta) { R.uiState.bumpSegFontSize(delta); },
+    updateEditorContext:    function (idx, url) { R.uiState.updateEditorContext(idx, url); },
   };
 
 })(window);

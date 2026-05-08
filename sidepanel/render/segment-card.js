@@ -158,15 +158,8 @@
     if (isEditing) card.classList.add('is-editing');
     card.dataset.i = String(origIndex);
 
-    var ariaMerge = esc(_t('aria.merge_handle',
-      'Glisser ou Alt+↑/↓ pour fusionner avec une demande voisine'));
-    var titleMerge = esc(_t('seg.merge_handle_tip',
-      'Glisser sur une autre demande pour fusionner — ou Alt+↑/↓ au clavier'));
-
     card.innerHTML =
       '<header>' +
-        '<button class="seg-drag-handle" data-i="' + origIndex +
-          '" aria-label="' + ariaMerge + '" title="' + titleMerge + '">⋮⋮</button>' +
         '<span class="seg-num" aria-label="Demande ' + num + '">#' + num + '</span>' +
         '<span class="seg-meta">' + dt + ' · <span aria-label="' + refsCount + ' références">' +
           esc(refsLabel) + '</span></span>' +
@@ -177,8 +170,8 @@
       '</header>' +
       _buildMetaTags(dem) +
       '<div class="demande-text ' + (dem.text ? '' : 'demande-text-empty') +
-        '" contenteditable="true" spellcheck="true" data-i="' + origIndex +
-        '" role="textbox" aria-multiline="true" aria-label="Texte de la demande ' + num +
+        '" data-i="' + origIndex +
+        '" aria-label="Texte de la demande ' + num +
         '" data-placeholder="(demande vide)"></div>' +
       '<div class="seg-actions">' +
         '<button class="seg-action-btn seg-action-btn--inject" data-act="seg-inject" data-i="' +
@@ -215,38 +208,9 @@
 
     _applyButtonVisibility(card, STATE);
 
-    // ── Inline editor sync ─────────────────────────────────────────────
+    // ── Display-only text area (editing is done via the unified top editor)
     var textEl = card.querySelector('.demande-text');
     Chips.renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true, demKey: origIndex });
-
-    // Margin drag handle on hover → reorder paragraphs separated by <br>.
-    if (window.BIAIFRender.textBlocks) {
-      window.BIAIFRender.textBlocks.attach(textEl, function () {
-        if (window.BIAIFSession) window.BIAIFSession.syncDemandeFromTextEl(textEl, dem);
-        if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
-      });
-    }
-
-    textEl.addEventListener('blur', function () {
-      var oldRefs = dem.refs || [], newRefs = [], txt = '';
-      for (var node of textEl.childNodes) {
-        if (node.nodeType === Node.TEXT_NODE) txt += node.textContent;
-        else if (node.nodeType === Node.ELEMENT_NODE) {
-          if (node.classList && node.classList.contains('ref-chip')) {
-            var ref = oldRefs[Number(node.dataset.ref)];
-            if (ref) { newRefs.push(ref); txt += '{{ref:' + (newRefs.length - 1) + '}}'; }
-          } else if (node.tagName === 'BR') txt += '\n';
-          else txt += node.textContent;
-        }
-      }
-      dem.text = txt.replace(/\s+/g, ' ').trim();
-      dem.refs = newRefs;
-      if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
-    });
-    textEl.addEventListener('keydown', function (e) { if (e.key === 'Escape') e.currentTarget.blur(); });
-    textEl.addEventListener('focus', function () {
-      if (STATE.editingDemandeIdx !== origIndex && window.BIAIFSession) window.BIAIFSession.enterEditMode(origIndex);
-    });
 
     // ── Action buttons ─────────────────────────────────────────────────
     var Export = window.BIAIFExport;
@@ -302,45 +266,13 @@
         'info');
     });
 
-    // ── Drag-drop merge (mouse + Alt+↑/↓ keyboard) ─────────────────────
-    var dragHandle = card.querySelector('.seg-drag-handle');
-    dragHandle.draggable = true;
-    dragHandle.setAttribute('tabindex', '0');
-    dragHandle.setAttribute('role', 'button');
-    dragHandle.addEventListener('keydown', function (e) {
-      if (!e.altKey) return;
-      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    // ── Keyboard merge: Alt+↑/↓ on the card ───────────────────────────
+    card.addEventListener('keydown', function (e) {
+      if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
       var dst = e.key === 'ArrowUp' ? origIndex - 1 : origIndex + 1;
       if (dst < 0 || dst >= STATE.demandes.length) return;
       e.preventDefault();
       if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(origIndex, dst);
-    });
-    dragHandle.addEventListener('dragstart', function (e) {
-      e.stopPropagation();
-      e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', '__biaif_segment__'); } catch (_) {}
-      ctx.SEG_DRAG.sourceIdx = origIndex;
-      card.classList.add('is-dragging-seg');
-    });
-    dragHandle.addEventListener('dragend', function () {
-      ctx.SEG_DRAG.sourceIdx = -1;
-      document.querySelectorAll('.biaif-segment.is-dragging-seg, .biaif-segment.is-drop-target')
-        .forEach(function (c) { c.classList.remove('is-dragging-seg', 'is-drop-target'); });
-    });
-    card.addEventListener('dragover', function (e) {
-      if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
-      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-      card.classList.add('is-drop-target');
-    });
-    card.addEventListener('dragleave', function (e) {
-      if (e.relatedTarget && card.contains(e.relatedTarget)) return;
-      card.classList.remove('is-drop-target');
-    });
-    card.addEventListener('drop', function (e) {
-      if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
-      e.preventDefault(); card.classList.remove('is-drop-target');
-      var src = ctx.SEG_DRAG.sourceIdx; ctx.SEG_DRAG.sourceIdx = -1;
-      if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(src, origIndex);
     });
 
     return card;

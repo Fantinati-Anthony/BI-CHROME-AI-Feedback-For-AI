@@ -12,7 +12,8 @@
   font-size: 10px; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
 }
-.demande-title {}
+.demande-title { transition: color 0.15s; }
+.demande-title.is-editing { color: var(--accent-blue); }
 .demande-refs-count {
   background: var(--accent-blue-50); color: var(--accent-blue);
   padding: 1px 7px; border-radius: var(--radius-pill);
@@ -54,6 +55,33 @@
   0%, 100% { opacity: 0.5; }
   50%      { opacity: 0.85; }
 }
+/* Edit context bar — shown when editing an existing segment */
+.demande-zone-ctx {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; color: var(--accent-blue);
+  font-weight: 600; letter-spacing: 0.3px;
+  padding: 3px 0;
+}
+.demande-zone-ctx svg { flex-shrink: 0; color: var(--accent-blue); }
+.demande-zone-ctx[hidden] { display: none; }
+
+/* URL bar inside the demande-zone — segment URL when editing */
+.demande-zone-urlbar {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; color: var(--text-muted);
+  padding: 3px 6px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+}
+.demande-zone-urlbar svg { flex-shrink: 0; color: var(--accent-blue); }
+.demande-zone-url {
+  color: var(--accent-blue); text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.demande-zone-url:hover { text-decoration: underline; }
+.demande-zone-urlbar[hidden] { display: none; }
+
 .demande-refs-strip {
   display: flex; flex-wrap: wrap; gap: 4px;
   min-height: 0;

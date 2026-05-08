@@ -142,33 +142,6 @@ html, body {
 }
 .empty-state-cta strong { color: var(--accent-blue); font-weight: 700; }
 
-/* Mode "focus édition" : on isole le segment édité, le reste disparait
-   pour éliminer toute distraction. La footer-area et son status restent
-   visibles (Vider/Copier/.MD toujours accessibles). */
-.biaif-root.is-editing-segment .session-bar,
-.biaif-root.is-editing-segment .biaif-buffer-preview,
-.biaif-root.is-editing-segment .demande-zone,
-.biaif-root.is-editing-segment .segments-title,
-.biaif-root.is-editing-segment .biaif-segment:not(.is-editing) {
-  display: none !important;
-}
-.biaif-root.is-editing-segment .biaif-segments-wrap {
-  flex: 1; min-height: 0;
-}
-/* Le segment édité prend plus de respiration */
-.biaif-root.is-editing-segment .biaif-segment.is-editing {
-  padding: 10px 12px;
-  gap: 6px;
-}
-.biaif-root.is-editing-segment .biaif-segment.is-editing .demande-text {
-  min-height: 80px;
-  padding: 10px 12px;
-  font-size: calc(var(--seg-text-size) + 1px);
-  background: var(--bg-app);
-  border: 1px solid var(--border-card);
-  border-radius: 8px;
-}
-
 /* Nouvelle conv. inutile en état vide */
 .biaif-root.is-empty-state .session-new-conv { display: none; }
 

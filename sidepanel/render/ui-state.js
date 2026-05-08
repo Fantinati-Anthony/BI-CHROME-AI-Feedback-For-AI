@@ -92,6 +92,37 @@
     if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
   }
 
+  function updateEditorContext(editingIdx, url) {
+    var isEdit = typeof editingIdx === 'number';
+    var title  = document.querySelector('.demande-title');
+    if (title) {
+      title.textContent = isEdit
+        ? _t('demande.editing', 'Édition — demande #' + (editingIdx + 1), { n: editingIdx + 1 })
+        : _t('demande.title', 'Demande en cours');
+      title.classList.toggle('is-editing', isEdit);
+    }
+    var ctx = document.querySelector('.demande-zone-ctx');
+    if (ctx) {
+      var lbl = ctx.querySelector('.demande-ctx-label');
+      if (lbl) lbl.textContent = isEdit
+        ? _t('demande.edit_ctx', 'édition du segment #' + (editingIdx + 1), { n: editingIdx + 1 })
+        : '';
+      ctx.hidden = !isEdit;
+    }
+    var urlbar = document.querySelector('.demande-zone-urlbar');
+    if (urlbar) {
+      if (isEdit && url) {
+        var link  = urlbar.querySelector('.demande-zone-url');
+        var short = url;
+        try { var u = new URL(url); short = u.hostname + (u.pathname.length > 1 ? u.pathname.slice(0, 24) : ''); } catch (_) {}
+        if (link) { link.textContent = short; link.href = url; link.title = url; }
+        urlbar.hidden = false;
+      } else {
+        urlbar.hidden = true;
+      }
+    }
+  }
+
   window.BIAIFRender.uiState = {
     updateMasterBtnLabel:  updateMasterBtnLabel,
     updateArmedUi:         updateArmedUi,
@@ -99,5 +130,6 @@
     updateSortToggleLabel: updateSortToggleLabel,
     applySegFontSize:      applySegFontSize,
     bumpSegFontSize:       bumpSegFontSize,
+    updateEditorContext:   updateEditorContext,
   };
 })(window);
