@@ -52,12 +52,8 @@ html, body {
   padding: var(--pad-md);
   gap: 10px;
 }
-/* User-controlled vertical layout — topbar can sit at the bottom */
-.biaif-root.topbar-bottom .topbar-row,
-.biaif-root.topbar-bottom .biaif-quick-tools {
-  order: 99;
-}
-.biaif-root.topbar-bottom .topbar-row { order: 100; }
+/* User-controlled vertical layout — inverts the whole sidebar */
+.biaif-root.topbar-bottom { flex-direction: column-reverse; }
 
 /* ── Two-state layout ───────────────────────────────────────────────────
    REST  (not armed): history + "Nouvelle conv." only
