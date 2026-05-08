@@ -48,6 +48,10 @@
     var logsBtn   = document.querySelector('.topbar-logs-btn');
     if (cbConsole) cbConsole.checked = !!STATE.showConsoleBtn;
     if (logsBtn)   logsBtn.hidden    = !STATE.showConsoleBtn;
+    var cbTopBottom = document.getElementById('topbar-bottom');
+    var root        = document.querySelector('.biaif-root');
+    if (cbTopBottom) cbTopBottom.checked = STATE.topbarPosition === 'bottom';
+    if (root)        root.classList.toggle('topbar-bottom', STATE.topbarPosition === 'bottom');
     if (cbHideTa && cbAutoSub) {
       var on = cbAutoSub.checked;
       cbHideTa.disabled = !on;
