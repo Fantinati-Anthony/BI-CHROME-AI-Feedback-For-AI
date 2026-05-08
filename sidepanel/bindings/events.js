@@ -443,6 +443,59 @@
     });
   }
 
+  // Populate the Réglages > Raccourcis panel from chrome.commands.getAll().
+  // Chrome MV3 forbids extensions from writing keyboard bindings at runtime;
+  // the panel is read-only + a button to chrome://extensions/shortcuts.
+  function _bindShortcutPanel() {
+    var ul = document.getElementById('sp-shortcut-list');
+    // Bind every "open shortcuts" button (Aide section + Raccourcis section)
+    document.querySelectorAll('[data-act="open-shortcuts"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        try { chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }); } catch (_) {}
+      });
+    });
+    if (!ul) return;
+    function renderRows(commands) {
+      ul.innerHTML = '';
+      if (!commands.length) {
+        var empty = document.createElement('li');
+        empty.className = 'sp-shortcut-row sp-shortcut-empty';
+        empty.textContent = _t('settings.shortcuts.empty', 'Aucun raccourci déclaré.');
+        ul.appendChild(empty);
+        return;
+      }
+      commands.forEach(function (cmd) {
+        var row  = document.createElement('li');
+        row.className = 'sp-shortcut-row' + (cmd.shortcut ? '' : ' is-unbound');
+        var name = document.createElement('span');
+        name.className   = 'sp-shortcut-name';
+        name.textContent = cmd.description || cmd.name;
+        row.appendChild(name);
+        var keys = document.createElement('span');
+        keys.className = 'sp-shortcut-keys' + (cmd.shortcut ? '' : ' is-unbound');
+        if (cmd.shortcut) {
+          // Each token (Alt, Shift, F, etc.) → its own <kbd>
+          cmd.shortcut.split(/\+|\s+/).filter(Boolean).forEach(function (tok) {
+            var kb = document.createElement('kbd');
+            kb.textContent = tok;
+            keys.appendChild(kb);
+          });
+        } else {
+          var kb = document.createElement('kbd');
+          kb.textContent = _t('settings.shortcuts.unbound', 'non assigné');
+          keys.appendChild(kb);
+        }
+        row.appendChild(keys);
+        ul.appendChild(row);
+      });
+    }
+    if (!chrome || !chrome.commands || !chrome.commands.getAll) {
+      renderRows([]);
+      return;
+    }
+    chrome.commands.getAll(function (cmds) { renderRows(cmds || []); });
+  }
+
   function _bindShowConsoleBtn() {
     var STATE = ctx.STATE;
     var cb  = document.getElementById('show-console-btn');
@@ -627,6 +680,7 @@
     _bindAutoOpenToggles();
     _bindBehaviourToggles();
     _bindShowConsoleBtn();
+    _bindShortcutPanel();
     _bindPrivacyScrub();
     _bindTopbarPosition();
     _bindTheme();
