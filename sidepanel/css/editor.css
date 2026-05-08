@@ -106,3 +106,53 @@
 .ref-mini-label {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
 }
+
+/* ── Block reorder handle (margin grip on hover, drop indicator on drag) ── */
+.demande-text-blockable {
+  position: relative;
+}
+/* Singleton handle lives in document.body (position: fixed) so editor
+   re-renders that clear children don't tear it down. */
+.biaif-block-handle {
+  position: fixed;
+  width: 16px;
+  height: 18px;
+  display: none;          /* shown by JS only when relevant */
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 2147483646;
+  opacity: 0.55;
+  transition: opacity 100ms, color 100ms;
+}
+.biaif-block-handle:hover {
+  opacity: 1;
+  color: var(--accent-blue);
+}
+.biaif-block-handle:active {
+  cursor: grabbing;
+}
+.biaif-block-drop-line {
+  position: fixed;
+  height: 2px;
+  background: var(--accent-blue);
+  pointer-events: none;
+  z-index: 2147483645;
+  border-radius: 1px;
+  box-shadow: 0 0 6px rgba(14, 165, 183, 0.7);
+}
+.biaif-block-dragging-node {
+  outline: 1px dashed var(--accent-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+  background: var(--accent-blue-50);
+}

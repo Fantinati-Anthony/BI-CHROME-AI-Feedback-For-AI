@@ -219,6 +219,14 @@
     var textEl = card.querySelector('.demande-text');
     Chips.renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true, demKey: origIndex });
 
+    // Margin drag handle on hover → reorder paragraphs separated by <br>.
+    if (window.BIAIFRender.textBlocks) {
+      window.BIAIFRender.textBlocks.attach(textEl, function () {
+        if (window.BIAIFSession) window.BIAIFSession.syncDemandeFromTextEl(textEl, dem);
+        if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+      });
+    }
+
     textEl.addEventListener('blur', function () {
       var oldRefs = dem.refs || [], newRefs = [], txt = '';
       for (var node of textEl.childNodes) {
