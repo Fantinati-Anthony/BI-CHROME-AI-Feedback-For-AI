@@ -136,6 +136,70 @@
     }
   }
 
+  // Single delegated click handler for ALL segment cards (eliminates the
+  // 12+ per-card listeners that used to be attached on each render).
+  var _delegatedBound = false;
+  function ensureDelegatedHandlers() {
+    if (_delegatedBound) return;
+    _delegatedBound = true;
+    var wrap = document.querySelector('.biaif-segments') || document.body;
+    var ALL = (window.BIAIF && window.BIAIF.ALL_BUTTONS) || [];
+    var FN_BY_SLUG = ALL.reduce(function (acc, def) {
+      if (def.exportFn) acc['seg-' + def.slug] = def.exportFn;
+      return acc;
+    }, {});
+
+    wrap.addEventListener('click', function (e) {
+      var actEl = e.target.closest && e.target.closest('[data-act]');
+      if (!actEl) return;
+      var card = actEl.closest('.biaif-segment');
+      if (!card) return;
+      var idx  = Number(card.dataset.i);
+      if (Number.isNaN(idx)) return;
+      var act  = actEl.dataset.act;
+
+      if (act === 'seg-edit' || actEl.classList.contains('seg-edit-btn')) {
+        e.stopPropagation();
+        if (!window.BIAIFSession) return;
+        if (ctx.STATE.editingDemandeIdx === idx) window.BIAIFSession.exitEditMode();
+        else window.BIAIFSession.enterEditMode(idx);
+        return;
+      }
+      if (actEl.classList.contains('seg-del')) {
+        e.stopPropagation();
+        var STATE = ctx.STATE;
+        if (STATE.editingDemandeIdx === idx && window.BIAIFSession) window.BIAIFSession.exitEditMode({ silent: true });
+        if (typeof STATE.editingDemandeIdx === 'number' && STATE.editingDemandeIdx > idx) STATE.editingDemandeIdx--;
+        STATE.demandes.splice(idx, 1);
+        render();
+        if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+        if (window.BIAIFToast && window.BIAIFToast.showAction) {
+          window.BIAIFToast.showAction(
+            _t('toast.demande_deleted', 'Demande #' + (idx + 1) + ' supprimée.', { n: idx + 1 }),
+            _t('toast.undo_action', 'Annuler'),
+            function () {
+              if (window.BIAIFBindings && window.BIAIFBindings.helpers) {
+                window.BIAIFBindings.helpers.performUndo();
+              }
+            },
+            { duration: 6000 }
+          );
+        }
+        return;
+      }
+      var exportFnName = FN_BY_SLUG[act];
+      if (exportFnName) {
+        e.stopPropagation();
+        var fn = window.BIAIFExport && window.BIAIFExport[exportFnName];
+        if (typeof fn === 'function') fn(idx);
+      }
+    });
+  }
+
+  // Auto-bind on the first render() so the wrapper exists in the DOM.
+  var _origRender = render;
+  render = function () { _origRender(); ensureDelegatedHandlers(); };
+
   window.BIAIFRender.segments = {
     render:    render,
     setFilter: setFilter,

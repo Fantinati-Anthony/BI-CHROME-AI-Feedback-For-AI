@@ -208,46 +208,8 @@
     var textEl = card.querySelector('.demande-text');
     Chips.renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true, demKey: origIndex });
 
-    // ── Action buttons (wired from the shared AI/local-action registry)
-    _allButtons().forEach(function (def) {
-      if (!def.exportFn) return;
-      var btn = card.querySelector('[data-act="seg-' + def.slug + '"]');
-      if (!btn) return;
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var fn = window.BIAIFExport && window.BIAIFExport[def.exportFn];
-        if (typeof fn === 'function') fn(Number(e.currentTarget.dataset.i));
-      });
-    });
-
-    card.querySelector('.seg-edit-btn').addEventListener('click', function (e) {
-      e.stopPropagation();
-      var i = Number(e.currentTarget.dataset.i);
-      if (!window.BIAIFSession) return;
-      if (STATE.editingDemandeIdx === i) window.BIAIFSession.exitEditMode();
-      else window.BIAIFSession.enterEditMode(i);
-    });
-    card.querySelector('.seg-del').addEventListener('click', function (e) {
-      var i = Number(e.currentTarget.dataset.i);
-      // Capture undo snapshot, then delete immediately. Toast offers "Annuler".
-      if (STATE.editingDemandeIdx === i && window.BIAIFSession) window.BIAIFSession.exitEditMode({ silent: true });
-      if (typeof STATE.editingDemandeIdx === 'number' && STATE.editingDemandeIdx > i) STATE.editingDemandeIdx--;
-      STATE.demandes.splice(i, 1);
-      if (window.BIAIFRender.segments) window.BIAIFRender.segments.render();
-      if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
-      if (window.BIAIFToast && window.BIAIFToast.showAction) {
-        window.BIAIFToast.showAction(
-          _t('toast.demande_deleted', 'Demande #' + (i + 1) + ' supprimée.', { n: i + 1 }),
-          _t('toast.undo_action', 'Annuler'),
-          function () {
-            if (window.BIAIFBindings && window.BIAIFBindings.helpers && window.BIAIFBindings.helpers.performUndo) {
-              window.BIAIFBindings.helpers.performUndo();
-            }
-          },
-          { duration: 6000 }
-        );
-      }
-    });
+    // Click handlers (edit, delete, action buttons) live on the segments
+    // wrapper as a single delegated listener — see ensureDelegatedHandlers().
 
     // ── Drag-drop merge (handle) + Alt+↑/↓ keyboard merge ────────────
     var dragHandle = card.querySelector('.seg-drag-handle');
