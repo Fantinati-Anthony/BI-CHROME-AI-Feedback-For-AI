@@ -99,6 +99,7 @@
       if (saved.topbarPosition === 'top' || saved.topbarPosition === 'bottom') STATE.topbarPosition = saved.topbarPosition;
       if (saved.theme === 'dark' || saved.theme === 'light' || saved.theme === 'auto') STATE.theme = saved.theme;
       if (Array.isArray(saved.templates)) STATE.templates = saved.templates;
+      if (typeof saved.privacyScrub === 'boolean') STATE.privacyScrub = saved.privacyScrub;
 
     } catch (e) {
       console.warn('[BIAIF Storage] hydrate failed', e && e.message);
@@ -158,6 +159,7 @@
       topbarPosition:        STATE.topbarPosition,
       theme:                 STATE.theme,
       templates:             STATE.templates,
+      privacyScrub:          STATE.privacyScrub,
     };
   }
 
@@ -209,13 +211,21 @@
   function exportToFile(STATE, opts) {
     opts = opts || {};
     var payload = _buildPayload(STATE);
+    // Deep-clone so scrubbing/stripping doesn't mutate the live STATE
+    payload = JSON.parse(JSON.stringify(payload));
     var bundle  = {
       _biaif:    'export',
       _version:  CURRENT_VERSION,
       _exportTs: Date.now(),
       _stripDataUrls: !!opts.stripDataUrls,
+      _scrubbed: !!(window.BIAIFScrub && window.BIAIFScrub.isEnabled(STATE)),
       data:      payload,
     };
+    // SCRUB: redact PII/secrets if enabled (default ON)
+    if (bundle._scrubbed && bundle.data.demandes) {
+      bundle.data.demandes.forEach(window.BIAIFScrub.scrubDemande);
+      if (bundle.data.currentDemande) window.BIAIFScrub.scrubDemande(bundle.data.currentDemande);
+    }
     if (opts.stripDataUrls && bundle.data.demandes) {
       bundle.data.demandes = bundle.data.demandes.map(function (d) {
         return Object.assign({}, d, { refs: (d.refs || []).map(function (r) {
@@ -234,32 +244,85 @@
     return bundle;
   }
 
+  // ─── Schema validation ────────────────────────────────────────────
+  var MAX_TEXT       = 50000;
+  var MAX_REFS_PER   = 100;
+  var MAX_DEMANDES   = 5000;
+  var MAX_TEMPLATES  = 1000;
+  var URL_RE         = /^(https?:\/\/|file:\/\/|chrome:\/\/)/i;
+  var DATAURL_RE     = /^data:image\/(png|jpeg|jpg|webp|gif);base64,/i;
+
+  function _isStr(v, max)  { return typeof v === 'string' && v.length <= (max || MAX_TEXT); }
+  function _isUrl(v)       { return v == null || (typeof v === 'string' && v.length < 2048 && (URL_RE.test(v) || v === '')); }
+  function _isDataUrl(v)   { return v == null || (typeof v === 'string' && (DATAURL_RE.test(v) || v.length === 0)); }
+
+  function _validRef(r) {
+    if (!r || typeof r !== 'object') return false;
+    if (typeof r.type !== 'string' || r.type.length > 32) return false;
+    if (r.dataUrl !== undefined && !_isDataUrl(r.dataUrl)) return false;
+    if (r.tabUrl !== undefined && !_isUrl(r.tabUrl)) return false;
+    if (r.srcUrl !== undefined && !_isUrl(r.srcUrl)) return false;
+    if (r.selector !== undefined && !_isStr(r.selector, 2000)) return false;
+    return true;
+  }
+  function _validDemande(d) {
+    if (!d || typeof d !== 'object') return false;
+    if (typeof d.text !== 'string' || d.text.length > MAX_TEXT) return false;
+    if (!Array.isArray(d.refs) || d.refs.length > MAX_REFS_PER) return false;
+    if (!d.refs.every(_validRef)) return false;
+    if (d.url !== undefined && !_isUrl(d.url)) return false;
+    if (d.conversationUrl !== undefined && !_isUrl(d.conversationUrl)) return false;
+    return true;
+  }
+  function _validTemplate(t) {
+    if (!t || typeof t !== 'object') return false;
+    if (!_isStr(t.name, 200)) return false;
+    if (!_isStr(t.body, 4000)) return false;
+    return true;
+  }
+  function _validateBundle(bundle) {
+    if (!bundle || typeof bundle !== 'object') return { ok: false, error: 'not-an-object' };
+    if (bundle._biaif !== 'export')              return { ok: false, error: 'wrong-magic' };
+    if (typeof bundle._version !== 'number')     return { ok: false, error: 'bad-version' };
+    if (!bundle.data || typeof bundle.data !== 'object') return { ok: false, error: 'no-data' };
+    var d = bundle.data;
+    if (d.demandes !== undefined) {
+      if (!Array.isArray(d.demandes) || d.demandes.length > MAX_DEMANDES) return { ok: false, error: 'demandes-shape' };
+      if (!d.demandes.every(_validDemande))                                return { ok: false, error: 'demandes-invalid' };
+    }
+    if (d.templates !== undefined) {
+      if (!Array.isArray(d.templates) || d.templates.length > MAX_TEMPLATES) return { ok: false, error: 'templates-shape' };
+      if (!d.templates.every(_validTemplate))                                 return { ok: false, error: 'templates-invalid' };
+    }
+    return { ok: true };
+  }
+
   /**
    * Import a JSON bundle previously produced by exportToFile.
    * @param {object} STATE  — current state (will be mutated)
-   * @param {object} bundle — parsed JSON
+   * @param {object} bundle — parsed JSON (validated by schema first)
    * @param {object} [opts] — { mode: 'replace' | 'merge' }  default 'replace'
    * @returns {{ ok: boolean, error?: string, imported?: number }}
    */
   function importBundle(STATE, bundle, opts) {
     opts = opts || {};
-    if (!bundle || bundle._biaif !== 'export' || !bundle.data) {
-      return { ok: false, error: 'invalid' };
-    }
+    var v = _validateBundle(bundle);
+    if (!v.ok) return { ok: false, error: v.error };
     var data = bundle.data;
     var mode = opts.mode === 'merge' ? 'merge' : 'replace';
 
     if (mode === 'replace') {
       if (Array.isArray(data.demandes))   STATE.demandes      = data.demandes;
-      if (data.currentDemande)            STATE.currentDemande = data.currentDemande;
+      if (data.currentDemande && _validDemande(data.currentDemande)) STATE.currentDemande = data.currentDemande;
     } else {
-      // Merge: append imported demandes after current ones
       if (Array.isArray(data.demandes))   STATE.demandes = (STATE.demandes || []).concat(data.demandes);
     }
-    // Settings always overwrite (they're scalar)
-    ['lang','micDeviceId','sortOrder','segFontSize','visibleButtons','uiLang',
-     'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage','hideAiTextarea',
-     'autoSubmitAfterInject','archiveExpanded','showConsoleBtn','topbarPosition'].forEach(function (k) {
+    if (Array.isArray(data.templates))    STATE.templates = data.templates;
+    // Whitelist of importable settings (no arbitrary keys)
+    var SAFE_SETTINGS = ['lang','micDeviceId','sortOrder','segFontSize','visibleButtons','uiLang',
+      'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage','hideAiTextarea',
+      'autoSubmitAfterInject','archiveExpanded','showConsoleBtn','topbarPosition','theme'];
+    SAFE_SETTINGS.forEach(function (k) {
       if (data[k] !== undefined) STATE[k] = data[k];
     });
     return { ok: true, imported: (data.demandes || []).length };

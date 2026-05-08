@@ -21,6 +21,10 @@
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg.type !== 'string') return;
+  // SECURITY: only accept messages originating from this extension itself
+  // (sidepanel, content scripts, options page). Blocks any rogue extension
+  // installed alongside that might try to talk to our service worker.
+  if (!sender || sender.id !== chrome.runtime.id) return;
 
   // Sidepanel → active tab : picker
   if (msg.type === MSG.PICKER_TOGGLE || msg.type === MSG.PICKER_ENABLE ||

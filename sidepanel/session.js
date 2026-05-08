@@ -192,6 +192,8 @@
   }
 
   async function addRefToTarget(ref) {
+    // SCRUB: clean PII/secrets in text fields before storing (defense-in-depth)
+    if (window.BIAIFScrub && window.BIAIFScrub.isEnabled(STATE)) window.BIAIFScrub.scrubRef(ref);
     // Stamp the active tab's URL and GitHub repo onto every ref
     try {
       var tabs = await chrome.tabs.query({ active: true, currentWindow: true });

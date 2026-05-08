@@ -455,6 +455,17 @@
     apply();
   }
 
+  function _bindPrivacyScrub() {
+    var STATE = ctx.STATE;
+    var cb    = document.getElementById('privacy-scrub');
+    if (!cb) return;
+    cb.checked = STATE.privacyScrub !== false;
+    cb.addEventListener('change', function () {
+      STATE.privacyScrub = cb.checked;
+      window.BIAIFStorage.persist(STATE);
+    });
+  }
+
   function _bindShowConsoleBtn() {
     var STATE = ctx.STATE;
     var cb  = document.getElementById('show-console-btn');
@@ -631,6 +642,7 @@
     _bindAutoOpenToggles();
     _bindBehaviourToggles();
     _bindShowConsoleBtn();
+    _bindPrivacyScrub();
     _bindTopbarPosition();
     _bindTheme();
     _bindUiLangButtons();
