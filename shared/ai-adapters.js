@@ -9,11 +9,19 @@
     {
       host: 'claude.ai',
       stopBtn: [
+        'button[aria-label="Stop"]',
         'button[aria-label*="Stop"]',
         'button[aria-label*="stop"]',
         '[data-testid="stop-button"]',
         'button.stop-button',
         'button[data-value="stop"]',
+      ],
+      // Element visible ONLY while Claude is thinking or generating
+      // ("2m 45s" reflection timer shown during extended thinking / streaming)
+      generatingEl: [
+        'div.text-assistant-secondary.tabular-nums',
+        'div.tabular-nums.text-assistant-secondary',
+        '[class*="tabular-nums"][class*="assistant-secondary"]',
       ],
     },
     {
