@@ -259,15 +259,9 @@
     window.BIAIFRenderer.renderDemandeEditor();
     window.BIAIFRenderer.renderSegments();
     window.BIAIFRenderer.updateArmedUi();
-    // Persist without pushing a fresh undo entry — write directly.
-    chrome.storage.local.set({
-      [window.BIAIF.STORAGE_KEY]: {
-        demandes: STATE.demandes, currentDemande: STATE.currentDemande,
-        lang: STATE.lang, micDeviceId: STATE.micDeviceId,
-        sortOrder: STATE.sortOrder, segFontSize: STATE.segFontSize,
-        visibleButtons: STATE.visibleButtons,
-      },
-    }).catch(function () {});
+    // Persist the FULL state (preserves settings, i18n, toggles, etc.)
+    // without pushing a fresh undo entry — we just popped one.
+    window.BIAIFStorage.persist(STATE, { skipUndo: true });
     window.BIAIFToast.show(_t('toast.undone', 'Action annulée.'), 'success', 2000);
   }
 

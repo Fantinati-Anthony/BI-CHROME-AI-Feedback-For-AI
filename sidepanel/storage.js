@@ -107,9 +107,9 @@
   // -----------------------------------------------------------------------
   // Persist (with undo snapshot + quota fallback)
   // -----------------------------------------------------------------------
-  function persist(STATE) {
-    // Push undo snapshot before saving
-    if (window.BIAIFUndo) {
+  function persist(STATE, opts) {
+    // Push undo snapshot before saving (skipped during undo replay).
+    if (window.BIAIFUndo && (!opts || !opts.skipUndo)) {
       window.BIAIFUndo.push({
         demandes:       JSON.parse(JSON.stringify(STATE.demandes)),
         currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)),
