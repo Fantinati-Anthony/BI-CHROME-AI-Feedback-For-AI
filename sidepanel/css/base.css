@@ -168,9 +168,6 @@ html, body {
   border-radius: 8px;
 }
 
-/* En mode édition d'un segment, masquer la zone de saisie courante. */
-.biaif-root.is-editing-segment .biaif-quick-tools { display: none !important; }
-
 /* Nouvelle conv. inutile en état vide */
 .biaif-root.is-empty-state .session-new-conv { display: none; }
 
