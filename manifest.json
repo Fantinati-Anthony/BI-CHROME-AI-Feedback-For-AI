@@ -87,6 +87,12 @@
       ]
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["PRIVACY.md"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "commands": {
     "toggle-sidebar": {
       "suggested_key": { "default": "Alt+Shift+F" },

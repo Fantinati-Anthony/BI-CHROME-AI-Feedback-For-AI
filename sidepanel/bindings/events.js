@@ -464,6 +464,10 @@
       STATE.privacyScrub = cb.checked;
       window.BIAIFStorage.persist(STATE);
     });
+    var doc = document.querySelector('[data-act="open-privacy-doc"]');
+    if (doc) doc.addEventListener('click', function () {
+      try { chrome.tabs.create({ url: chrome.runtime.getURL('PRIVACY.md') }); } catch (_) {}
+    });
   }
 
   function _bindShowConsoleBtn() {
