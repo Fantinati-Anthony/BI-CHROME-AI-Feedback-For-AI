@@ -69,10 +69,10 @@
 
   function _reattachQuickTools(qt) {
     if (!qt) return;
-    // Unified zone: quick-tools always live next to the session-bar at the
-    // top of the panel — never moved into a segment card.
-    var sessionBar = document.querySelector('.session-bar');
-    if (sessionBar && sessionBar.parentNode) sessionBar.parentNode.insertBefore(qt, sessionBar.nextSibling);
+    // Unified zone: quick-tools live as a sibling AFTER .topbar-row
+    // (so the topbar's single-line layout stays intact).
+    var anchor = document.querySelector('.topbar-row') || document.querySelector('.session-bar');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(qt, anchor.nextSibling);
     else { var r = document.querySelector('.biaif-root'); if (r) r.appendChild(qt); }
   }
 
