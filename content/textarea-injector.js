@@ -99,8 +99,12 @@
       return;
     }
     if (!_adapter || !_adapter.inputHide || !_adapter.inputHide.length) return;
-    var selectors = _adapter.inputHide.join(', ');
-    var css = selectors + ' { opacity: 0 !important; caret-color: transparent !important; }';
+    // Use only the first matching selector (the container) for hiding the full input area.
+    // visibility:hidden keeps layout dimensions intact so BIAIF button positioning still works.
+    var lines = _adapter.inputHide.map(function (sel) {
+      return sel + ' { visibility: hidden !important; }';
+    });
+    var css = lines.join('\n');
     if (existing) { existing.textContent = css; return; }
     var s = document.createElement('style');
     s.id = HIDE_STYLE_ID;
