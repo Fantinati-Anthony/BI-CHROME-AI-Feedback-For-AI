@@ -41,32 +41,39 @@
     var qt = document.querySelector('.biaif-quick-tools');
     if (qt && qt.parentNode) qt.parentNode.removeChild(qt);
 
-    // Remove any previous conversation-filter chip
-    var prevChip = document.getElementById('conv-filter-chip');
-    if (prevChip) prevChip.parentNode.removeChild(prevChip);
+    // Remove previous filter chips bar
+    var prevBar = document.getElementById('filter-chips-bar');
+    if (prevBar && prevBar.parentNode) prevBar.parentNode.removeChild(prevBar);
 
     REFS.segments.innerHTML = '';
     if (REFS.segmentsCount) REFS.segmentsCount.textContent = String(STATE.demandes.length);
 
-    // Show conversation filter chip when active
-    var cf = (STATE.conversationFilter || '').trim();
-    if (cf) {
-      var chip = document.createElement('div');
-      chip.id = 'conv-filter-chip';
-      chip.className = 'conv-filter-chip';
-      var label = cf;
-      try { label = new URL(cf).hostname + new URL(cf).pathname; } catch (_) {}
-      chip.title = cf;
-      chip.innerHTML =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>' +
-        '<span class="conv-filter-chip__label">' + esc(label) + '</span>' +
-        '<button class="conv-filter-chip__clear" type="button" aria-label="Effacer le filtre conversation">✕</button>';
-      chip.querySelector('.conv-filter-chip__clear').addEventListener('click', function () {
-        STATE.conversationFilter    = '';
-        STATE.pendingConversationUrl = null;
-        renderSegments();
+    // Build unified filter chips for every active filter dimension
+    var FILTER_DEFS = [
+      { key: 'conversationFilter', icon: '⊛', label: 'Conv' },
+      { key: 'repoFilter',         icon: '⎇', label: 'Repo' },
+      { key: 'domainFilter',       icon: '⊙', label: 'Domaine' },
+      { key: 'pageFilter',         icon: '⤢', label: 'Page' },
+    ];
+    var activeFilters = FILTER_DEFS.filter(function (d) { return !!(STATE[d.key] || '').trim(); });
+    if (activeFilters.length && REFS.segments.parentNode) {
+      var bar = document.createElement('div');
+      bar.id = 'filter-chips-bar';
+      bar.className = 'filter-chips-bar';
+      activeFilters.forEach(function (d) {
+        var val = STATE[d.key] || '';
+        var short = val;
+        try { short = new URL(val).hostname + new URL(val).pathname; } catch (_) {}
+        if (short.length > 35) short = short.slice(0, 33) + '…';
+        var chip = document.createElement('button');
+        chip.className = 'filter-chip';
+        chip.dataset.fk = d.key;
+        chip.type = 'button';
+        chip.title = val;
+        chip.innerHTML = '<span class="filter-chip-icon">' + d.icon + '</span><span class="filter-chip-label">' + esc(d.label) + ': ' + esc(short) + '</span><span class="filter-chip-x" aria-hidden="true">✕</span>';
+        bar.appendChild(chip);
       });
-      REFS.segments.parentNode && REFS.segments.parentNode.insertBefore(chip, REFS.segments);
+      REFS.segments.parentNode.insertBefore(bar, REFS.segments);
     }
 
     var filtered = _filterDemandes();
@@ -93,19 +100,50 @@
     updateArmedUi();
   }
 
+  function _hostname(url) {
+    try { return new URL(url).hostname; } catch (_) { return ''; }
+  }
+
   function _filterDemandes() {
-    var q  = (STATE.searchQuery       || '').toLowerCase().trim();
+    var q  = (STATE.searchQuery        || '').toLowerCase().trim();
     var cf = (STATE.conversationFilter || '').trim();
+    var rf = (STATE.repoFilter         || '').trim();
+    var df = (STATE.domainFilter       || '').trim();
+    var pf = (STATE.pageFilter         || '').trim();
+
     return STATE.demandes.map(function (d, i) { return { dem: d, origIndex: i }; }).filter(function (item) {
-      // Conversation filter: exact URL match
-      if (cf && item.dem.conversationUrl !== cf) return false;
-      // Text search
+      var dem  = item.dem;
+      var refs = dem.refs || [];
+
+      // Conversation: exact URL match
+      if (cf && dem.conversationUrl !== cf) return false;
+
+      // Repo: exact "owner/repo" match (segment level OR any ref)
+      if (rf) {
+        var hasRepo = dem.repoId === rf || refs.some(function (r) { return r.repoId === rf; });
+        if (!hasRepo) return false;
+      }
+
+      // Domain: hostname match on conversationUrl OR any ref.tabUrl
+      if (df) {
+        var hasDom = _hostname(dem.conversationUrl || '') === df ||
+          refs.some(function (r) { return _hostname(r.tabUrl || '') === df; });
+        if (!hasDom) return false;
+      }
+
+      // Page: exact tabUrl match in any ref
+      if (pf && !refs.some(function (r) { return r.tabUrl === pf; })) return false;
+
+      // Full-text search across text, repoId, conversationUrl, and all ref fields
       if (!q) return true;
-      var text = (item.dem.text || '').toLowerCase();
-      var refs = (item.dem.refs || []).map(function (r) {
-        return (r.selector || r.msg || r.mode || r.tag || '');
+      var refsStr = refs.map(function (r) {
+        return [r.selector, r.msg, r.mode, r.tag, r.tabUrl, r.repoId].join(' ');
       }).join(' ').toLowerCase();
-      return text.includes(q) || refs.includes(q) || (item.dem.url || '').toLowerCase().includes(q);
+      return (dem.text || '').toLowerCase().includes(q)
+          || refsStr.includes(q)
+          || (dem.url || '').toLowerCase().includes(q)
+          || (dem.repoId || '').toLowerCase().includes(q)
+          || (dem.conversationUrl || '').toLowerCase().includes(q);
     });
   }
 
@@ -138,8 +176,8 @@
     if (isEditing) card.classList.add('is-editing');
     card.dataset.i = String(origIndex);
 
-    // Page tag (favicon + host)
-    var pageTag = _buildPageTag(dem.url || '');
+    // Meta-tags bar: clickable filter badges (repo, conversation, captured domains)
+    var pageTag = _buildMetaTags(dem);
 
     // Edit button
     var editBtnHtml = isEditing
@@ -314,6 +352,45 @@
     return card;
   }
 
+  function _buildMetaTags(dem) {
+    var parts = [];
+
+    // GitHub repo badge
+    if (dem.repoId) {
+      var isActiveRepo = STATE.repoFilter === dem.repoId;
+      parts.push('<button class="seg-filter-badge seg-filter-badge--repo' + (isActiveRepo ? ' is-active' : '') + '" data-fk="repoFilter" data-fv="' + esc(dem.repoId) + '" title="Filtrer par repo : ' + esc(dem.repoId) + '" type="button">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>' +
+        esc(dem.repoId) + '</button>');
+    }
+
+    // Conversation badge
+    if (dem.conversationUrl) {
+      var isActiveConv = STATE.conversationFilter === dem.conversationUrl;
+      var convShort = dem.conversationUrl;
+      try { convShort = new URL(dem.conversationUrl).hostname; } catch (_) {}
+      parts.push('<button class="seg-filter-badge seg-filter-badge--conv' + (isActiveConv ? ' is-active' : '') + '" data-fk="conversationFilter" data-fv="' + esc(dem.conversationUrl) + '" title="Filtrer par conversation : ' + esc(dem.conversationUrl) + '" type="button">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+        esc(convShort) + '</button>');
+    }
+
+    // Captured-page domains (unique, from ref.tabUrl)
+    var seenDomains = {};
+    (dem.refs || []).forEach(function (r) {
+      if (!r.tabUrl) return;
+      var host = _hostname(r.tabUrl);
+      if (!host || seenDomains[host]) return;
+      seenDomains[host] = true;
+      var isActiveDom = STATE.domainFilter === host;
+      parts.push('<button class="seg-filter-badge seg-filter-badge--domain' + (isActiveDom ? ' is-active' : '') + '" data-fk="domainFilter" data-fv="' + esc(host) + '" title="Filtrer par domaine : ' + esc(host) + '" type="button">' +
+        esc(host) + '</button>');
+    });
+
+    // Fallback to old pageTag if nothing else to show
+    if (!parts.length) return _buildPageTag(dem.url || '');
+
+    return '<div class="seg-meta-tags">' + parts.join('') + '</div>';
+  }
+
   function _buildPageTag(url) {
     if (!url) return '<div class="seg-urlbar"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span class="seg-url seg-url-empty">URL inconnue</span></div>';
     var short = _formatUrl(url);
@@ -416,9 +493,14 @@
     var labelKind = isShot ? 'capture' : isErr ? 'erreur' : 'élément';
     var num       = opts.displayNum || (absIdx + 1);
 
+    var domainBadge = '';
+    if (ref && ref.tabUrl) {
+      var dHost = _hostname(ref.tabUrl);
+      if (dHost) domainBadge = '<span class="ref-chip-domain" title="' + esc(ref.tabUrl) + '">@' + esc(dHost) + '</span>';
+    }
     var header = document.createElement('span');
     header.className = 'ref-chip-header';
-    header.innerHTML = icon + '<span class="ref-chip-label">' + labelKind + ' #' + num + '</span><span class="ref-chip-toggle" aria-hidden="true">▾</span>';
+    header.innerHTML = icon + '<span class="ref-chip-label">' + labelKind + ' #' + num + '</span>' + domainBadge + '<span class="ref-chip-toggle" aria-hidden="true">▾</span>';
 
     var details = document.createElement('span');
     details.className = 'ref-details';
@@ -641,6 +723,7 @@
   window.BIAIFRenderer = {
     init:                   init,
     esc:                    esc,
+    setFilter:              function (key, val) { if (key in STATE) { STATE[key] = val || ''; renderSegments(); } },
     renderSegments:         renderSegments,
     renderDemandeEditor:    renderDemandeEditor,
     renderDemandeRefsStrip: renderDemandeRefsStrip,

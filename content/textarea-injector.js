@@ -157,10 +157,19 @@
     var tipNew    = 'PromptDrop – Nouveau segment lié à cette conversation';
 
     var btnFilter = _makeBtn('filter', SVG_FILTER, tipFilter, function () {
-      _send({ type: _msgType('OPEN_WITH_FILTER'), conversationUrl: location.href, filterUrl: null });
+      _send({
+        type:            _msgType('OPEN_WITH_FILTER'),
+        conversationUrl: location.href,
+        repoId:          _extractGithubRepo(location.href),
+        filterUrl:       null,
+      });
     });
     var btnNew = _makeBtn('new', SVG_NEW, tipNew, function () {
-      _send({ type: _msgType('START_LINKED_SEGMENT'), conversationUrl: location.href });
+      _send({
+        type:            _msgType('START_LINKED_SEGMENT'),
+        conversationUrl: location.href,
+        repoId:          _extractGithubRepo(location.href),
+      });
     });
 
     pair.appendChild(btnFilter);
@@ -189,6 +198,20 @@
     entry.io.disconnect();
     if (entry.pair.parentNode) entry.pair.parentNode.removeChild(entry.pair);
     _tracked.delete(el);
+  }
+
+  /* ── GitHub repo detection ──────────────────────────────────────────────── */
+
+  function _extractGithubRepo(url) {
+    try {
+      var u = new URL(url);
+      if (u.hostname === 'github.com') {
+        var parts = u.pathname.split('/').filter(Boolean);
+        var skip  = ['orgs','settings','marketplace','explore','trending','notifications','search','login','logout'];
+        if (parts.length >= 2 && !skip.includes(parts[0])) return parts[0] + '/' + parts[1];
+      }
+    } catch (_) {}
+    return null;
   }
 
   /* ── message helper ─────────────────────────────────────────────────────── */

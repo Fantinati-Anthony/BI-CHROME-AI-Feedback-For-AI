@@ -619,25 +619,59 @@ html, body {
   flex-shrink: 2; min-width: 0;
 }
 
-/* Conversation filter chip */
-.conv-filter-chip {
-  display: flex; align-items: center; gap: 5px;
-  background: color-mix(in srgb, #6c47ff 15%, transparent);
-  border: 1px solid #6c47ff;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 10px; color: #b39dff;
+/* ── Unified filter chips bar ───────────────────────────────────────────── */
+.filter-chips-bar {
+  display: flex; flex-wrap: wrap; gap: 4px;
   margin-bottom: 6px;
-  max-width: 100%; overflow: hidden;
 }
-.conv-filter-chip__label {
-  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: color-mix(in srgb, #6c47ff 18%, transparent);
+  border: 1px solid #6c47ff;
+  border-radius: 5px; padding: 3px 7px;
+  font-size: 10px; color: #b39dff; cursor: pointer;
+  max-width: 200px; overflow: hidden;
+  transition: background .1s;
 }
-.conv-filter-chip__clear {
-  background: none; border: none; color: #b39dff; cursor: pointer;
-  padding: 0 2px; font-size: 11px; line-height: 1; flex-shrink: 0;
+.filter-chip:hover { background: color-mix(in srgb, #6c47ff 30%, transparent); }
+.filter-chip-icon { flex-shrink: 0; font-size: 11px; }
+.filter-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-chip-x { flex-shrink: 0; opacity: .7; }
+.filter-chip:hover .filter-chip-x { opacity: 1; color: #fff; }
+
+/* ── Segment meta-tags bar (clickable filter badges) ────────────────────── */
+.seg-meta-tags {
+  display: flex; flex-wrap: wrap; gap: 3px;
+  padding: 2px 0 3px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  margin-bottom: 3px;
 }
-.conv-filter-chip__clear:hover { color: #fff; }
+.seg-filter-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 4px; padding: 2px 5px;
+  font-size: 9px; color: var(--text-muted);
+  cursor: pointer; transition: background .1s, border-color .1s, color .1s;
+  white-space: nowrap;
+}
+.seg-filter-badge:hover { background: rgba(255,255,255,.10); color: var(--text); border-color: rgba(255,255,255,.25); }
+.seg-filter-badge.is-active { border-color: #6c47ff; color: #b39dff; background: color-mix(in srgb, #6c47ff 15%, transparent); }
+.seg-filter-badge--repo  { border-color: rgba(28,200,138,.3);  color: #3ecf8e; }
+.seg-filter-badge--repo:hover  { border-color: #3ecf8e; }
+.seg-filter-badge--conv  { border-color: rgba(108,71,255,.35); color: #9b7eff; }
+.seg-filter-badge--conv:hover  { border-color: #6c47ff; }
+.seg-filter-badge--domain { border-color: rgba(255,255,255,.12); }
+
+/* ── Chip domain badge (@hostname) ──────────────────────────────────────── */
+.ref-chip-domain {
+  font-size: 8.5px; color: #6c8aff;
+  background: rgba(108,138,255,.12);
+  border-radius: 3px; padding: 0 3px;
+  margin: 0 2px; line-height: 1.6;
+  max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: inline-block; vertical-align: middle;
+}
 
 /* Demande history card */
 .biaif-segment {
