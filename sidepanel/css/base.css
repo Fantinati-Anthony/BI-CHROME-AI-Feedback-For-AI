@@ -56,8 +56,9 @@ html, body {
 /* États "désarmé" : avant Démarrer, on cache les outils et la zone de
    saisie (sauf si elle contient déjà du contenu pré-existant). Focus
    visuel sur le bouton Démarrer + l'historique. */
-/* Demande zone masquée tant que la session n'est pas démarrée */
-.demande-zone.is-locked { display: none; }
+/* Demande zone + outils masqués tant que la session n'est pas démarrée */
+.demande-zone.is-locked,
+.biaif-quick-tools.is-locked { display: none; }
 
 /* État "Hero vide" : aucun historique + session non démarrée → on
    cache l'historique et on centre verticalement le bloc Démarrer +
