@@ -137,17 +137,34 @@
 
 /* ─── Topbar row : [session-bar | topbar-tools] on a single line ── */
 .topbar-row {
-  display: flex; align-items: stretch; gap: 8px;
+  --topbar-h: 44px;
+  display: flex; align-items: center; gap: 8px;
   min-width: 0;
 }
 .topbar-row .session-bar {
   flex: 1; min-width: 0;
+  align-items: center;
 }
 
 /* ─── Topbar tools (search / sort / font / settings) ─────────── */
 .topbar-tools {
   display: flex; align-items: center; gap: 6px;
   flex-shrink: 0;
+  height: var(--topbar-h);
+}
+
+/* All circular icon controls share the same square footprint */
+.topbar-row .session-disarm,
+.topbar-row .topbar-icon-btn,
+.topbar-row .topbar-split {
+  width:  var(--topbar-h);
+  height: var(--topbar-h);
+}
+/* Master & new-conv pill buttons match the same height */
+.topbar-row .session-main,
+.topbar-row .session-new-conv {
+  height: var(--topbar-h);
+  padding-top: 0; padding-bottom: 0;
 }
 
 /* Expandable search input */
