@@ -7,6 +7,42 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- **Major refactor — `sidepanel.css` split** (1581 L → 34 L entry +
+  7 themed files under `sidepanel/css/`):
+  - `base.css`     (165 L) — design tokens (`:root` vars), reset,
+                              scrollbar, `.biaif-root` state classes
+                              (armed / editing / empty), hero animations
+  - `session.css`  (129 L) — session bar + quick-tools row
+  - `editor.css`   (108 L) — current-demande Mad-Libs editor
+  - `settings.css` (146 L) — settings popover (toggles, sections)
+  - `segments.css` (511 L) — segment cards, filter chips, meta-tags,
+                              archive zone, conversation groups, action
+                              buttons (largest module — inherent)
+  - `chrome.css`   (272 L) — sticky bottom bar, logs panel, status,
+                              errors button, reload modal, toast,
+                              history search, capture progress,
+                              onboarding empty state
+  - `wizard.css`   (243 L) — onboarding wizard modal
+  - The Google-Fonts `@import` stays at the top of `sidepanel.css`
+    (CSS spec: external imports must precede any other rule).
+- **Major refactor — `background.js` split** (401 L → 38 L entry +
+  7 modules under `background/`):
+  - `lib.js`           — `MSG`, `sleep`, `sendToActiveTabContent`,
+                          `openSidePanelForActive`, `waitForTabLoaded`
+  - `capture.js`       — `captureWithRateLimit` queue + retry +
+                          rate-limit honouring `MIN_INTERVAL_MS`
+  - `inject.js`        — `injectWithRetry` (waits for editor DOM)
+  - `context-menu.js`  — 4 entries + `onClicked` router
+  - `auto-open.js`     — `chrome.tabs.onActivated/onUpdated` →
+                          `checkAutoOpenForTab`
+  - `commands.js`      — `chrome.commands.onCommand`
+  - `messages.js`      — `chrome.runtime.onMessage` routing
+  - `importScripts()` shares the same global scope so modules
+    reference each other's top-level functions by their bare names
+    (loaded top-down).
+- **Repo hygiene**: `.gitignore` (OS cruft, node_modules, vsix,
+  local env), `.editorconfig` (2-space, LF, UTF-8), and `console.js`
+  moved into `sidepanel/console.js` where it belongs.
 - **Major refactor — `sidepanel.js` split**. The 987-line orchestrator is
   now a 139-line bootstrap that owns only `STATE`, `REFS`, `cacheRefs()`,
   and the `DOMContentLoaded` sequence. Everything else moved to focused

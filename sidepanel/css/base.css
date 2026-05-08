@@ -1,0 +1,166 @@
+:root {
+  --bg-app: #000000;
+  --bg-card: #0d0d0f;
+  --bg-card-hover: #17171a;
+  --border-card: #222224;
+
+  --text-main: #ffffff;
+  --text-muted: #8b8b8d;
+  --text-inverse: #000000;
+
+  --accent-blue: #0ea5b7;
+  --accent-blue-50: rgba(14, 165, 183, 0.1);
+  --accent-blue-100: rgba(14, 165, 183, 0.2);
+  --accent-blue-hover: #12c1d6;
+
+  --accent-purple: #8b5cf6;
+  --accent-purple-50: rgba(139, 92, 246, 0.1);
+
+  --danger: #ff453a;
+  --success: #30d158;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  --pad-sm: 8px;
+  --pad-md: 12px;
+  --pad-lg: 24px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body {
+  margin: 0; padding: 0; min-height: 100vh;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px; font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Root : seul container avec padding global */
+.biaif-root {
+  display: flex; flex-direction: column; min-height: 100vh;
+  padding: var(--pad-md);
+  gap: 10px;
+}
+
+/* États "désarmé" : avant Démarrer, on cache les outils et la zone de
+   saisie (sauf si elle contient déjà du contenu pré-existant). Focus
+   visuel sur le bouton Démarrer + l'historique. */
+.biaif-quick-tools.is-hidden { display: none !important; }
+.demande-zone.is-locked { display: none; }
+
+/* État "Hero vide" : aucun historique + session non démarrée → on
+   cache l'historique et on centre verticalement le bloc Démarrer +
+   message d'accueil. */
+.biaif-empty-state { display: none; }
+.biaif-root.is-empty-state .biaif-empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 18px; padding: 12px 8px; text-align: center;
+}
+.biaif-root.is-empty-state .biaif-segments-wrap {
+  display: none !important;
+}
+.biaif-root.is-empty-state .session-bar {
+  order: 2; margin-top: 0; margin-bottom: auto;
+}
+.biaif-root.is-empty-state .biaif-empty-state {
+  order: 1; margin-top: auto; margin-bottom: 0;
+}
+.biaif-root.is-empty-state .biaif-footer-area { margin-top: 0; }
+
+/* Orb pulsant en haut du hero : signature visuelle "AI" */
+.empty-state-orb {
+  width: 64px; height: 64px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,255,255,0.6), transparent 35%),
+    linear-gradient(135deg, #4f46e5 0%, #06b6d4 50%, #8b5cf6 100%);
+  box-shadow:
+    0 0 30px rgba(139, 92, 246, 0.45),
+    0 0 60px rgba(6, 182, 212, 0.25),
+    inset 0 0 20px rgba(255,255,255,0.1);
+  animation: hero-orb-pulse 3s ease-in-out infinite;
+  margin-bottom: 4px;
+}
+@keyframes hero-orb-pulse {
+  0%, 100% { transform: scale(1);   box-shadow: 0 0 30px rgba(139, 92, 246, 0.45), 0 0 60px rgba(6, 182, 212, 0.25), inset 0 0 20px rgba(255,255,255,0.1); }
+  50%      { transform: scale(1.08); box-shadow: 0 0 40px rgba(139, 92, 246, 0.7),  0 0 80px rgba(6, 182, 212, 0.45), inset 0 0 25px rgba(255,255,255,0.18); }
+}
+
+.empty-state-verbs {
+  display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
+}
+.empty-state-verb {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-muted);
+  animation: hero-verb-float 3.6s ease-in-out infinite;
+}
+.empty-state-verb svg { transition: transform 0.2s; }
+.empty-state-verb--blue   svg { color: #06b6d4; filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.45)); }
+.empty-state-verb--purple svg { color: #8b5cf6; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
+.empty-state-verb--pink   svg { color: #ec4899; filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.45)); }
+.empty-state-verb--amber  svg { color: #f59e0b; filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.45)); }
+.empty-state-verb--purple { animation-delay: 0.4s; }
+.empty-state-verb--pink   { animation-delay: 0.8s; }
+.empty-state-verb--amber  { animation-delay: 1.2s; }
+@keyframes hero-verb-float {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50%      { transform: translateY(-3px); opacity: 1; }
+}
+
+.empty-state-tagline {
+  margin: 0;
+  font-size: 14px; font-weight: 500; line-height: 1.55;
+  color: var(--text-main);
+  max-width: 280px;
+}
+.empty-state-tagline-em {
+  background: linear-gradient(120deg, #06b6d4 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+.empty-state-cta {
+  margin: 0;
+  font-size: 11px; line-height: 1.55; color: var(--text-muted);
+  max-width: 280px;
+}
+.empty-state-cta strong { color: var(--accent-blue); font-weight: 700; }
+
+/* Mode "focus édition" : on isole le segment édité, le reste disparait
+   pour éliminer toute distraction. La footer-area et son status restent
+   visibles (Vider/Copier/.MD toujours accessibles). */
+.biaif-root.is-editing-segment .session-bar,
+.biaif-root.is-editing-segment .biaif-buffer-preview,
+.biaif-root.is-editing-segment .demande-zone,
+.biaif-root.is-editing-segment .segments-title,
+.biaif-root.is-editing-segment .biaif-segment:not(.is-editing) {
+  display: none !important;
+}
+.biaif-root.is-editing-segment .biaif-segments-wrap {
+  flex: 1; min-height: 0;
+}
+/* Le segment édité prend plus de respiration */
+.biaif-root.is-editing-segment .biaif-segment.is-editing {
+  padding: 10px 12px;
+  gap: 6px;
+}
+.biaif-root.is-editing-segment .biaif-segment.is-editing .demande-text {
+  min-height: 80px;
+  padding: 10px 12px;
+  font-size: calc(var(--seg-text-size) + 1px);
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+}
