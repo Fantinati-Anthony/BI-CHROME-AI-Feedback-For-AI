@@ -301,6 +301,19 @@
     });
   }
 
+  function _bindTopbarPosition() {
+    var STATE = ctx.STATE;
+    var cb   = document.getElementById('topbar-bottom');
+    var root = document.querySelector('.biaif-root');
+    function apply() { if (root) root.classList.toggle('topbar-bottom', STATE.topbarPosition === 'bottom'); }
+    if (cb) cb.addEventListener('change', function () {
+      STATE.topbarPosition = cb.checked ? 'bottom' : 'top';
+      apply();
+      window.BIAIFStorage.persist(STATE);
+    });
+    apply();
+  }
+
   function _bindShowConsoleBtn() {
     var STATE = ctx.STATE;
     var cb  = document.getElementById('show-console-btn');
@@ -475,6 +488,7 @@
     _bindAutoOpenToggles();
     _bindBehaviourToggles();
     _bindShowConsoleBtn();
+    _bindTopbarPosition();
     _bindUiLangButtons();
     _bindMicSettings();
     _bindEditorLiveSync();

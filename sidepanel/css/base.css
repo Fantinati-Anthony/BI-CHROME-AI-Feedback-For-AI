@@ -52,6 +52,8 @@ html, body {
   padding: var(--pad-md);
   gap: 10px;
 }
+/* User-controlled vertical layout — inverts the whole sidebar */
+.biaif-root.topbar-bottom { flex-direction: column-reverse; }
 
 /* ── Two-state layout ───────────────────────────────────────────────────
    REST  (not armed): history + "Nouvelle conv." only
