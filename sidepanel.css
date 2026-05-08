@@ -515,6 +515,8 @@ html, body {
 .sp-switch input:checked + .sp-switch-track { background: var(--accent-blue); border-color: var(--accent-blue); }
 .sp-switch input:checked + .sp-switch-track .sp-switch-thumb { transform: translateX(16px); background: #fff; }
 .sp-switch input:focus-visible + .sp-switch-track { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.sp-switch input:disabled + .sp-switch-track { opacity: 0.35; cursor: not-allowed; }
+.sp-toggle-row.is-disabled { opacity: 0.45; pointer-events: none; cursor: not-allowed; }
 
 /* Font size control */
 .sp-font-ctrl { display: flex; align-items: center; gap: 6px; }
