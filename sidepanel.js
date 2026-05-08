@@ -102,8 +102,7 @@
 
     if (chrome?.tabs?.onActivated) {
       chrome.tabs.onActivated.addListener(() => {
-        checkActiveTabReady();
-        refreshErrorsFromActiveTab();
+        onTabSwitch();
       });
     }
     if (chrome?.tabs?.onUpdated) {
@@ -113,8 +112,10 @@
           STATE.consoleErrors = [];
           window.BIAIFRenderer.updateErrorsBadges();
         } else if (info.status === 'complete') {
+          // Re-arm picker on the tab that just finished loading
           checkActiveTabReady();
           refreshErrorsFromActiveTab();
+          if (STATE.armed) _rearmPickerOnActiveTab();
         }
       });
     }
@@ -171,12 +172,16 @@
 
   function bindEvents() {
     // Session master button
-    if (REFS.masterBtn) REFS.masterBtn.addEventListener('click', () => {
+    if (REFS.masterBtn) REFS.masterBtn.addEventListener('click', async () => {
       if (typeof STATE.editingDemandeIdx === 'number') window.BIAIFSession.exitEditMode();
       else if (STATE.armed) window.BIAIFSession.finalizeDemande(false);
-      else window.BIAIFSession.startSession();
+      else { await window.BIAIFSession.startSession(); updateLinkedSessionBanner(); }
     });
-    if (REFS.stopBtn) REFS.stopBtn.addEventListener('click', () => window.BIAIFSession.stopSession());
+    if (REFS.stopBtn) REFS.stopBtn.addEventListener('click', () => {
+      window.BIAIFSession.stopSession();
+      STATE.pendingConversationUrl = null;
+      updateLinkedSessionBanner();
+    });
 
     // Tools
     if (REFS.pickerBtn) REFS.pickerBtn.addEventListener('click', async () => {
@@ -468,10 +473,11 @@
   }
 
   async function onStartLinkedSegment(conversationUrl) {
-    STATE.conversationFilter    = conversationUrl || '';
+    STATE.conversationFilter     = conversationUrl || '';
     STATE.pendingConversationUrl = conversationUrl || null;
     window.BIAIFRenderer.renderSegments();
     if (!STATE.armed) await window.BIAIFSession.startSession();
+    updateLinkedSessionBanner();
     if (conversationUrl) {
       let label = conversationUrl;
       try { label = new URL(conversationUrl).hostname + new URL(conversationUrl).pathname; } catch (_) {}
@@ -580,7 +586,50 @@
   // TAB READY CHECK
   // ============================================================
 
+  // Called on every tab activation
+  async function onTabSwitch() {
+    refreshErrorsFromActiveTab();
+    if (STATE.armed) {
+      // Give the content script a moment to settle before re-arming
+      await _waitForTabReady(800);
+      _rearmPickerOnActiveTab();
+      updateLinkedSessionBanner();
+    } else {
+      checkActiveTabReady();
+    }
+  }
+
+  // Re-enable picker on the currently active tab (used on tab switch during session)
+  async function _rearmPickerOnActiveTab() {
+    const resp = await sendBg({ type: _MSG('PICKER_ENABLE') });
+    if (resp && !resp.error) {
+      STATE.pickerActive = true;
+      if (REFS.pickerBtn) {
+        REFS.pickerBtn.classList.add('active');
+        REFS.pickerBtn.setAttribute('aria-pressed', 'true');
+      }
+    }
+    hideReloadModal();
+  }
+
+  // Wait up to `ms` for the active tab's content script to respond
+  async function _waitForTabReady(ms) {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab || !tab.id) break;
+        const r = await chrome.tabs.sendMessage(tab.id, { type: _MSG('COMMAND'), action: 'ping' }).catch(() => null);
+        if (r && r.ok) return true;
+      } catch (_) {}
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return false;
+  }
+
   async function checkActiveTabReady() {
+    // Don't interrupt an active capture session with the reload modal
+    if (STATE.armed) return;
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab || !tab.id) return;
@@ -614,6 +663,36 @@
   // ============================================================
   // CAPTURE SUBLINE
   // ============================================================
+
+  // ============================================================
+  // LINKED SESSION BANNER
+  // ============================================================
+
+  async function updateLinkedSessionBanner() {
+    const banner = document.getElementById('linked-session-banner');
+    if (!banner) return;
+    if (!STATE.armed || !STATE.pendingConversationUrl) {
+      banner.setAttribute('hidden', '');
+      return;
+    }
+    let convLabel = STATE.pendingConversationUrl;
+    try {
+      const u = new URL(STATE.pendingConversationUrl);
+      convLabel = u.hostname + u.pathname;
+    } catch (_) {}
+    // Get current active tab title/url
+    let tabLabel = '';
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) tabLabel = tab.title || tab.url || '';
+      if (tabLabel.length > 40) tabLabel = tabLabel.slice(0, 38) + '…';
+    } catch (_) {}
+    const convEl = banner.querySelector('.lsb-conv');
+    const tabEl  = banner.querySelector('.lsb-tab');
+    if (convEl) convEl.textContent = convLabel;
+    if (tabEl)  tabEl.textContent  = tabLabel ? '→ ' + tabLabel : '';
+    banner.removeAttribute('hidden');
+  }
 
   function openCaptureSubline() {
     const sub = document.querySelector('.quick-tools-subline');
