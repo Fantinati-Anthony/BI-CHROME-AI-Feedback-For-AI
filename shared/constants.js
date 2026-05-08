@@ -8,7 +8,7 @@
 
   root.BIAIF = root.BIAIF || {};
 
-  root.BIAIF.VERSION = '0.4.0';
+  root.BIAIF.VERSION = '0.5.0';
 
   root.BIAIF.STORAGE_KEY = 'biaif:v04:state';
   root.BIAIF.STORAGE_LEGACY_KEYS = ['biaif:v03:state', 'biaif:v02:state', 'biaif:v01:state'];

@@ -6,9 +6,30 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] — 2025-05
+
 ### Added
-- Centralised AI host metadata in `shared/ai-adapters.js` (`label`, `webUrl`,
-  `editor`, `submitBtn`, `inputHide`, `stopBtn`, `generatingEl`).
+- **`shared/logger.js`** — levelled logger (`debug`/`info`/`warn`/`error`)
+  gated by `localStorage.BIAIF_LOG_LEVEL` or
+  `chrome.storage.local.biaif_log_level`. Wired into the service worker, the
+  side panel, and every content script. Replaces ad-hoc `console.warn`
+  scattered across the codebase.
+- **README rewrite** — comprehensive feature reference, settings table,
+  architecture summary, privacy/security section, dev quickstart.
+- **CONTRIBUTING.md** — file layout, code style, XSS hygiene, i18n rules,
+  PR conventions, debugging tips, release process.
+- **ARCHITECTURE.md** — three-context diagram (SW / sidepanel / content),
+  data-flow diagrams (capture, inject, VS Code bridge), storage versioning
+  model, full module map.
+- **GitHub Actions CI** (`.github/workflows/ci.yml`) — JSON validation,
+  per-file `node --check`, ESLint and Prettier checks (warning-only for
+  now until the codebase is clean).
+- **Versioned storage migration framework** — payloads now carry an
+  explicit `_v` field. `_MIGRATIONS` registry runs ordered transformations
+  on hydrate. Failed migrations leave data untouched rather than
+  corrupting it.
+- **Centralised AI host metadata** in `shared/ai-adapters.js` (`label`,
+  `webUrl`, `editor`, `submitBtn`, `inputHide`, `stopBtn`, `generatingEl`).
 - Conversation grouping: segments sharing a `conversationUrl` are grouped into
   a single card with collapsible done sub-segments.
 - `hideAiTextarea` setting — hides Claude.ai's native input, leaving only the
@@ -25,10 +46,16 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 - `shared/utils.js` — single source of truth for `extractGithubRepo`,
   `decodeErr`, `findAiAdapter`, `t`, `msgKey`. Replaces three duplicated
   copies of the GitHub helper and two of the error decoder.
-- LICENSE (MIT), this CHANGELOG, `.eslintrc.json`, `.prettierrc`.
+- LICENSE (MIT), CHANGELOG, `.eslintrc.json`, `.prettierrc`.
 - Explicit `content_security_policy` in `manifest.json`.
 - i18n dev warnings: console logs missing translation keys / locales the
   first time they're requested.
+- **Cancellable full-page capture** — the loader overlay now shows an
+  "Annuler" button that flips `state.cancelRequested`. The scroll-stitch
+  loop bails out at the next iteration and emits `error: 'cancelled'`.
+- **Adaptive AI-watcher polling** — interval drops from 700 ms to 2000 ms
+  while the AI is idle (the MutationObservers cover any actual change in
+  between).
 
 ### Changed
 - Manifest: removed unused `scripting` permission, added `author` and
@@ -55,6 +82,20 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 - **XSS hardening in `content/screenshot.js`** — full-page-capture loader
   rebuilt via DOM API instead of `innerHTML` interpolation of `message`,
   `current`, `total`.
+
+### Security
+- **VS Code bridge hardening (breaking config)**
+  - CORS `Access-Control-Allow-Origin: *` → exact-match echo of the
+    requesting origin, restricted to `chrome-extension://*`,
+    `moz-extension://*`, `safari-web-extension://*`.
+  - Disallowed origins now receive HTTP 403.
+  - Payload caps: 20 MB total body, 1 MB text, 10 images max, 8 MB per
+    image (post-base64 decode).
+  - Strict validation: `target` must be `'vscode'` or `'copilot'`,
+    `text` must be a string, every image must be a `data:image/(png|
+    jpeg|gif|webp);base64,...` URL.
+  - Loopback bind (`127.0.0.1`) preserved — no LAN exposure.
+  - Bridge version bumped to 0.5.0 (advertised in `/ping`).
 
 ## [0.4.0] — 2025-04 (initial public release)
 

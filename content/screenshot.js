@@ -145,8 +145,9 @@
     async captureFullPage() {
       if (this.state.isCapturing) throw new Error('Capture déjà en cours');
       this.state.isCapturing = true;
+      this.state.cancelRequested = false;
       this.hideWidget();
-      this.showLoader('Préparation…');
+      this.showLoader('Préparation…', null, null, { cancellable: true });
 
       const dpr = window.devicePixelRatio || 1;
       const vpH = window.innerHeight;
@@ -165,7 +166,8 @@
 
         let lastScrollY = -1;
         for (let i = 0; i < sections; i++) {
-          this.showLoader('Capture en cours…', i + 1, sections);
+          if (this.state.cancelRequested) throw new Error('cancelled');
+          this.showLoader('Capture en cours…', i + 1, sections, { cancellable: true });
           this.sendProgress(i + 1, sections);
           window.scrollTo(0, i * vpH);
           await this.sleep(this.config.scrollSettleMs);
@@ -185,12 +187,17 @@
           });
         }
 
+        if (this.state.cancelRequested) throw new Error('cancelled');
         this.showLoader('Assemblage…');
         const finalDataUrl = await this.stitchSections(captures, scrollW, scrollH, vpH, dpr);
         this.state.lastCapture = finalDataUrl;
         this.emit('success', { dataUrl: finalDataUrl, mode: 'fullpage' });
         return finalDataUrl;
       } catch (e) {
+        if (e && e.message === 'cancelled') {
+          this.emit('error', { error: 'cancelled', cancelled: true });
+          return null;
+        }
         console.warn('[BIAIF] full-page KO :', e.message);
         this.emit('error', { error: e.message });
         return this.fallbackCapture();
@@ -200,7 +207,14 @@
         this.removeLoader();
         this.showWidget();
         this.state.isCapturing = false;
+        this.state.cancelRequested = false;
       }
+    },
+
+    cancelCapture() {
+      if (!this.state.isCapturing) return false;
+      this.state.cancelRequested = true;
+      return true;
     },
 
     /**
@@ -581,7 +595,7 @@
     // Loader / hide widget / hide fixed elements
     // -------------------------------------------------------------------
 
-    showLoader(message = 'Capture en cours…', current = null, total = null) {
+    showLoader(message = 'Capture en cours…', current = null, total = null, opts = {}) {
       let loader = document.getElementById('biaif-screenshot-loader');
       if (!loader) {
         loader = document.createElement('div');
@@ -621,6 +635,27 @@
       hint.style.cssText = 'color:#94a3b8;font-size:12px;margin-top:14px';
       hint.textContent = 'Merci de ne rien toucher';
       loader.appendChild(hint);
+
+      // Cancel button — only for cancellable long-running ops (full-page).
+      if (opts.cancellable) {
+        const cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.textContent = 'Annuler';
+        cancel.setAttribute('aria-label', 'Annuler la capture en cours');
+        cancel.style.cssText =
+          'margin-top:18px;padding:6px 16px;border:1px solid #475569;' +
+          'background:rgba(15,23,42,0.6);color:#e2e8f0;border-radius:6px;' +
+          'font:inherit;cursor:pointer;';
+        cancel.addEventListener('mouseover', () => { cancel.style.background = 'rgba(248,113,113,0.18)'; cancel.style.borderColor = '#ef4444'; });
+        cancel.addEventListener('mouseout',  () => { cancel.style.background = 'rgba(15,23,42,0.6)'; cancel.style.borderColor = '#475569'; });
+        cancel.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.cancelCapture();
+          cancel.disabled = true;
+          cancel.textContent = 'Annulation…';
+        });
+        loader.appendChild(cancel);
+      }
 
       // Spin keyframes (static — innerHTML is safe here, no interpolation).
       const styleEl = document.createElement('style');

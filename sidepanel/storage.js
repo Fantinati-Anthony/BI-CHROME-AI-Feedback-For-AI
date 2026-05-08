@@ -1,7 +1,21 @@
 /**
  * BIAIF Storage
+ *
  * Handles hydration, persistence, and versioned migration.
- * Storage quota guard: strips dataUrls from screenshots when the full save fails.
+ *
+ * Version model:
+ *   - The storage KEY itself includes a version (`biaif:v04:state`).
+ *   - The persisted payload also carries a `_v` field with the integer
+ *     version of the schema. New persists always stamp the current
+ *     version. Old payloads without `_v` are treated as v1.
+ *
+ * Migration pipeline:
+ *   - `_MIGRATIONS` is an ordered registry [{ from, to, run }, ...]. On
+ *     hydrate, if the saved `_v` is older than `CURRENT_VERSION`, the
+ *     pipeline runs each step in order. Each step receives and returns
+ *     a payload object — pure transformation, no side effects.
+ *
+ * Quota guard: strips dataUrls from screenshots when the full save fails.
  */
 (function (window) {
   'use strict';
@@ -9,6 +23,43 @@
   var KEY        = (window.BIAIF && window.BIAIF.STORAGE_KEY)        || 'biaif:v04:state';
   var LEGACY     = (window.BIAIF && window.BIAIF.STORAGE_LEGACY_KEYS) || ['biaif:v03:state'];
   var MAX_BYTES  = 8 * 1024 * 1024; // warn at 8 MB (limit is 10 MB)
+
+  // ── Schema version ───────────────────────────────────────────────────────
+  // Bump on every breaking change to the persisted shape. Add a corresponding
+  // entry to _MIGRATIONS that transforms `from` → `to`.
+  var CURRENT_VERSION = 1;
+
+  // Registry of migrations between schema versions. Each step:
+  //   { from: <int>, to: <int>, run: (payload) => payload }
+  // Steps must be idempotent and must not mutate their input — return a new
+  // object. Order matters: applied in array order.
+  var _MIGRATIONS = [
+    // Example for the future:
+    //   { from: 1, to: 2, run: function (p) { return Object.assign({}, p, { newField: defaultValue }); } },
+  ];
+
+  function _runMigrations(saved) {
+    var currentV = (saved && typeof saved._v === 'number') ? saved._v : 1;
+    if (currentV === CURRENT_VERSION) return saved;
+    var p = saved;
+    for (var i = 0; i < _MIGRATIONS.length; i++) {
+      var step = _MIGRATIONS[i];
+      if (currentV !== step.from) continue;
+      try {
+        p = step.run(p) || p;
+        currentV = step.to;
+        if (window.BIAIF && window.BIAIF.log) {
+          window.BIAIF.log.info('[storage] migrated v' + step.from + ' → v' + step.to);
+        }
+      } catch (e) {
+        // Migration failed — keep the data as-is to avoid corruption.
+        console.warn('[BIAIF Storage] migration v' + step.from + ' → v' + step.to + ' failed:', e && e.message);
+        break;
+      }
+    }
+    p = Object.assign({}, p, { _v: currentV });
+    return p;
+  }
 
   // -----------------------------------------------------------------------
   // Hydrate
@@ -18,6 +69,9 @@
       var obj  = await chrome.storage.local.get([KEY].concat(LEGACY));
       var saved = obj[KEY] || _migrateLegacy(obj);
       if (!saved) { if (onDone) onDone(); return; }
+
+      // Run any registered schema migrations in order before applying.
+      saved = _runMigrations(saved);
 
       if (Array.isArray(saved.demandes))             STATE.demandes       = saved.demandes;
       if (saved.currentDemande && typeof saved.currentDemande.text === 'string') {
@@ -81,6 +135,7 @@
   // -----------------------------------------------------------------------
   function _buildPayload(STATE) {
     return {
+      _v:                    CURRENT_VERSION,
       demandes:              STATE.demandes,
       currentDemande:        STATE.currentDemande,
       lang:                  STATE.lang,

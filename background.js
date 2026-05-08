@@ -4,6 +4,7 @@
 
 importScripts('shared/constants.js');
 importScripts('shared/utils.js');
+importScripts('shared/logger.js');
 importScripts('shared/ai-adapters.js');
 
 const MIN_CAPTURE_INTERVAL_MS = 1500;

@@ -143,7 +143,26 @@
   }
 
   // Lifecycle handles — cleared on pagehide / bfcache to avoid leaks.
-  var _tickInterval = setInterval(_tick, 700);
+  // Adaptive polling: 700 ms while AI is active, 2000 ms while idle. The
+  // MutationObserver does the heavy lifting; the interval is only a safety
+  // net so the lazy interval is fine.
+  var POLL_ACTIVE = 700;
+  var POLL_IDLE   = 2000;
+  var _currentPoll  = POLL_IDLE;
+  var _tickInterval = null;
+
+  function _setPoll(ms) {
+    if (ms === _currentPoll) return;
+    _currentPoll = ms;
+    if (_tickInterval) clearInterval(_tickInterval);
+    _tickInterval = setInterval(_tickAndAdapt, ms);
+  }
+  function _tickAndAdapt() {
+    _tick();
+    _setPoll(_wasGenerating ? POLL_ACTIVE : POLL_IDLE);
+  }
+  _tickInterval = setInterval(_tickAndAdapt, _currentPoll);
+
   var _attrObs = null;
   var _streamObs = null;
 
