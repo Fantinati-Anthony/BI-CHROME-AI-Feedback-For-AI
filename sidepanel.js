@@ -28,36 +28,45 @@
   // STATE
   // ============================================================
 
+  // ─── STATE ────────────────────────────────────────────────────────
+  // Conceptually three concerns are mixed in one flat object for
+  // backwards compatibility with the existing 100+ callsites. The
+  // grouping is purely visual but is also exposed as live read-through
+  // namespaces (STATE.session / STATE.data / STATE.settings) — see
+  // _installNamespaces() below.
+  // ──────────────────────────────────────────────────────────────────
   const STATE = {
+    // 1) SESSION — ephemeral runtime flags (not persisted)
     armed:                  false,
     pickerActive:           false,
     micActive:              false,
     currentInterim:         '',
-    currentDemande:         { text: '', refs: [], pageUrl: null },
-    demandes:               [],
-    lastShot:               null,
-    lastShotMode:           null,
-    sortOrder:              'desc',
-    segFontSize:            13,
-    lang:                   'fr-FR',
-    micDeviceId:            '',
     replacingRef:           null,
     dictationTarget:        'current',
     modalTarget:            'current',
     consoleErrors:          [],
     editingDemandeIdx:      null,
     searchQuery:            '',
-    // Defaults derived from BIAIF.ALL_BUTTONS (single source of truth).
-    visibleButtons: ((window.BIAIF && window.BIAIF.ALL_BUTTONS) || []).reduce(function (acc, def) {
-      acc[def.key] = !!def.defaultVisible; return acc;
-    }, {}),
-    uiLang:                 '',
-    conversationFilter:     '',     // exact AI conversation URL filter
-    repoFilter:             '',     // "owner/repo" filter
-    domainFilter:           '',     // hostname filter (e.g. "localhost:3000")
-    pageFilter:             '',     // exact tabUrl filter
     pendingConversationUrl: null,
     pendingRepoId:          null,
+    lastShot:               null,
+    lastShotMode:           null,
+    conversationFilter:     '',
+    repoFilter:             '',
+    domainFilter:           '',
+    pageFilter:             '',
+
+    // 2) DATA — user-generated content (persisted)
+    currentDemande:         { text: '', refs: [], pageUrl: null },
+    demandes:               [],
+    templates:              [],
+
+    // 3) SETTINGS — user preferences (persisted)
+    lang:                   'fr-FR',
+    uiLang:                 '',
+    micDeviceId:            '',
+    sortOrder:              'desc',
+    segFontSize:            13,
     autoOpenOnKnownActive:  false,
     autoOpenOnKnownDone:    false,
     autoOpenOnAiPage:       false,
@@ -67,8 +76,37 @@
     showConsoleBtn:         false,
     topbarPosition:         'top',
     theme:                  'dark',
-    templates:              [],
+    // Defaults derived from BIAIF.ALL_BUTTONS (single source of truth).
+    visibleButtons: ((window.BIAIF && window.BIAIF.ALL_BUTTONS) || []).reduce(function (acc, def) {
+      acc[def.key] = !!def.defaultVisible; return acc;
+    }, {}),
   };
+
+  // Live grouped views — define which flat keys belong to each namespace,
+  // then expose getters/setters that proxy through to the flat STATE so
+  // callers can choose their style without breaking the existing API.
+  const _GROUPS = {
+    session: ['armed','pickerActive','micActive','currentInterim','replacingRef',
+              'dictationTarget','modalTarget','consoleErrors','editingDemandeIdx',
+              'searchQuery','pendingConversationUrl','pendingRepoId','lastShot',
+              'lastShotMode','conversationFilter','repoFilter','domainFilter','pageFilter'],
+    data:    ['currentDemande','demandes','templates'],
+    settings:['lang','uiLang','micDeviceId','sortOrder','segFontSize',
+              'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage',
+              'hideAiTextarea','autoSubmitAfterInject','archiveExpanded',
+              'showConsoleBtn','topbarPosition','theme','visibleButtons'],
+  };
+  Object.keys(_GROUPS).forEach(function (group) {
+    var view = {};
+    _GROUPS[group].forEach(function (key) {
+      Object.defineProperty(view, key, {
+        enumerable: true,
+        get: function () { return STATE[key]; },
+        set: function (v) { STATE[key] = v; },
+      });
+    });
+    Object.defineProperty(STATE, group, { value: Object.freeze(view), enumerable: false });
+  });
 
   const REFS = {};
 
