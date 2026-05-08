@@ -7,12 +7,15 @@
     "test":          "vitest run",
     "test:watch":    "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint":          "eslint . --ext .js"
+    "lint":          "eslint . --ext .js",
+    "build":         "node scripts/build.mjs",
+    "build:watch":   "node scripts/build.mjs --watch"
   },
   "devDependencies": {
     "vitest":              "^1.6.0",
     "@vitest/coverage-v8": "^1.6.0",
     "jsdom":               "^24.0.0",
-    "eslint":              "^8.57.0"
+    "eslint":              "^8.57.0",
+    "esbuild":             "^0.21.0"
   }
 }
