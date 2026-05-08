@@ -58,6 +58,31 @@ describe('BIAIFi18n.setLang / getLang', () => {
   });
 });
 
+describe('BIAIFi18n.tn (plural via Intl.PluralRules)', () => {
+  it('picks the singular variant for n === 1', () => {
+    window.BIAIFi18n.setLang('en');
+    expect(window.BIAIFi18n.tn('segments.ref', 1, { n: 1 })).toContain('1');
+  });
+
+  it('picks the plural variant for n > 1', () => {
+    window.BIAIFi18n.setLang('en');
+    const out = window.BIAIFi18n.tn('segments.ref', 5, { n: 5 });
+    expect(out).toMatch(/refs?/);
+    expect(out).toContain('5');
+  });
+
+  it('falls back to baseKey when no variant exists', () => {
+    expect(window.BIAIFi18n.tn('does.not.exist', 3, { n: 3 })).toBe('does.not.exist');
+  });
+
+  it('handles 0 (CLDR "other" in EN, "one" in FR)', () => {
+    window.BIAIFi18n.setLang('en');
+    expect(window.BIAIFi18n.tn('segments.ref', 0, { n: 0 })).toContain('0');
+    window.BIAIFi18n.setLang('fr');
+    expect(window.BIAIFi18n.tn('segments.ref', 0, { n: 0 })).toContain('0');
+  });
+});
+
 describe('BIAIFi18n.detectBrowserLang', () => {
   it('returns one of the supported languages', () => {
     const out = window.BIAIFi18n.detectBrowserLang();

@@ -141,7 +141,8 @@
     card.className = 'biaif-segment';
     var dt        = new Date(dem.ts || Date.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     var refsCount = (dem.refs || []).length;
-    var refsLabel = _t(refsCount > 1 ? 'segments.ref_plural' : 'segments.ref_singular',
+    var tn = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
+    var refsLabel = tn('segments.ref', refsCount,
       refsCount + ' réf' + (refsCount > 1 ? 's' : ''), { n: refsCount });
     var isEditing = STATE.editingDemandeIdx === origIndex;
     if (isEditing) card.classList.add('is-editing');

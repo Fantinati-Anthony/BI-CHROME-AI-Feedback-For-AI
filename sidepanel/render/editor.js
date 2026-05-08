@@ -45,8 +45,9 @@
   function renderRefsStrip() {
     if (ctx.REFS.demandeRefsCount) {
       var n = ctx.STATE.currentDemande.refs.length;
-      ctx.REFS.demandeRefsCount.textContent = _t(
-        n > 1 ? 'segments.ref_plural' : 'segments.ref_singular',
+      var tn = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
+      ctx.REFS.demandeRefsCount.textContent = tn(
+        'segments.ref', n,
         n + ' réf' + (n > 1 ? 's' : ''),
         { n: n },
       );

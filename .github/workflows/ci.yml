@@ -61,8 +61,8 @@ jobs:
         # Hard fail. Files without // @ts-check are skipped (jsconfig has
         # checkJs: false). Adding @ts-check to a file opts it into gating.
 
-      - name: Run tests
-        run: npm test
+      - name: Run tests with coverage gate
+        run: npm run test:coverage
 
       - name: Build distribution bundles
         run: npm run build

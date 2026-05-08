@@ -360,6 +360,45 @@
     return _format(raw, vars);
   }
 
+  // ── Pluralisation via Intl.PluralRules ──────────────────────────────────────
+  // Looks up a plural-aware family of keys. Resolves the CLDR category
+  // ('one' / 'few' / 'many' / 'other' …) for the current locale and the
+  // given count, then falls back gracefully:
+  //   1) baseKey + '_' + category   (e.g. toast.foo_one, toast.foo_few)
+  //   2) baseKey + '_plural'        (legacy binary)  if n !== 1
+  //   3) baseKey + '_singular'      (legacy binary)  if n === 1
+  //   4) baseKey                    (last-ditch fallback)
+  /** @type {Record<string, Intl.PluralRules>} */
+  var _pluralRulesCache = {};
+  function _pluralRules() {
+    if (_pluralRulesCache[_lang]) return _pluralRulesCache[_lang];
+    try {
+      _pluralRulesCache[_lang] = new Intl.PluralRules(_lang || 'en');
+    } catch (_) {
+      _pluralRulesCache[_lang] = /** @type {Intl.PluralRules} */ ({ select: function (n) { return n === 1 ? 'one' : 'other'; } });
+    }
+    return _pluralRulesCache[_lang];
+  }
+  /**
+   * @param {string} baseKey
+   * @param {number} n
+   * @param {object} [vars]
+   */
+  function tn(baseKey, n, vars) {
+    var v = Object.assign({ n: n }, vars || {});
+    var category = _pluralRules().select(n);
+    var candidates = [
+      baseKey + '_' + category,
+      n === 1 ? (baseKey + '_one') : null,
+      n === 1 ? (baseKey + '_singular') : (baseKey + '_plural'),
+      baseKey,
+    ].filter(Boolean);
+    for (var i = 0; i < candidates.length; i++) {
+      if (TRANSLATIONS[candidates[i]]) return t(candidates[i], v);
+    }
+    return t(baseKey, v);
+  }
+
   function getLang() {
     return _lang;
   }
@@ -401,10 +440,11 @@
 
   // ── Export ──────────────────────────────────────────────────────────────────
   window.BIAIFi18n = {
-    t: t,
-    getLang: getLang,
-    setLang: setLang,
-    applyDOM: applyDOM,
+    t:                 t,
+    tn:                tn,
+    getLang:           getLang,
+    setLang:           setLang,
+    applyDOM:          applyDOM,
     detectBrowserLang: detectBrowserLang,
   };
 

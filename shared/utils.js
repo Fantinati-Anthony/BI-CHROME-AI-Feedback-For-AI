@@ -34,6 +34,16 @@
     return fallback || key;
   }
 
+  // Plural-aware lookup. Resolves baseKey + '_' + category via
+  // Intl.PluralRules, with fallback to legacy *_singular / *_plural.
+  function tn(baseKey, n, fallback, vars) {
+    if (root.BIAIFi18n && root.BIAIFi18n.tn) {
+      var v = root.BIAIFi18n.tn(baseKey, n, vars);
+      if (v && v !== baseKey) return v;
+    }
+    return fallback || baseKey;
+  }
+
   function decodeErr(e) {
     var s = typeof e === 'string' ? e : (e && e.message || String(e));
     if (s.indexOf('Receiving end does not exist') !== -1 ||
@@ -76,6 +86,7 @@
   var api = {
     extractGithubRepo: extractGithubRepo,
     t:                 t,
+    tn:                tn,
     decodeErr:         decodeErr,
     msgKey:            msgKey,
     findAiAdapter:     findAiAdapter,

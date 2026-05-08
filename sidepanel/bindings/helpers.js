@@ -156,9 +156,9 @@
     }
     STATE.consoleErrors = [];
     window.BIAIFRenderer.updateErrorsBadges();
+    var tn = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
     window.BIAIFToast.show(
-      _t(count > 1 ? 'toast.errors_added_plural' : 'toast.errors_added_singular',
-        count + ' erreur(s) ajoutée(s)', { n: count }),
+      tn('toast.errors_added', count, count + ' erreur(s) ajoutée(s)', { n: count }),
       'success');
   }
 
@@ -190,9 +190,9 @@
         count++;
       } catch (e) { console.warn('[BIAIF] file read failed', e && e.message); }
     }
+    var tnImg = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
     if (count) window.BIAIFToast.show(
-      _t(count > 1 ? 'toast.images_added_plural' : 'toast.images_added_singular',
-        count + ' image(s) ajoutée(s)', { n: count }),
+      tnImg('toast.images_added', count, count + ' image(s) ajoutée(s)', { n: count }),
       'success');
   }
 
