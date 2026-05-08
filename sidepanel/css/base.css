@@ -54,6 +54,14 @@ html, body {
 }
 /* User-controlled vertical layout — inverts the whole sidebar */
 .biaif-root.topbar-bottom { flex-direction: column-reverse; }
+/* When inverted, push history segments to the bottom of their wrapper */
+.biaif-root.topbar-bottom .biaif-segments-wrap { justify-content: flex-end; }
+/* Notifications flip to the top edge as well */
+.biaif-root.topbar-bottom #toast-container,
+.biaif-root.topbar-bottom .biaif-status { top: var(--pad-md); bottom: auto; }
+.biaif-root.topbar-bottom .biaif-status:not(:empty) ~ #toast-container {
+  top: calc(var(--pad-md) + 32px); bottom: auto;
+}
 
 /* ── Two-state layout ───────────────────────────────────────────────────
    REST  (not armed): history + "Nouvelle conv." only
