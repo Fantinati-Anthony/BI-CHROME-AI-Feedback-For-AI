@@ -151,6 +151,7 @@
       try { window.open(url, '_blank', 'noopener'); } catch (__) {}
     }
     _toast(_t('toast.copy_paste_into', 'Prompt copié — collez-le dans ' + name, { name: name }), 'success');
+    _stampSubmitted(STATE.demandes[idx], name);
   }
 
   function openInClaudeOnline(idx) { return _copyAndOpen(idx, 'https://claude.ai/new',          'Claude.ai'); }
@@ -257,6 +258,7 @@
 
       var imgInfo = images.length ? ' + ' + images.length + ' image(s)' : '';
       _toast(_t('toast.bridge_sent', 'Demande #' + (idx + 1) + ' → ' + label + imgInfo + '.', { n: idx + 1, label: label, imgs: imgInfo }), 'success');
+      _stampSubmitted(STATE.demandes[idx], label);
 
     } catch (e) {
       _hideProgress();
@@ -298,6 +300,7 @@
       } else {
         var imgInfo = images.length ? ' + ' + images.length + ' image(s)' : '';
         _toast(_t('toast.injected', 'Demande #' + (idx + 1) + ' injectée' + imgInfo + '.', { n: idx + 1, imgs: imgInfo }), 'success');
+        _stampSubmitted(STATE.demandes[idx], 'Claude Code');
       }
     } catch (e) {
       _hideProgress();
@@ -339,6 +342,15 @@
     var max  = 0;
     runs.forEach(function (r) { if (r.length > max) max = r.length; });
     return '`'.repeat(Math.max(3, max + 1));
+  }
+
+  function _stampSubmitted(dem, submittedTo) {
+    if (!dem) return;
+    dem.status      = 'submitted';
+    dem.submittedAt = Date.now();
+    dem.submittedTo = submittedTo;
+    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    if (window.BIAIFRenderer) window.BIAIFRenderer.renderSegments();
   }
 
   function _toast(msg, kind, dur) {

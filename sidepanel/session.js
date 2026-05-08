@@ -57,6 +57,11 @@
       if (!silent) _toast(_t('toast.nothing_to_finalize', 'Rien à finaliser — parlez ou ajoutez une référence.'), 'info');
       return;
     }
+    // Derive repoId: prefer explicit pending, then scan refs
+    var repoId = STATE.pendingRepoId || null;
+    if (!repoId) {
+      for (var j = 0; j < refs.length; j++) { if (refs[j].repoId) { repoId = refs[j].repoId; break; } }
+    }
     STATE.demandes.push({
       id:              'dem-' + Date.now(),
       ts:              Date.now(),
@@ -64,6 +69,7 @@
       refs:            refs.slice(),
       url:             STATE.currentDemande.pageUrl || null,
       conversationUrl: STATE.pendingConversationUrl || null,
+      repoId:          repoId,
     });
     STATE.currentDemande = { text: '', refs: [], pageUrl: null };
     if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
@@ -120,13 +126,26 @@
     return null;
   }
 
-  function addRefToTarget(ref) {
+  async function addRefToTarget(ref) {
+    // Stamp the active tab's URL and GitHub repo onto every ref
+    try {
+      var tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      var tabUrl = (tabs[0] && tabs[0].url) || null;
+      if (tabUrl) {
+        ref.tabUrl = tabUrl;
+        var repo = _extractGithubRepo(tabUrl);
+        if (repo) ref.repoId = repo;
+      }
+    } catch (_) {}
+
     var idx = activeTargetIdx();
     if (typeof idx === 'number') {
       var dem = STATE.demandes[idx];
       if (!dem) return false;
       dem.refs = dem.refs || [];
       dem.refs.push(ref);
+      // Propagate repoId to segment if not already set
+      if (!dem.repoId && ref.repoId) dem.repoId = ref.repoId;
       var newIdx = dem.refs.length - 1;
       var cur    = (dem.text || '').replace(/\s+$/, '');
       dem.text   = (cur + (cur ? ' ' : '') + '{{ref:' + newIdx + '}} ').replace(/\s{2,}/g, ' ');
@@ -140,6 +159,18 @@
     rememberPageUrl();
     window.BIAIFRenderer.updateMasterBtnLabel();
     return true;
+  }
+
+  function _extractGithubRepo(url) {
+    try {
+      var u = new URL(url);
+      if (u.hostname === 'github.com') {
+        var parts = u.pathname.split('/').filter(Boolean);
+        var skip  = ['orgs','settings','marketplace','explore','trending','notifications','search','login','logout'];
+        if (parts.length >= 2 && !skip.includes(parts[0])) return parts[0] + '/' + parts[1];
+      }
+    } catch (_) {}
+    return null;
   }
 
   function addTextToTarget(text) {

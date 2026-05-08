@@ -47,8 +47,14 @@
       grok: false, lechat: false, deepseek: false,
     },
     uiLang:              '',
-    conversationFilter:  '',   // exact URL of AI conversation currently filtered
-    pendingConversationUrl: null, // URL to tag on next finalized segments
+    conversationFilter:  '',   // exact AI conversation URL filter
+    repoFilter:          '',   // "owner/repo" filter
+    domainFilter:        '',   // hostname filter (e.g. "localhost:3000")
+    pageFilter:          '',   // exact tabUrl filter
+    pendingConversationUrl: null,  // tags next segments with this conversation URL
+    pendingRepoId:          null,  // tags next segments with this GitHub repo
+    autoOpenOnKnownActive:  false, // open sidepanel when switching to a tab linked to an active segment
+    autoOpenOnKnownDone:    false, // open sidepanel when switching to a tab linked to a done/archived segment
   };
 
   const REFS = {};
@@ -85,6 +91,11 @@
         const v = STATE.visibleButtons[key];
         cb.checked = (v === undefined) ? fallback : !!v;
       });
+      // Sync auto-open checkboxes
+      const cbActive = document.getElementById('aop-active');
+      const cbDone   = document.getElementById('aop-done');
+      if (cbActive) cbActive.checked = !!STATE.autoOpenOnKnownActive;
+      if (cbDone)   cbDone.checked   = !!STATE.autoOpenOnKnownDone;
       _updateSpFontVal();
       window.BIAIFRenderer.updateSortToggleLabel();
       window.BIAIFRenderer.applySegFontSize();
@@ -311,6 +322,17 @@
       });
     });
 
+    // Auto-open toggles
+    ['aop-active', 'aop-done'].forEach((id) => {
+      const cb = document.getElementById(id);
+      if (!cb) return;
+      cb.addEventListener('change', () => {
+        if (id === 'aop-active') STATE.autoOpenOnKnownActive = cb.checked;
+        if (id === 'aop-done')   STATE.autoOpenOnKnownDone   = cb.checked;
+        window.BIAIFStorage.persist(STATE);
+      });
+    });
+
     // UI language buttons
     document.getElementById('sp-lang-grid') && document.getElementById('sp-lang-grid').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-lang]');
@@ -362,6 +384,34 @@
       const demKeyRaw = chip.dataset.demKey;
       const demKey    = demKeyRaw === 'current' || demKeyRaw === undefined ? 'current' : Number(demKeyRaw);
       window.BIAIFSession.editRef(demKey, refIdx, btn.dataset.editType);
+    });
+
+    // Filter badge clicks (seg-filter-badge) and filter chip ✕ (filter-chip)
+    document.addEventListener('click', (e) => {
+      // Clickable badge on a segment card → set filter
+      const badge = e.target.closest('.seg-filter-badge[data-fk]');
+      if (badge) {
+        e.stopPropagation();
+        const key = badge.dataset.fk, val = badge.dataset.fv;
+        if (key && val !== undefined) {
+          STATE[key] = val;
+          window.BIAIFRenderer.renderSegments();
+        }
+        return;
+      }
+      // Active filter chip ✕ → clear filter
+      const chip = e.target.closest('.filter-chip[data-fk]');
+      if (chip) {
+        e.stopPropagation();
+        const key = chip.dataset.fk;
+        if (key) {
+          STATE[key] = '';
+          if (key === 'conversationFilter') STATE.pendingConversationUrl = null;
+          if (key === 'repoFilter')         STATE.pendingRepoId = null;
+          window.BIAIFRenderer.renderSegments();
+        }
+        return;
+      }
     });
 
     // Status bar click (legacy clickable error messages)
@@ -447,18 +497,56 @@
         return;
       }
       if (msg.type === _MSG('OPEN_WITH_FILTER')) {
-        onOpenWithFilter(msg.conversationUrl || msg.filterUrl);
+        onOpenWithFilter(msg.conversationUrl || msg.filterUrl, msg.repoId || null);
         return;
       }
       if (msg.type === _MSG('START_LINKED_SEGMENT')) {
-        onStartLinkedSegment(msg.conversationUrl);
+        onStartLinkedSegment(msg.conversationUrl, msg.repoId || null);
+        return;
+      }
+      if (msg.type === _MSG('AI_STATUS_UPDATE')) {
+        onAiStatusUpdate(msg.conversationUrl, msg.status);
+        return;
+      }
+      if (msg.type === _MSG('AI_RESPONSE_DONE')) {
+        onAiResponseDone(msg.conversationUrl);
         return;
       }
     });
   }
 
-  function onOpenWithFilter(conversationUrl) {
+  function onAiStatusUpdate(conversationUrl, status) {
+    if (status !== 'generating') return;
+    // Re-render to show generating pulse on any 'submitted' segment linked to this conversation
+    var matched = STATE.demandes.some(function (d) {
+      return d.conversationUrl === conversationUrl && d.status === 'submitted';
+    });
+    if (matched) window.BIAIFRenderer.renderSegments();
+  }
+
+  function onAiResponseDone(conversationUrl) {
+    var matched = false;
+    STATE.demandes.forEach(function (dem) {
+      if (dem.conversationUrl === conversationUrl && dem.status === 'submitted') {
+        dem.status = 'done';
+        dem.responseReceivedAt = Date.now();
+        matched = true;
+      }
+    });
+    if (!matched) return;
+    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    window.BIAIFRenderer.renderSegments();
+    window.BIAIFToast.show(
+      window.BIAIFi18n
+        ? window.BIAIFi18n.t('toast.ai_response_done')
+        : '✓ Réponse reçue !',
+      'success', 3500
+    );
+  }
+
+  function onOpenWithFilter(conversationUrl, repoId) {
     STATE.conversationFilter = conversationUrl || '';
+    if (repoId) STATE.repoFilter = repoId;
     window.BIAIFRenderer.renderSegments();
     if (conversationUrl) {
       let label = conversationUrl;
@@ -472,9 +560,10 @@
     }
   }
 
-  async function onStartLinkedSegment(conversationUrl) {
+  async function onStartLinkedSegment(conversationUrl, repoId) {
     STATE.conversationFilter     = conversationUrl || '';
     STATE.pendingConversationUrl = conversationUrl || null;
+    if (repoId) { STATE.repoFilter = repoId; STATE.pendingRepoId = repoId; }
     window.BIAIFRenderer.renderSegments();
     if (!STATE.armed) await window.BIAIFSession.startSession();
     updateLinkedSessionBanner();

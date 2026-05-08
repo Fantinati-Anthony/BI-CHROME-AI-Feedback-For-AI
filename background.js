@@ -136,6 +136,44 @@ async function sendToActiveTabContent(payload) {
   }
 }
 
+// ---------- auto-open sidepanel when switching to known tab URL -----------
+
+async function checkAutoOpenForTab(tabId, tabUrl) {
+  if (!tabUrl || tabUrl.startsWith('chrome') || tabUrl.startsWith('about:') || tabUrl.startsWith('moz-extension:')) return;
+  try {
+    const result = await chrome.storage.local.get(self.BIAIF.STORAGE_KEY);
+    const saved = result[self.BIAIF.STORAGE_KEY];
+    if (!saved) return;
+    const onActive = !!saved.autoOpenOnKnownActive;
+    const onDone   = !!saved.autoOpenOnKnownDone;
+    if (!onActive && !onDone) return;
+    const demandes = saved.demandes || [];
+    const shouldOpen = demandes.some((dem) => {
+      if (!dem.conversationUrl) return false;
+      // Match if the tab URL starts with the conversation URL (handles trailing /new vs. /chat/ID)
+      const urlMatch = tabUrl === dem.conversationUrl ||
+        tabUrl.startsWith(dem.conversationUrl.split('?')[0]);
+      if (!urlMatch) return false;
+      const isDone = dem.status === 'done' || dem.status === 'submitted';
+      return isDone ? onDone : onActive;
+    });
+    if (shouldOpen) await chrome.sidePanel.open({ tabId });
+  } catch (_) {}
+}
+
+chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    checkAutoOpenForTab(tabId, tab.url);
+  } catch (_) {}
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.active) {
+    checkAutoOpenForTab(tabId, tab.url);
+  }
+});
+
 // ---------- hotkeys / icon click -----------------------------------------
 
 chrome.commands.onCommand.addListener((command) => {
@@ -213,6 +251,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   // Content script → sidepanel : forward capture progress
   if (msg.type === MSG.CAPTURE_PROGRESS) {
+    chrome.runtime.sendMessage(msg).catch(() => {});
+    return;
+  }
+
+  // Content script → SW → sidepanel: AI generating / response done
+  if (msg.type === MSG.AI_STATUS_UPDATE || msg.type === MSG.AI_RESPONSE_DONE) {
     chrome.runtime.sendMessage(msg).catch(() => {});
     return;
   }
