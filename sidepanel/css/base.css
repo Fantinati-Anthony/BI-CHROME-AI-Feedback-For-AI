@@ -176,7 +176,3 @@ html, body {
 /* Nouvelle conv. inutile en état vide */
 .biaif-root.is-empty-state .session-new-conv { display: none; }
 
-/* ── Barre de défilement à gauche ── */
-/* Appliqué sur <body> via JS quand STATE.panelSide === 'left'. */
-body.panel-side-left { direction: rtl; }
-body.panel-side-left .biaif-root { direction: ltr; }

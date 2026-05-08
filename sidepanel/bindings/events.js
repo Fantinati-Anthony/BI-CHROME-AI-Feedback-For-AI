@@ -252,17 +252,6 @@
     });
   }
 
-  function _bindPanelSide() {
-    var STATE = ctx.STATE;
-    var cb = document.getElementById('panel-side-left');
-    if (!cb) return;
-    cb.addEventListener('change', function () {
-      STATE.panelSide = cb.checked ? 'left' : 'right';
-      document.body.classList.toggle('panel-side-left', cb.checked);
-      window.BIAIFStorage.persist(STATE);
-    });
-  }
-
   function _bindBehaviourToggles() {
     var STATE = ctx.STATE;
     var cbHideTa  = document.getElementById('hide-ai-textarea');
@@ -422,7 +411,6 @@
     _bindButtonVisibility();
     _bindAutoOpenToggles();
     _bindBehaviourToggles();
-    _bindPanelSide();
     _bindUiLangButtons();
     _bindMicSettings();
     _bindEditorLiveSync();
