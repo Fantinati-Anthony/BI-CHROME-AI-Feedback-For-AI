@@ -262,6 +262,56 @@
     if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', function () { H.hideReloadModal(); });
   }
 
+  function _bindExportImport() {
+    var STATE = ctx.STATE;
+    var exportBtn   = document.querySelector('[data-act="export-json"]');
+    var importBtn   = document.querySelector('[data-act="import-json"]');
+    var importInput = document.getElementById('import-json-input');
+    var stripCb     = document.getElementById('export-strip-imgs');
+    if (exportBtn) exportBtn.addEventListener('click', function () {
+      window.BIAIFStorage.exportToFile(STATE, { stripDataUrls: stripCb && stripCb.checked });
+      window.BIAIFToast.show(_t('toast.exported', 'Fichier exporté.'), 'success');
+    });
+    if (importBtn && importInput) {
+      importBtn.addEventListener('click', function () { importInput.click(); });
+      importInput.addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var bundle = JSON.parse(reader.result);
+            // Snapshot current state so user can undo the import
+            if (window.BIAIFUndo) window.BIAIFUndo.push({
+              demandes:       JSON.parse(JSON.stringify(STATE.demandes)),
+              currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)),
+            });
+            var result = window.BIAIFStorage.importBundle(STATE, bundle, { mode: 'replace' });
+            if (!result.ok) {
+              window.BIAIFToast.show(_t('toast.import_invalid', 'Fichier JSON invalide.'), 'error');
+              return;
+            }
+            window.BIAIFRenderer.renderDemandeEditor();
+            window.BIAIFRenderer.renderSegments();
+            window.BIAIFRenderer.updateArmedUi();
+            window.BIAIFRenderer.updateMasterBtnLabel();
+            window.BIAIFStorage.persist(STATE, { skipUndo: true });
+            window.BIAIFToast.showAction(
+              _t('toast.imported', 'Import OK — {n} demande(s) chargée(s).', { n: result.imported }),
+              _t('toast.undo_action', 'Annuler'),
+              H.performUndo,
+              { kind: 'success', duration: 6000 }
+            );
+          } catch (err) {
+            window.BIAIFToast.show(_t('toast.import_invalid', 'Fichier JSON invalide.'), 'error');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      });
+    }
+  }
+
   function _bindWizardReopen() {
     var REFS = ctx.REFS, STATE = ctx.STATE;
     var btn = document.getElementById('btn-revoir-guide');
@@ -483,6 +533,7 @@
     _bindHistorySearch();
     _bindSettingsPopover();
     _bindReloadModal();
+    _bindExportImport();
     _bindWizardReopen();
     _bindButtonVisibility();
     _bindAutoOpenToggles();

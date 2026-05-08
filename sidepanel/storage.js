@@ -199,6 +199,73 @@
     } catch (_) {}
   }
 
-  window.BIAIFStorage = { hydrate: hydrate, persist: persist };
+  // -----------------------------------------------------------------------
+  // Export / Import (community feature — share configs & histories)
+  // -----------------------------------------------------------------------
+  function exportToFile(STATE, opts) {
+    opts = opts || {};
+    var payload = _buildPayload(STATE);
+    var bundle  = {
+      _biaif:    'export',
+      _version:  CURRENT_VERSION,
+      _exportTs: Date.now(),
+      _stripDataUrls: !!opts.stripDataUrls,
+      data:      payload,
+    };
+    if (opts.stripDataUrls && bundle.data.demandes) {
+      bundle.data.demandes = bundle.data.demandes.map(function (d) {
+        return Object.assign({}, d, { refs: (d.refs || []).map(function (r) {
+          return r && r.dataUrl ? Object.assign({}, r, { dataUrl: null, _stripped: true }) : r;
+        }) });
+      });
+    }
+    var json = JSON.stringify(bundle, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var url  = URL.createObjectURL(blob);
+    var ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    var a    = document.createElement('a');
+    a.href = url; a.download = 'biaif-export-' + ts + '.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    return bundle;
+  }
+
+  /**
+   * Import a JSON bundle previously produced by exportToFile.
+   * @param {object} STATE  — current state (will be mutated)
+   * @param {object} bundle — parsed JSON
+   * @param {object} [opts] — { mode: 'replace' | 'merge' }  default 'replace'
+   * @returns {{ ok: boolean, error?: string, imported?: number }}
+   */
+  function importBundle(STATE, bundle, opts) {
+    opts = opts || {};
+    if (!bundle || bundle._biaif !== 'export' || !bundle.data) {
+      return { ok: false, error: 'invalid' };
+    }
+    var data = bundle.data;
+    var mode = opts.mode === 'merge' ? 'merge' : 'replace';
+
+    if (mode === 'replace') {
+      if (Array.isArray(data.demandes))   STATE.demandes      = data.demandes;
+      if (data.currentDemande)            STATE.currentDemande = data.currentDemande;
+    } else {
+      // Merge: append imported demandes after current ones
+      if (Array.isArray(data.demandes))   STATE.demandes = (STATE.demandes || []).concat(data.demandes);
+    }
+    // Settings always overwrite (they're scalar)
+    ['lang','micDeviceId','sortOrder','segFontSize','visibleButtons','uiLang',
+     'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage','hideAiTextarea',
+     'autoSubmitAfterInject','archiveExpanded','showConsoleBtn','topbarPosition'].forEach(function (k) {
+      if (data[k] !== undefined) STATE[k] = data[k];
+    });
+    return { ok: true, imported: (data.demandes || []).length };
+  }
+
+  window.BIAIFStorage = {
+    hydrate:      hydrate,
+    persist:      persist,
+    exportToFile: exportToFile,
+    importBundle: importBundle,
+  };
 
 })(window);

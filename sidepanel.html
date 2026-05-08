@@ -290,6 +290,27 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.98"/></svg>
             <span data-i18n="settings.help.review_guide">Revoir le guide de démarrage</span>
           </button>
+
+          <h4 class="sp-subsection-title" data-i18n="settings.backup.title">Sauvegarde &amp; partage</h4>
+          <p class="sp-section-desc" data-i18n="settings.backup.desc">Exporter votre configuration et historique en JSON pour la partager avec votre équipe ou la sauvegarder.</p>
+          <label class="sp-toggle-row" for="export-strip-imgs">
+            <span class="sp-toggle-info">
+              <span class="sp-toggle-name" data-i18n="settings.backup.strip_label">Exclure les captures d'écran</span>
+              <span class="sp-toggle-hint" data-i18n="settings.backup.strip_hint">Réduit drastiquement la taille du fichier (les images sont remplacées par des marqueurs).</span>
+            </span>
+            <span class="sp-switch"><input type="checkbox" id="export-strip-imgs" aria-label="Exclure les captures"><span class="sp-switch-track"><span class="sp-switch-thumb"></span></span></span>
+          </label>
+          <button class="sp-action-btn" data-act="export-json">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            <span data-i18n="settings.backup.export">Exporter en JSON</span>
+          </button>
+          <button class="sp-action-btn" data-act="import-json">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            <span data-i18n="settings.backup.import">Importer un fichier</span>
+          </button>
+          <input type="file" id="import-json-input" accept="application/json,.json" hidden>
+
+          <h4 class="sp-subsection-title" data-i18n="settings.danger.title">Zone dangereuse</h4>
           <button class="sp-action-btn" data-act="clear">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
             <span data-i18n="footer.clear">Vider la session</span>
