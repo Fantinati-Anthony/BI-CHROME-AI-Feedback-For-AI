@@ -19,35 +19,24 @@
   var esc   = DOM.esc || function (s) { return String(s == null ? '' : s); };
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
-  var VB_MAP = {
-    inject: 'seg-inject', vscode: 'seg-vscode', copilot: 'seg-copilot',
-    copy: 'seg-copy', download: 'seg-download',
-    claude_online: 'seg-claude-online', chatgpt: 'seg-chatgpt', gemini: 'seg-gemini',
-    perplexity: 'seg-perplexity', grok: 'seg-grok', lechat: 'seg-lechat', deepseek: 'seg-deepseek',
-  };
-  var DEFAULT_FALSE_BUTTONS = ['claude_online','chatgpt','gemini','perplexity','grok','lechat','deepseek'];
+  // Single source of truth: shared/ai-adapters.js. Build local lookup maps lazily.
+  function _allButtons() { return (window.BIAIF && window.BIAIF.ALL_BUTTONS) || []; }
+  function _aiTargets()  { return (window.BIAIF && window.BIAIF.AI_TARGETS)  || []; }
 
-  var ONLINE_FN = {
-    'seg-claude-online': 'openInClaudeOnline',
-    'seg-chatgpt':       'openInChatgpt',
-    'seg-gemini':        'openInGemini',
-    'seg-perplexity':    'openInPerplexity',
-    'seg-grok':          'openInGrok',
-    'seg-lechat':        'openInLechat',
-    'seg-deepseek':      'openInDeepseek',
-  };
-
-  function _onlineButton(origIndex, slug, i18nKey, fallback) {
+  function _onlineButton(origIndex, target) {
     var ICONS = window.BIAIFRender.icons;
-    var label = esc(_t(i18nKey, fallback));
-    var aria  = esc(_t('aria.open_in_new_tab', 'Ouvrir ' + fallback + ' dans un nouvel onglet et copier le prompt', { name: fallback }));
+    var label = esc(_t(target.i18nKey, target.label));
+    var aria  = esc(_t('aria.open_in_new_tab', 'Ouvrir ' + target.label + ' dans un nouvel onglet et copier le prompt', { name: target.label }));
     return (
-      '<button class="seg-action-btn seg-action-btn--online seg-action-btn--' + slug +
-        '" data-act="seg-' + slug + '" data-i="' + origIndex + '" aria-label="' + aria +
+      '<button class="seg-action-btn seg-action-btn--online seg-action-btn--' + target.slug +
+        '" data-act="seg-' + target.slug + '" data-i="' + origIndex + '" aria-label="' + aria +
         '" title="' + label + '">' +
         ICONS.chat(11) + label +
       '</button>'
     );
+  }
+  function _onlineButtonsHtml(origIndex) {
+    return _aiTargets().map(function (t) { return _onlineButton(origIndex, t); }).join('');
   }
 
   function _buildPageTag(url) {
@@ -132,11 +121,11 @@
 
   function _applyButtonVisibility(card, STATE) {
     var VB = STATE.visibleButtons || {};
-    Object.keys(VB_MAP).forEach(function (key) {
-      var v = VB[key];
-      var visible = (v === undefined) ? (DEFAULT_FALSE_BUTTONS.indexOf(key) === -1) : !!v;
+    _allButtons().forEach(function (def) {
+      var v = VB[def.key];
+      var visible = (v === undefined) ? def.defaultVisible : !!v;
       if (!visible) {
-        var b = card.querySelector('[data-act="' + VB_MAP[key] + '"]');
+        var b = card.querySelector('[data-act="seg-' + def.slug + '"]');
         if (b) b.hidden = true;
       }
     });
@@ -152,7 +141,8 @@
     card.className = 'biaif-segment';
     var dt        = new Date(dem.ts || Date.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     var refsCount = (dem.refs || []).length;
-    var refsLabel = _t(refsCount > 1 ? 'segments.ref_plural' : 'segments.ref_singular',
+    var tn = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
+    var refsLabel = tn('segments.ref', refsCount,
       refsCount + ' réf' + (refsCount > 1 ? 's' : ''), { n: refsCount });
     var isEditing = STATE.editingDemandeIdx === origIndex;
     if (isEditing) card.classList.add('is-editing');
@@ -202,13 +192,7 @@
           '" title="' + esc(_t('btn.copilot','VS-Code GH for Copilot')) + '">' +
           ICONS.octocat(11) + esc(_t('btn.copilot','VS-Code GH for Copilot')) +
         '</button>' +
-        _onlineButton(origIndex, 'claude-online', 'btn.claude_online', 'Claude.ai') +
-        _onlineButton(origIndex, 'chatgpt',       'btn.chatgpt',       'ChatGPT') +
-        _onlineButton(origIndex, 'gemini',        'btn.gemini',        'Gemini') +
-        _onlineButton(origIndex, 'perplexity',    'btn.perplexity',    'Perplexity') +
-        _onlineButton(origIndex, 'grok',          'btn.grok',          'Grok') +
-        _onlineButton(origIndex, 'lechat',        'btn.lechat',        'Le Chat') +
-        _onlineButton(origIndex, 'deepseek',      'btn.deepseek',      'DeepSeek') +
+        _onlineButtonsHtml(origIndex) +
         '<button class="seg-action-btn" data-act="seg-copy" data-i="' + origIndex +
           '" aria-label="Copier le prompt de cette demande" title="Copier le prompt">' +
           ICONS.copy(11) + 'Copier' +
@@ -225,118 +209,14 @@
     var textEl = card.querySelector('.demande-text');
     Chips.renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true, demKey: origIndex });
 
-    // ── Action buttons ─────────────────────────────────────────────────
-    var Export = window.BIAIFExport;
-    var ACTIONS = {
-      'seg-inject':   Export && Export.injectDemande,
-      'seg-vscode':   Export && Export.injectToVscode,
-      'seg-copilot':  Export && Export.injectToCopilot,
-      'seg-copy':     Export && Export.copyPromptForDemande,
-      'seg-download': Export && Export.downloadDemande,
-    };
-    Object.keys(ACTIONS).forEach(function (act) {
-      var fn  = ACTIONS[act];
-      if (!fn) return;
-      var btn = card.querySelector('[data-act="' + act + '"]');
-      if (!btn) return;
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        fn(Number(e.currentTarget.dataset.i));
-      });
-    });
-    Object.keys(ONLINE_FN).forEach(function (act) {
-      var btn = card.querySelector('[data-act="' + act + '"]');
-      if (!btn) return;
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (window.BIAIFExport && window.BIAIFExport[ONLINE_FN[act]]) {
-          window.BIAIFExport[ONLINE_FN[act]](Number(e.currentTarget.dataset.i));
-        }
-      });
-    });
-
-    card.querySelector('.seg-edit-btn').addEventListener('click', function (e) {
-      e.stopPropagation();
-      var i = Number(e.currentTarget.dataset.i);
-      if (!window.BIAIFSession) return;
-      if (STATE.editingDemandeIdx === i) window.BIAIFSession.exitEditMode();
-      else window.BIAIFSession.enterEditMode(i);
-    });
-    card.querySelector('.seg-del').addEventListener('click', function (e) {
-      var i   = Number(e.currentTarget.dataset.i);
-      var d   = STATE.demandes[i];
-      var prv = (d && d.text || '').replace(/\{\{ref:\d+\}\}/g, '…').trim().slice(0, 60) || '(vide)';
-      if (!confirm(_t('confirm.delete_demande',
-        'Supprimer la demande #' + (i + 1) + ' ?\n\n' + prv,
-        { n: i + 1, preview: prv }))) return;
-      if (STATE.editingDemandeIdx === i && window.BIAIFSession) window.BIAIFSession.exitEditMode({ silent: true });
-      if (typeof STATE.editingDemandeIdx === 'number' && STATE.editingDemandeIdx > i) STATE.editingDemandeIdx--;
-      STATE.demandes.splice(i, 1);
-      if (window.BIAIFRender.segments) window.BIAIFRender.segments.render();
-      if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
-      if (window.BIAIFToast) window.BIAIFToast.show(
-        _t('toast.demande_deleted', 'Demande #' + (i + 1) + ' supprimée.', { n: i + 1 }),
-        'info');
-    });
-
-    // ── Drag-drop merge (handle) + Alt+↑/↓ keyboard merge ────────────
+    // Click + drag handlers live on the .biaif-segments wrapper as a
+    // single delegated set — see segments.js → ensureDelegatedHandlers().
+    // We just mark the drag handle as draggable + tabbable here.
     var dragHandle = card.querySelector('.seg-drag-handle');
-    dragHandle.draggable = true;
-    dragHandle.setAttribute('tabindex', '0');
-    dragHandle.addEventListener('keydown', function (e) {
-      if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-      var dst = e.key === 'ArrowUp' ? origIndex - 1 : origIndex + 1;
-      if (dst < 0 || dst >= STATE.demandes.length) return;
-      e.preventDefault();
-      if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(origIndex, dst);
-    });
-    dragHandle.addEventListener('dragstart', function (e) {
-      e.stopPropagation();
-      e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', '__biaif_segment__'); } catch (_) {}
-      ctx.SEG_DRAG.sourceIdx = origIndex;
-      card.classList.add('is-dragging-seg');
-    });
-    dragHandle.addEventListener('dragend', function () {
-      ctx.SEG_DRAG.sourceIdx = -1;
-      document.querySelectorAll('.biaif-segment.is-dragging-seg, .biaif-segment.is-drop-target')
-        .forEach(function (c) { c.classList.remove('is-dragging-seg', 'is-drop-target'); });
-    });
-    function _dropMode(e) {
-      var rect = card.getBoundingClientRect();
-      var y    = e.clientY - rect.top;
-      if (y < rect.height * 0.25) return 'before';
-      if (y > rect.height * 0.75) return 'after';
-      return 'merge';
+    if (dragHandle) {
+      dragHandle.draggable = true;
+      dragHandle.setAttribute('tabindex', '0');
     }
-    function _clearDropClasses() {
-      card.classList.remove('is-drop-target', 'is-drop-before', 'is-drop-after');
-    }
-    card.addEventListener('dragover', function (e) {
-      if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
-      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-      var mode = _dropMode(e);
-      ctx.SEG_DRAG.dropMode = mode;
-      _clearDropClasses();
-      if (mode === 'merge')       card.classList.add('is-drop-target');
-      else if (mode === 'before') card.classList.add('is-drop-before');
-      else                        card.classList.add('is-drop-after');
-    });
-    card.addEventListener('dragleave', function (e) {
-      if (e.relatedTarget && card.contains(e.relatedTarget)) return;
-      _clearDropClasses();
-    });
-    card.addEventListener('drop', function (e) {
-      if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
-      e.preventDefault(); _clearDropClasses();
-      var src  = ctx.SEG_DRAG.sourceIdx; ctx.SEG_DRAG.sourceIdx = -1;
-      var mode = ctx.SEG_DRAG.dropMode || 'merge';
-      ctx.SEG_DRAG.dropMode = null;
-      if (!window.BIAIFSession) return;
-      if (mode === 'merge') window.BIAIFSession.mergeDemandes(src, origIndex);
-      else                  window.BIAIFSession.reorderDemande(src, mode === 'before' ? origIndex : origIndex + 1);
-    });
-
     return card;
   }
 

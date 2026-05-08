@@ -205,6 +205,19 @@
   transition: color 0.15s;
 }
 .toast-close:hover { color: var(--text-main); }
+/* Inline action button (e.g. "Annuler" right after a destructive action) */
+.toast-action {
+  flex-shrink: 0;
+  background: var(--accent-blue-50); color: var(--accent-blue);
+  border: 1px solid var(--accent-blue-100);
+  border-radius: var(--radius-pill);
+  padding: 3px 10px; font: inherit; font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+}
+.toast-action:hover {
+  background: var(--accent-blue); color: #fff; border-color: var(--accent-blue);
+  box-shadow: 0 0 8px rgba(14,165,183,0.35);
+}
 
 /* ============== History search ============== */
 .history-search-wrap {

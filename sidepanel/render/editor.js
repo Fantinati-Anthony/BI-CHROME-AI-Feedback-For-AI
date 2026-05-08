@@ -45,8 +45,9 @@
   function renderRefsStrip() {
     if (ctx.REFS.demandeRefsCount) {
       var n = ctx.STATE.currentDemande.refs.length;
-      ctx.REFS.demandeRefsCount.textContent = _t(
-        n > 1 ? 'segments.ref_plural' : 'segments.ref_singular',
+      var tn = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
+      ctx.REFS.demandeRefsCount.textContent = tn(
+        'segments.ref', n,
         n + ' réf' + (n > 1 ? 's' : ''),
         { n: n },
       );
@@ -60,11 +61,19 @@
       var num = document.createElement('span');
       num.className = 'ref-mini-num'; num.textContent = '#' + (i + 1);
       mini.appendChild(num);
-      if (ref.type === 'screenshot' && ref.dataUrl) {
-        var img = document.createElement('img');
-        img.className = 'ref-mini-thumb';
-        img.src = ref.dataUrl; img.alt = 'capture #' + (i + 1);
-        mini.appendChild(img);
+      if (ref.type === 'screenshot') {
+        if (ref.dataUrl) {
+          var img = document.createElement('img');
+          img.className = 'ref-mini-thumb';
+          img.src = ref.dataUrl; img.alt = 'capture #' + (i + 1);
+          mini.appendChild(img);
+        } else if (ref.blobId) {
+          // Blob hasn't been rehydrated yet — show a skeleton placeholder.
+          var sk = document.createElement('span');
+          sk.className = 'ref-mini-thumb is-skeleton';
+          sk.setAttribute('aria-label', 'capture #' + (i + 1) + ' (chargement…)');
+          mini.appendChild(sk);
+        }
       }
       var lbl = document.createElement('span');
       lbl.className = 'ref-mini-label';

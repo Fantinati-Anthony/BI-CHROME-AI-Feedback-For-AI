@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * BIAIF Shared Constants
  * Single source of truth for all message types, storage keys, and version.

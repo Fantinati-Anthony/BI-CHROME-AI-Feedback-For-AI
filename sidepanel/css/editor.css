@@ -127,6 +127,26 @@
   color: var(--accent-blue);
 }
 .ref-mini--screenshot .ref-mini-num { color: var(--accent-purple); }
+/* Skeleton: shown while a screenshot blobId hasn't been rehydrated yet
+   (typical 50-200ms after panel open). Animated shimmer respects
+   prefers-reduced-motion via the global rule in base.css. */
+.ref-mini-thumb.is-skeleton,
+.ref-chip-thumb.is-skeleton {
+  background:
+    linear-gradient(
+      90deg,
+      var(--bg-card) 0%,
+      var(--bg-card-hover) 50%,
+      var(--bg-card) 100%
+    );
+  background-size: 200% 100%;
+  animation: biaif-skeleton 1.2s ease-in-out infinite;
+}
+@keyframes biaif-skeleton {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 .ref-mini-thumb {
   width: 24px; height: 16px; object-fit: cover;
   border-radius: 2px; border: 1px solid var(--border-card); background: #000;

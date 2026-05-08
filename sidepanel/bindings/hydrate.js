@@ -14,21 +14,19 @@
   var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
-  var BUTTON_KEYS = ['inject', 'vscode', 'copilot', 'copy', 'download',
-    'claude_online', 'chatgpt', 'gemini', 'perplexity', 'grok', 'lechat', 'deepseek'];
-  var DEFAULT_FALSE = ['claude_online', 'chatgpt', 'gemini', 'perplexity', 'grok', 'lechat', 'deepseek'];
-
   function applyToDOM() {
     var STATE = ctx.STATE, REFS = ctx.REFS;
+    // Apply theme as the very first DOM mutation to avoid flash-of-wrong-theme.
+    document.documentElement.setAttribute('data-theme', STATE.theme || 'dark');
     if (REFS.langSelect && STATE.lang) REFS.langSelect.value = STATE.lang;
 
-    // Button-visibility checkboxes
-    BUTTON_KEYS.forEach(function (key) {
-      var cb = document.getElementById('vis-' + key);
+    // Button-visibility checkboxes — derived from BIAIF.ALL_BUTTONS registry.
+    var ALL = (window.BIAIF && window.BIAIF.ALL_BUTTONS) || [];
+    ALL.forEach(function (def) {
+      var cb = document.getElementById('vis-' + def.key);
       if (!cb) return;
-      var fallback = DEFAULT_FALSE.indexOf(key) >= 0 ? false : true;
-      var v = STATE.visibleButtons[key];
-      cb.checked = (v === undefined) ? fallback : !!v;
+      var v = STATE.visibleButtons[def.key];
+      cb.checked = (v === undefined) ? !!def.defaultVisible : !!v;
     });
 
     // Auto-open checkboxes

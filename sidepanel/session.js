@@ -192,6 +192,8 @@
   }
 
   async function addRefToTarget(ref) {
+    // SCRUB: clean PII/secrets in text fields before storing (defense-in-depth)
+    if (window.BIAIFScrub && window.BIAIFScrub.isEnabled(STATE)) window.BIAIFScrub.scrubRef(ref);
     // Stamp the active tab's URL and GitHub repo onto every ref
     try {
       var tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -241,9 +243,19 @@
       _toast(_t('toast.shot_fail', 'Capture KO : ' + err, { err: err }), 'error');
       return;
     }
-    STATE.lastShot     = resp.dataUrl;
+    // Compress before storing so we don't blow chrome.storage.local quota.
+    var compressedUrl = resp.dataUrl;
+    if (window.BIAIFImaging) {
+      try { compressedUrl = await window.BIAIFImaging.compressDataUrl(resp.dataUrl); } catch (_) {}
+    }
+    STATE.lastShot     = compressedUrl;
     STATE.lastShotMode = mode;
-    var ref  = { type: 'screenshot', mode: mode, dataUrl: resp.dataUrl, ts: Date.now() };
+    // Move the heavy bytes to IndexedDB; keep dataUrl in memory for live render.
+    var blobId = null;
+    if (window.BIAIFBlobStore) {
+      try { blobId = await window.BIAIFBlobStore.put(compressedUrl); } catch (_) {}
+    }
+    var ref  = { type: 'screenshot', mode: mode, dataUrl: compressedUrl, blobId: blobId, ts: Date.now() };
     var tIdx = activeTargetIdx();
     addRefToTarget(ref);
     _toast(typeof tIdx === 'number'

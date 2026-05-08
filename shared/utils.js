@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * BIAIF Shared Utils
  * Cross-context helpers (sidepanel, content scripts, service worker).
@@ -33,6 +34,16 @@
     return fallback || key;
   }
 
+  // Plural-aware lookup. Resolves baseKey + '_' + category via
+  // Intl.PluralRules, with fallback to legacy *_singular / *_plural.
+  function tn(baseKey, n, fallback, vars) {
+    if (root.BIAIFi18n && root.BIAIFi18n.tn) {
+      var v = root.BIAIFi18n.tn(baseKey, n, vars);
+      if (v && v !== baseKey) return v;
+    }
+    return fallback || baseKey;
+  }
+
   function decodeErr(e) {
     var s = typeof e === 'string' ? e : (e && e.message || String(e));
     if (s.indexOf('Receiving end does not exist') !== -1 ||
@@ -57,12 +68,32 @@
     return null;
   }
 
-  root.BIAIF.utils = {
+  // Toast wrapper — safe even if BIAIFToast isn't loaded yet (content scripts).
+  function toast(msg, kind, duration) {
+    if (root.BIAIFToast && root.BIAIFToast.show) root.BIAIFToast.show(msg, kind, duration);
+  }
+
+  // Best-effort runtime.sendMessage wrapper — swallows the lastError noise
+  // that fires on closed channels / disabled tabs.
+  function sendBg(payload) {
+    try {
+      return root.chrome.runtime.sendMessage(payload).catch(function () { return null; });
+    } catch (_) {
+      return Promise.resolve(null);
+    }
+  }
+
+  var api = {
     extractGithubRepo: extractGithubRepo,
     t:                 t,
+    tn:                tn,
     decodeErr:         decodeErr,
     msgKey:            msgKey,
     findAiAdapter:     findAiAdapter,
+    toast:             toast,
+    sendBg:            sendBg,
   };
+  root.BIAIF.utils = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
-})(typeof window !== 'undefined' ? window : self);
+})(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis));

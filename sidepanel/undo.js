@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * BIAIF Undo Stack
  * Snapshots (demandes + currentDemande) pushed before every persist().
@@ -6,9 +7,12 @@
 (function (window) {
   'use strict';
 
+  /** @type {number} Maximum snapshots kept (FIFO eviction). */
   var MAX = 50;
+  /** @type {string[]} */
   var stack = [];
 
+  /** @param {object} snapshot */
   function push(snapshot) {
     try {
       stack.push(JSON.stringify(snapshot));

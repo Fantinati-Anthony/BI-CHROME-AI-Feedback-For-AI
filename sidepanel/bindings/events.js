@@ -2,30 +2,31 @@
  * BIAIF Bindings — UI events
  *
  * All click / change / input listeners on the side panel UI. Grouped by
- * feature in the order they were declared in the original sidepanel.js
- * (kept stable so a `git blame` still tells the story).
+ * concern. Search by `_bindXxx` to jump.
  *
- * Sections:
- *   1. Session master button + stop
- *   2. Picker / mic toggle
- *   3. Footer (clear / copy / download)
- *   4. Speech language select
- *   5. Shot mode buttons + capture subline
- *   6. File import button
- *   7. Errors button
- *   8. Sort toggle
- *   9. Segment font size +/-
- *  10. History search (debounced)
- *  11. Settings popover open/close + shortcuts page
- *  12. Reload modal
- *  13. Onboarding wizard re-open
- *  14. Button-visibility checkboxes
- *  15. Auto-open / behaviour toggles (with hide-textarea ↔ auto-submit dep)
- *  16. UI language buttons
- *  17. Mic settings (device, test, refresh)
- *  18. Demande editor live sync (debounced)
- *  19. Delegated handlers: ref-chip Modifier, filter badges, filter chip ✕
- *  20. Status bar click (legacy)
+ * Sub-modules (live in their own files, called from bind() below):
+ *   - events-templates.js   →  templates popover (open / list / save)
+ *
+ * Sections in this file (in declaration order):
+ *
+ *   ── Session ─────────────────────────────────
+ *   _autoArm, _bindSessionButtons, _bindTools, _bindFooter,
+ *   _bindLangSelect, _bindShotButtons, _bindFileImport,
+ *   _bindErrorsButton
+ *
+ *   ── Topbar tools ────────────────────────────
+ *   _bindSortToggle, _bindSearchToggle, _bindFontSize, _bindHistorySearch
+ *
+ *   ── Settings panel ──────────────────────────
+ *   _bindSettingsPopover, _bindReloadModal, _bindSyncToggle,
+ *   _bindExportImport, _bindWizardReopen, _bindButtonVisibility,
+ *   _bindAutoOpenToggles, _bindTheme, _bindTopbarPosition,
+ *   _bindPrivacyScrub, _bindShowConsoleBtn, _bindBehaviourToggles,
+ *   _bindUiLangButtons, _bindMicSettings
+ *
+ *   ── Editor + content ────────────────────────
+ *   _bindEditorLiveSync, _bindRefChipEdit, _bindFilterBadges,
+ *   _bindStatusBar
  */
 (function (window) {
   'use strict';
@@ -153,6 +154,8 @@
     });
   }
 
+  // _bindTemplatesPopover lives in bindings/events-templates.js — see bind() below.
+
   function _bindErrorsButton() {
     var btn = document.querySelector('[data-act="open-errors"]');
     if (btn) btn.addEventListener('click', function () { _autoArm(); H.addAllConsoleErrors(); });
@@ -262,6 +265,97 @@
     if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', function () { H.hideReloadModal(); });
   }
 
+  var _syncUnsubscribe = null;
+  function _ensureSyncWatcher(STATE) {
+    if (_syncUnsubscribe) return;
+    if (!window.BIAIFStorage.watchSync) return;
+    _syncUnsubscribe = window.BIAIFStorage.watchSync(STATE, function () {
+      // Live update from another device → re-render visible UI.
+      window.BIAIFRenderer.renderSegments();
+      window.BIAIFRenderer.updateMasterBtnLabel();
+      window.BIAIFRenderer.updateArmedUi();
+      window.BIAIFToast.show(_t('toast.sync_remote_update', 'Réglages synchronisés depuis un autre appareil.'), 'info', 2500);
+    });
+  }
+
+  function _bindSyncToggle() {
+    var STATE = ctx.STATE;
+    var cb = document.getElementById('sync-enabled');
+    if (!cb) return;
+    cb.checked = !!STATE.syncEnabled;
+    if (STATE.syncEnabled) _ensureSyncWatcher(STATE);
+    cb.addEventListener('change', async function () {
+      STATE.syncEnabled = cb.checked;
+      window.BIAIFStorage.persist(STATE);
+      if (cb.checked) {
+        _ensureSyncWatcher(STATE);
+        if (window.BIAIFStorage.pullFromSync) {
+          var pulled = await window.BIAIFStorage.pullFromSync(STATE);
+          if (pulled) {
+            window.BIAIFRenderer.renderSegments();
+            window.BIAIFRenderer.updateMasterBtnLabel();
+            window.BIAIFRenderer.updateArmedUi();
+            window.BIAIFToast.show(_t('toast.sync_pulled', 'Synchronisation réussie.'), 'success');
+          } else {
+            window.BIAIFToast.show(_t('toast.sync_enabled', 'Sync activée — vos réglages seront partagés.'), 'info');
+          }
+        }
+      } else if (_syncUnsubscribe) {
+        _syncUnsubscribe(); _syncUnsubscribe = null;
+      }
+    });
+  }
+
+  function _bindExportImport() {
+    var STATE = ctx.STATE;
+    var exportBtn   = document.querySelector('[data-act="export-json"]');
+    var importBtn   = document.querySelector('[data-act="import-json"]');
+    var importInput = document.getElementById('import-json-input');
+    var stripCb     = document.getElementById('export-strip-imgs');
+    if (exportBtn) exportBtn.addEventListener('click', function () {
+      window.BIAIFStorage.exportToFile(STATE, { stripDataUrls: stripCb && stripCb.checked });
+      window.BIAIFToast.show(_t('toast.exported', 'Fichier exporté.'), 'success');
+    });
+    if (importBtn && importInput) {
+      importBtn.addEventListener('click', function () { importInput.click(); });
+      importInput.addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var bundle = JSON.parse(reader.result);
+            // Snapshot current state so user can undo the import
+            if (window.BIAIFUndo) window.BIAIFUndo.push({
+              demandes:       JSON.parse(JSON.stringify(STATE.demandes)),
+              currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)),
+            });
+            var result = window.BIAIFStorage.importBundle(STATE, bundle, { mode: 'replace' });
+            if (!result.ok) {
+              window.BIAIFToast.show(_t('toast.import_invalid', 'Fichier JSON invalide.'), 'error');
+              return;
+            }
+            window.BIAIFRenderer.renderDemandeEditor();
+            window.BIAIFRenderer.renderSegments();
+            window.BIAIFRenderer.updateArmedUi();
+            window.BIAIFRenderer.updateMasterBtnLabel();
+            window.BIAIFStorage.persist(STATE, { skipUndo: true });
+            window.BIAIFToast.showAction(
+              _t('toast.imported', 'Import OK — {n} demande(s) chargée(s).', { n: result.imported }),
+              _t('toast.undo_action', 'Annuler'),
+              H.performUndo,
+              { kind: 'success', duration: 6000 }
+            );
+          } catch (err) {
+            window.BIAIFToast.show(_t('toast.import_invalid', 'Fichier JSON invalide.'), 'error');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      });
+    }
+  }
+
   function _bindWizardReopen() {
     var REFS = ctx.REFS, STATE = ctx.STATE;
     var btn = document.getElementById('btn-revoir-guide');
@@ -274,13 +368,12 @@
 
   function _bindButtonVisibility() {
     var STATE = ctx.STATE;
-    var keys = ['inject', 'vscode', 'copilot', 'copy', 'download',
-      'claude_online', 'chatgpt', 'gemini', 'perplexity', 'grok', 'lechat', 'deepseek'];
-    keys.forEach(function (key) {
-      var cb = document.getElementById('vis-' + key);
+    var ALL = (window.BIAIF && window.BIAIF.ALL_BUTTONS) || [];
+    ALL.forEach(function (def) {
+      var cb = document.getElementById('vis-' + def.key);
       if (!cb) return;
       cb.addEventListener('change', function () {
-        STATE.visibleButtons[key] = cb.checked;
+        STATE.visibleButtons[def.key] = cb.checked;
         window.BIAIFRenderer.renderSegments();
         window.BIAIFStorage.persist(STATE);
       });
@@ -301,6 +394,27 @@
     });
   }
 
+  function _bindTheme() {
+    var STATE = ctx.STATE;
+    var grid  = document.getElementById('sp-theme-grid');
+    function apply(theme) {
+      document.documentElement.setAttribute('data-theme', theme || 'dark');
+      if (grid) Array.prototype.forEach.call(grid.querySelectorAll('.sp-theme-btn'), function (b) {
+        var on = b.dataset.theme === theme;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+    }
+    if (grid) grid.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-theme]');
+      if (!btn) return;
+      STATE.theme = btn.dataset.theme;
+      apply(STATE.theme);
+      window.BIAIFStorage.persist(STATE);
+    });
+    apply(STATE.theme || 'dark');
+  }
+
   function _bindTopbarPosition() {
     var STATE = ctx.STATE;
     var cb   = document.getElementById('topbar-bottom');
@@ -312,6 +426,21 @@
       window.BIAIFStorage.persist(STATE);
     });
     apply();
+  }
+
+  function _bindPrivacyScrub() {
+    var STATE = ctx.STATE;
+    var cb    = document.getElementById('privacy-scrub');
+    if (!cb) return;
+    cb.checked = STATE.privacyScrub !== false;
+    cb.addEventListener('change', function () {
+      STATE.privacyScrub = cb.checked;
+      window.BIAIFStorage.persist(STATE);
+    });
+    var doc = document.querySelector('[data-act="open-privacy-doc"]');
+    if (doc) doc.addEventListener('click', function () {
+      try { chrome.tabs.create({ url: chrome.runtime.getURL('PRIVACY.md') }); } catch (_) {}
+    });
   }
 
   function _bindShowConsoleBtn() {
@@ -407,6 +536,11 @@
     document.addEventListener('input', function (e) {
       if (e.target !== REFS.demandeEditor) return;
       clearTimeout(timer);
+      // Token-counter is cheap, update on every keystroke.
+      if (window.BIAIFRender && window.BIAIFRender.tokenCounter) {
+        window.BIAIFSession.syncCurrentDemandeFromEditor();
+        window.BIAIFRender.tokenCounter.update();
+      }
       timer = setTimeout(function () {
         window.BIAIFSession.syncCurrentDemandeFromEditor();
         window.BIAIFRenderer.renderDemandeRefsStrip();
@@ -477,18 +611,25 @@
     _bindShotButtons();
     _bindFileImport();
     _bindErrorsButton();
+    if (window.BIAIFBindings.bindTemplatesPopover) {
+      window.BIAIFBindings.bindTemplatesPopover(_autoArm);
+    }
     _bindSortToggle();
     _bindSearchToggle();
     _bindFontSize();
     _bindHistorySearch();
     _bindSettingsPopover();
     _bindReloadModal();
+    _bindSyncToggle();
+    _bindExportImport();
     _bindWizardReopen();
     _bindButtonVisibility();
     _bindAutoOpenToggles();
     _bindBehaviourToggles();
     _bindShowConsoleBtn();
+    _bindPrivacyScrub();
     _bindTopbarPosition();
+    _bindTheme();
     _bindUiLangButtons();
     _bindMicSettings();
     _bindEditorLiveSync();

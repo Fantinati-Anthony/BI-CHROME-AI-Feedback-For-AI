@@ -42,6 +42,10 @@
 @keyframes wiz-bwd { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
 .wiz-body.wiz-anim-fwd { animation: wiz-fwd 0.22s ease-out both; }
 .wiz-body.wiz-anim-bwd { animation: wiz-bwd 0.22s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .wiz-body.wiz-anim-fwd,
+  .wiz-body.wiz-anim-bwd { animation: none; }
+}
 
 /* ── Footer ── */
 .wiz-footer {
@@ -240,4 +244,63 @@
 }
 .sp-lang-btn:hover { border-color: var(--accent-blue-100); background: var(--bg-card-hover); }
 .sp-lang-btn.is-active { border-color: var(--accent-blue); background: var(--accent-blue-50); color: var(--accent-blue); }
+
+/* ── Wizard: theme step ── */
+.wiz-theme-row {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  margin: 16px 0;
+}
+.wiz-theme-card {
+  padding: 14px 8px; border-radius: 10px;
+  background: var(--bg-card); border: 1.5px solid var(--border-card);
+  font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-main);
+  cursor: pointer; transition: all 0.15s;
+}
+.wiz-theme-card:hover { border-color: var(--accent-blue); background: var(--accent-blue-50); }
+.wiz-theme-card.is-active {
+  border-color: var(--accent-blue); background: var(--accent-blue-50); color: var(--accent-blue);
+  box-shadow: 0 0 12px rgba(14,165,183,0.3);
+}
+
+/* ── Wizard: shared list + shortcuts ── */
+.wiz-list,
+.wiz-shortcuts {
+  list-style: none; margin: 12px 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 12px; color: var(--text-main);
+}
+.wiz-list li,
+.wiz-shortcuts li {
+  padding: 6px 10px; border-radius: 6px;
+  background: var(--bg-card); border: 1px solid var(--border-card);
+}
+.wiz-shortcuts kbd {
+  background: var(--bg-app); border: 1px solid var(--border-card);
+  border-radius: 4px; padding: 1px 5px; font-size: 11px; font-family: 'Inter', monospace;
+  margin: 0 1px;
+}
+.wiz-text-muted { color: var(--text-muted); font-size: 11px; }
+
+/* ── Settings: Theme picker (3-button grid) ── */
+.sp-theme-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 4px;
+}
+.sp-theme-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 8px 6px; border-radius: 8px;
+  background: var(--bg-card); border: 1.5px solid var(--border-card);
+  font-family: inherit; font-size: 11px; font-weight: 600; color: var(--text-main);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.sp-theme-btn svg { color: var(--text-muted); transition: color 0.15s; }
+.sp-theme-btn:hover {
+  border-color: var(--accent-blue-100); background: var(--bg-card-hover);
+}
+.sp-theme-btn:hover svg { color: var(--accent-blue); }
+.sp-theme-btn.is-active {
+  border-color: var(--accent-blue); background: var(--accent-blue-50); color: var(--accent-blue);
+  box-shadow: 0 0 8px rgba(14,165,183,0.2);
+}
+.sp-theme-btn.is-active svg { color: var(--accent-blue); }
 

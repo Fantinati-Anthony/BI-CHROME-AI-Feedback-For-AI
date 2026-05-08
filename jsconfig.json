@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "checkJs": false,
+    "allowJs": true,
+    "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["chrome", "./types/biaif"],
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@biaif/*": ["./*"]
+    }
+  },
+  "include": [
+    "sidepanel/**/*.js",
+    "shared/**/*.js",
+    "background/**/*.js",
+    "content/**/*.js",
+    "tests/**/*.js",
+    "scripts/**/*.mjs",
+    "types/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "coverage"]
+}

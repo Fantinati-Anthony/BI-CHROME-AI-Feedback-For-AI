@@ -195,6 +195,31 @@ shape transformation in `_migrateLegacy()` if needed.
 
 ---
 
+## Module pattern (IIFE + soft CommonJS export)
+
+Every module is a self-attaching IIFE:
+
+```js
+(function (root) {
+  'use strict';
+  function foo() { /* ... */ }
+  var api = { foo };
+  root.BIAIFThing = api;
+  // Soft ESM — exposes the same surface to Node/Vitest, no-op in browsers
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+```
+
+This pattern lets us keep zero-build classic `<script>` loading in MV3 **and**
+import the same source from Vitest (vite-node) for unit tests, without a
+transpilation step. Files with pure logic (`shared/scrub.js`,
+`shared/utils.js`, `shared/ai-adapters.js`, `sidepanel/imaging.js`,
+`sidepanel/templates.js`) all follow this convention.
+
+For type-checking, opt into TypeScript's JSDoc mode by adding `// @ts-check`
+at the top of the file. Ambient types live in `types/biaif.d.ts` and are
+picked up via `jsconfig.json`.
+
 ## Conventions
 
 - **Globals**: every module exposes one `window.BIAIF<Name>` object.

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * BIAIF Console Panel
  * Intercepts console.log/warn/error and mirrors them to the in-panel log viewer.
