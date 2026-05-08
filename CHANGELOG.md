@@ -6,6 +6,31 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Major refactor — `sidepanel.js` split**. The 987-line orchestrator is
+  now a 139-line bootstrap that owns only `STATE`, `REFS`, `cacheRefs()`,
+  and the `DOMContentLoaded` sequence. Everything else moved to focused
+  modules under `sidepanel/bindings/`:
+  - `ctx.js`       — shared STATE/REFS accessor (mirrors `render/ctx.js`)
+  - `helpers.js`   — sendBg, msgKey, decodeErr, capture subline / reload
+                     modal / progress bar / linked-session banner,
+                     console-error refresh, file import, context-menu
+                     text/image, clearAll, performUndo
+  - `tabs.js`      — chrome.tabs lifecycle, ready check, picker re-arm
+  - `events.js`    — 22 small `_bind*()` per UI feature (session buttons,
+                     tools, footer, lang, shot, files, errors, sort, font,
+                     search, settings, reload, wizard, button-visibility,
+                     auto-open, behaviour deps, ui-lang, mic, editor live
+                     sync, ref-chip edit, filter badges, status bar)
+  - `keyboard.js`  — global keydown (Ctrl+Z, Esc)
+  - `messages.js`  — `chrome.runtime.onMessage` router + AI-event matcher
+                     + handlers (status, done, open-with-filter,
+                     start-linked-segment, picker-state, element-picked)
+  - `hydrate.js`   — post-storage DOM sync (settings checkboxes, language)
+  - `index.js`     — `bindAll()` orchestrator
+- **Major refactor — `renderer.js` split** (already shipped in 0.5.0;
+  cross-referenced here for completeness).
+
 ## [0.5.0] — 2025-05
 
 ### Added

@@ -516,6 +516,18 @@
   <script src="sidepanel/renderer.js"></script>
 
   <script src="sidepanel/session.js"></script>
+
+  <!-- Bindings (event wiring, runtime messages, hydration). Order matters:
+       ctx → helpers → {tabs, events, keyboard, messages, hydrate} → index -->
+  <script src="sidepanel/bindings/ctx.js"></script>
+  <script src="sidepanel/bindings/helpers.js"></script>
+  <script src="sidepanel/bindings/tabs.js"></script>
+  <script src="sidepanel/bindings/events.js"></script>
+  <script src="sidepanel/bindings/keyboard.js"></script>
+  <script src="sidepanel/bindings/messages.js"></script>
+  <script src="sidepanel/bindings/hydrate.js"></script>
+  <script src="sidepanel/bindings/index.js"></script>
+
   <script src="shared/intent-parser.js"></script>
   <script src="console.js"></script>
   <script src="sidepanel.js"></script>
