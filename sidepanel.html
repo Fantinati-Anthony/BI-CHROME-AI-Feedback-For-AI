@@ -333,6 +333,13 @@
 
           <h4 class="sp-subsection-title" data-i18n="settings.backup.title">Sauvegarde &amp; partage</h4>
           <p class="sp-section-desc" data-i18n="settings.backup.desc">Exporter votre configuration et historique en JSON pour la partager avec votre équipe ou la sauvegarder.</p>
+          <label class="sp-toggle-row" for="sync-enabled">
+            <span class="sp-toggle-info">
+              <span class="sp-toggle-name" data-i18n="settings.backup.sync_label">Sync cross-device (Chrome)</span>
+              <span class="sp-toggle-hint" data-i18n="settings.backup.sync_hint">Synchronise réglages + 20 modèles via votre compte Chrome (chrome.storage.sync). Aucune image ni historique — quota 100 KB.</span>
+            </span>
+            <span class="sp-switch"><input type="checkbox" id="sync-enabled" aria-label="Sync cross-device"><span class="sp-switch-track"><span class="sp-switch-thumb"></span></span></span>
+          </label>
           <label class="sp-toggle-row" for="export-strip-imgs">
             <span class="sp-toggle-info">
               <span class="sp-toggle-name" data-i18n="settings.backup.strip_label">Exclure les captures d'écran</span>
@@ -635,6 +642,7 @@
   <script src="sidepanel/render/text-blocks.js"></script>
   <script src="sidepanel/render/editor.js"></script>
   <script src="sidepanel/render/ui-state.js"></script>
+  <script src="sidepanel/render/token-counter.js"></script>
   <script src="sidepanel/render/segment-card.js"></script>
   <script src="sidepanel/render/archive-zone.js"></script>
   <script src="sidepanel/render/conversation-group.js"></script>

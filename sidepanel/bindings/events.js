@@ -333,6 +333,28 @@
     if (REFS.reloadDismiss) REFS.reloadDismiss.addEventListener('click', function () { H.hideReloadModal(); });
   }
 
+  function _bindSyncToggle() {
+    var STATE = ctx.STATE;
+    var cb = document.getElementById('sync-enabled');
+    if (!cb) return;
+    cb.checked = !!STATE.syncEnabled;
+    cb.addEventListener('change', async function () {
+      STATE.syncEnabled = cb.checked;
+      window.BIAIFStorage.persist(STATE);
+      if (cb.checked && window.BIAIFStorage.pullFromSync) {
+        var pulled = await window.BIAIFStorage.pullFromSync(STATE);
+        if (pulled) {
+          window.BIAIFRenderer.renderSegments();
+          window.BIAIFRenderer.updateMasterBtnLabel();
+          window.BIAIFRenderer.updateArmedUi();
+          window.BIAIFToast.show(_t('toast.sync_pulled', 'Synchronisation réussie.'), 'success');
+        } else {
+          window.BIAIFToast.show(_t('toast.sync_enabled', 'Sync activée — vos réglages seront partagés.'), 'info');
+        }
+      }
+    });
+  }
+
   function _bindExportImport() {
     var STATE = ctx.STATE;
     var exportBtn   = document.querySelector('[data-act="export-json"]');
@@ -563,6 +585,11 @@
     document.addEventListener('input', function (e) {
       if (e.target !== REFS.demandeEditor) return;
       clearTimeout(timer);
+      // Token-counter is cheap, update on every keystroke.
+      if (window.BIAIFRender && window.BIAIFRender.tokenCounter) {
+        window.BIAIFSession.syncCurrentDemandeFromEditor();
+        window.BIAIFRender.tokenCounter.update();
+      }
       timer = setTimeout(function () {
         window.BIAIFSession.syncCurrentDemandeFromEditor();
         window.BIAIFRenderer.renderDemandeRefsStrip();
@@ -640,6 +667,7 @@
     _bindHistorySearch();
     _bindSettingsPopover();
     _bindReloadModal();
+    _bindSyncToggle();
     _bindExportImport();
     _bindWizardReopen();
     _bindButtonVisibility();

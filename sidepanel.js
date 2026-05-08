@@ -77,6 +77,7 @@
     topbarPosition:         'top',
     theme:                  'dark',
     privacyScrub:           true,
+    syncEnabled:            false,
     // Defaults derived from BIAIF.ALL_BUTTONS (single source of truth).
     visibleButtons: ((window.BIAIF && window.BIAIF.ALL_BUTTONS) || []).reduce(function (acc, def) {
       acc[def.key] = !!def.defaultVisible; return acc;
@@ -95,7 +96,7 @@
     settings:['lang','uiLang','micDeviceId','sortOrder','segFontSize',
               'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage',
               'hideAiTextarea','autoSubmitAfterInject','archiveExpanded',
-              'showConsoleBtn','topbarPosition','theme','privacyScrub','visibleButtons'],
+              'showConsoleBtn','topbarPosition','theme','privacyScrub','syncEnabled','visibleButtons'],
   };
   Object.keys(_GROUPS).forEach(function (group) {
     var view = {};

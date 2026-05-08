@@ -31,6 +31,7 @@
       lbl.textContent = _t('session.save', 'Enregistrer');
       REFS.masterBtn.disabled = !hasContent;
     }
+    if (window.BIAIFRender.tokenCounter) window.BIAIFRender.tokenCounter.update();
   }
 
   function updateArmedUi() {

@@ -113,6 +113,26 @@
 /* Stop button hidden in new UX */
 .session-stop { display: none !important; }
 
+/* Token counter — pills appended after the session-main button */
+.token-counter {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 22px; padding: 0 8px; flex-shrink: 0;
+  font-family: 'Inter', monospace; font-size: 10px; font-weight: 700;
+  color: var(--text-muted); background: var(--bg-card);
+  border: 1px solid var(--border-card); border-radius: var(--radius-pill);
+  margin-left: -2px; align-self: center;
+  pointer-events: none; user-select: none;
+  transition: all 0.15s;
+}
+.token-counter[hidden] { display: none; }
+.token-counter[data-kind="info"]   { color: var(--accent-blue); border-color: var(--accent-blue-100); background: var(--accent-blue-50); }
+.token-counter[data-kind="warn"]   { color: #f59e0b; border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); }
+.token-counter[data-kind="danger"] { color: var(--danger); border-color: rgba(255,69,58,0.5); background: rgba(255,69,58,0.12); animation: token-danger-pulse 1.4s ease-in-out infinite; }
+@keyframes token-danger-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255,69,58,0); }
+  50%      { box-shadow: 0 0 8px rgba(255,69,58,0.5); }
+}
+
 /* Disarm button — red ✕ pill to abandon current edit / new session */
 .session-disarm {
   display: flex; align-items: center; justify-content: center;

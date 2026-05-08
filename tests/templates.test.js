@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Stub the storage call so persist() doesn't blow up
 window.BIAIFStorage = { persist: () => {} };
@@ -59,5 +59,56 @@ describe('BIAIFTemplates', () => {
     const t = window.BIAIFTemplates.add({ body: 'x' });
     expect(window.BIAIFTemplates.rename(t.id, 'New name')).toBe(true);
     expect(STATE.templates[0].name).toBe('New name');
+  });
+});
+
+describe('BIAIFTemplates.interpolate', () => {
+  let STATE;
+  beforeEach(() => {
+    STATE = {
+      templates: [],
+      currentDemande: { text: '', refs: [{ text: 'foo()', selector: '.btn' }], pageUrl: 'https://example.com/page' },
+      pendingRepoId: 'acme/app',
+      uiLang: 'fr',
+      lang:   'fr-FR',
+      demandes: [{}, {}, {}],
+    };
+    window.BIAIFTemplates.init(STATE);
+  });
+
+  it('passes through strings without {{...}}', () => {
+    expect(window.BIAIFTemplates.interpolate('plain text')).toBe('plain text');
+  });
+
+  it('replaces {{url}} with currentDemande.pageUrl', () => {
+    expect(window.BIAIFTemplates.interpolate('see {{url}}')).toBe('see https://example.com/page');
+  });
+
+  it('replaces {{repo}} with pendingRepoId', () => {
+    expect(window.BIAIFTemplates.interpolate('repo: {{repo}}')).toBe('repo: acme/app');
+  });
+
+  it('replaces {{selection}} from the last ref', () => {
+    expect(window.BIAIFTemplates.interpolate('refacto {{selection}}')).toBe('refacto foo()');
+  });
+
+  it('replaces {{date}} with YYYY-MM-DD', () => {
+    const out = window.BIAIFTemplates.interpolate('today {{date}}');
+    expect(out).toMatch(/^today \d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('replaces {{n}} with the demandes count', () => {
+    expect(window.BIAIFTemplates.interpolate('{{n}} requests')).toBe('3 requests');
+  });
+
+  it('returns empty string for unknown built-ins', () => {
+    expect(window.BIAIFTemplates.interpolate('hi {{nope}}')).toBe('hi ');
+  });
+
+  it('asks for {{var:name}} via prompt() and caches the answer for the same insertion', () => {
+    window.prompt = vi.fn().mockReturnValue('blue');
+    const out = window.BIAIFTemplates.interpolate('color: {{var:color}} and {{var:color}}');
+    expect(out).toBe('color: blue and blue');
+    expect(window.prompt).toHaveBeenCalledTimes(1);
   });
 });

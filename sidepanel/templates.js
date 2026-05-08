@@ -57,10 +57,58 @@
     return true;
   }
 
+  // ─── Variable interpolation ────────────────────────────────────
+  // Built-in variables (resolved synchronously; fallback to '' if missing):
+  //   {{date}}, {{time}}, {{datetime}}, {{url}}, {{title}}, {{repo}},
+  //   {{selection}} (last picker text snippet), {{lang}} (UI lang),
+  //   {{aiLang}} (speech-recognition lang), {{n}} (number of demandes)
+  // Custom prompts: {{var:label}} or {{var:label?default}} — popped via
+  //                 prompt() at insertion time.
+  function _builtins() {
+    var now  = new Date();
+    var pad  = function (n) { return String(n).padStart(2, '0'); };
+    var date = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+    var time = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    var url  = (STATE.currentDemande && STATE.currentDemande.pageUrl) || '';
+    var title = '';
+    try { title = (chrome.tabs && chrome.tabs.query) ? '' : ''; } catch (_) {}
+    // Pull the last interactive picker selection if any.
+    var lastRef = (STATE.currentDemande && (STATE.currentDemande.refs || []).slice(-1)[0]) || null;
+    var selection = lastRef && (lastRef.text || lastRef.selector || '') || '';
+    var repo = STATE.pendingRepoId || (lastRef && lastRef.repoId) || '';
+    return {
+      date: date, time: time, datetime: date + ' ' + time,
+      url: url, title: title, selection: selection, repo: repo,
+      lang: STATE.uiLang || 'fr', aiLang: STATE.lang || '',
+      n: String((STATE.demandes || []).length),
+    };
+  }
+
+  function interpolate(body) {
+    if (typeof body !== 'string' || !body.includes('{{')) return body;
+    var built = _builtins();
+    return body.replace(/\{\{\s*(var:)?([\w-]+)(?:\?([^}]*))?\s*\}\}/g, function (_m, isVar, name, def) {
+      if (isVar) {
+        // Custom prompt — only ask once per name within a single insertion.
+        if (interpolate._promptCache && interpolate._promptCache[name] !== undefined) {
+          return interpolate._promptCache[name];
+        }
+        var v;
+        try { v = window.prompt(name + (def ? ' (' + def + ')' : ''), def || ''); } catch (_) { v = def || ''; }
+        if (v == null) v = '';
+        if (!interpolate._promptCache) interpolate._promptCache = {};
+        interpolate._promptCache[name] = v;
+        return v;
+      }
+      return built[name] !== undefined ? built[name] : '';
+    });
+  }
+
   function insertIntoEditor(id) {
     var t = (STATE.templates || []).find(function (x) { return x.id === id; });
     if (!t || !window.BIAIFSession) return;
-    window.BIAIFSession.addTextToTarget(t.body);
+    interpolate._promptCache = null; // fresh ask per insertion
+    window.BIAIFSession.addTextToTarget(interpolate(t.body));
   }
 
   function saveCurrentAsTemplate(name) {
@@ -82,6 +130,7 @@
     remove: remove,
     rename: rename,
     insertIntoEditor: insertIntoEditor,
+    interpolate: interpolate,
     saveCurrentAsTemplate: saveCurrentAsTemplate,
   };
 })(window);

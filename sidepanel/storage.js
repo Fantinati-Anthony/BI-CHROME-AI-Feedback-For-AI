@@ -100,6 +100,7 @@
       if (saved.theme === 'dark' || saved.theme === 'light' || saved.theme === 'auto') STATE.theme = saved.theme;
       if (Array.isArray(saved.templates)) STATE.templates = saved.templates;
       if (typeof saved.privacyScrub === 'boolean') STATE.privacyScrub = saved.privacyScrub;
+      if (typeof saved.syncEnabled  === 'boolean') STATE.syncEnabled  = saved.syncEnabled;
 
     } catch (e) {
       console.warn('[BIAIF Storage] hydrate failed', e && e.message);
@@ -131,8 +132,46 @@
       });
     });
 
+    // Cross-device sync (settings + templates only — never blobs).
+    if (STATE.syncEnabled && chrome.storage.sync) {
+      var syncPayload = _buildSyncPayload(STATE);
+      chrome.storage.sync.set({ [SYNC_KEY]: syncPayload }).catch(function (err) {
+        console.warn('[BIAIF Storage] sync failed:', err && err.message);
+      });
+    }
+
     // Remove legacy keys silently
     chrome.storage.local.remove(LEGACY).catch(function () {});
+  }
+
+  // ─── Cross-device sync (chrome.storage.sync) ─────────────────────
+  // Quota: 100 KB total, 8 KB per item. We cap templates and exclude
+  // all heavy/transient data. Keep this list small and human-curated.
+  var SYNC_KEY = 'biaif:sync';
+  var SYNC_KEYS_WHITELIST = [
+    'lang','uiLang','sortOrder','segFontSize','visibleButtons',
+    'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage',
+    'hideAiTextarea','autoSubmitAfterInject','archiveExpanded',
+    'showConsoleBtn','topbarPosition','theme','privacyScrub',
+  ];
+  function _buildSyncPayload(STATE) {
+    var out = { _v: CURRENT_VERSION, _ts: Date.now() };
+    SYNC_KEYS_WHITELIST.forEach(function (k) {
+      if (STATE[k] !== undefined) out[k] = STATE[k];
+    });
+    // Templates capped at first ~20 entries to stay well under 8 KB
+    if (Array.isArray(STATE.templates)) out.templates = STATE.templates.slice(0, 20);
+    return out;
+  }
+  function pullFromSync(STATE) {
+    if (!chrome.storage.sync) return Promise.resolve(false);
+    return chrome.storage.sync.get(SYNC_KEY).then(function (obj) {
+      var d = obj && obj[SYNC_KEY];
+      if (!d) return false;
+      SYNC_KEYS_WHITELIST.forEach(function (k) { if (d[k] !== undefined) STATE[k] = d[k]; });
+      if (Array.isArray(d.templates)) STATE.templates = d.templates;
+      return true;
+    });
   }
 
   // -----------------------------------------------------------------------
@@ -160,6 +199,7 @@
       theme:                 STATE.theme,
       templates:             STATE.templates,
       privacyScrub:          STATE.privacyScrub,
+      syncEnabled:           STATE.syncEnabled,
     };
   }
 
@@ -333,6 +373,7 @@
     persist:      persist,
     exportToFile: exportToFile,
     importBundle: importBundle,
+    pullFromSync: pullFromSync,
   };
 
 })(window);
