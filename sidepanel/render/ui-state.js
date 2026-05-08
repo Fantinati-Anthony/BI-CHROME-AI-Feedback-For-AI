@@ -28,7 +28,7 @@
       lbl.textContent = _t('session.update', 'Enregistrer ✓');
       REFS.masterBtn.disabled = false;
     } else {
-      lbl.textContent = _t('session.save', 'Enregistrer →');
+      lbl.textContent = _t('session.save', 'Enregistrer');
       REFS.masterBtn.disabled = !hasContent;
     }
   }
