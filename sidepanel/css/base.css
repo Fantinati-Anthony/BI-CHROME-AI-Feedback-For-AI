@@ -78,6 +78,35 @@
   }
 }
 
+/* Universal focus ring — visible only on keyboard nav (focus-visible) */
+:root { --focus-ring: 0 0 0 3px var(--accent-blue-100), 0 0 0 1.5px var(--accent-blue); }
+:focus { outline: none; }
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[contenteditable="true"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: inherit;
+  z-index: 2;
+}
+
+/* Respect users who explicitly ask for less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body {

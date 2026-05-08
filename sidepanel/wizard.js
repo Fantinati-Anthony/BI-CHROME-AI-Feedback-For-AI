@@ -12,12 +12,16 @@
   var _persistFn = null;
 
   var STEPS = [
-    { id: 'welcome', fn: _stepWelcome },
-    { id: 'flow',    fn: _stepFlow    },
-    { id: 'tools',   fn: _stepTools   },
-    { id: 'lang',    fn: _stepLang    },
-    { id: 'export',  fn: _stepExport  },
-    { id: 'ready',   fn: _stepReady   },
+    { id: 'welcome',    fn: _stepWelcome    },
+    { id: 'flow',       fn: _stepFlow       },
+    { id: 'tools',      fn: _stepTools      },
+    { id: 'lang',       fn: _stepLang       },
+    { id: 'theme',      fn: _stepTheme      },
+    { id: 'templates',  fn: _stepTemplates  },
+    { id: 'privacy',    fn: _stepPrivacy    },
+    { id: 'shortcuts',  fn: _stepShortcuts  },
+    { id: 'export',     fn: _stepExport     },
+    { id: 'ready',      fn: _stepReady      },
   ];
 
   // ── Public ─────────────────────────────────────────────────────
@@ -128,6 +132,25 @@
             // Sync with the main settings select
             var sel = document.querySelector('select[name="lang"]');
             if (sel) sel.value = _STATE.lang;
+          }
+        });
+      });
+    }
+
+    if (id === 'theme') {
+      _overlay.querySelectorAll('[data-pick-theme]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var t = btn.dataset.pickTheme;
+          _overlay.querySelectorAll('[data-pick-theme]').forEach(function (b) { b.classList.remove('is-active'); });
+          btn.classList.add('is-active');
+          if (_STATE) _STATE.theme = t;
+          document.documentElement.setAttribute('data-theme', t);
+          var spBtn = document.querySelector('.sp-theme-btn[data-theme="' + t + '"]');
+          if (spBtn) {
+            spBtn.parentNode.querySelectorAll('.sp-theme-btn').forEach(function (x) {
+              x.classList.toggle('is-active', x === spBtn);
+              x.setAttribute('aria-checked', x === spBtn ? 'true' : 'false');
+            });
           }
         });
       });
@@ -292,7 +315,57 @@
     );
   }
 
-  // ── Step 5 : Ready ─────────────────────────────────────────────
+  // ── Step Theme ─────────────────────────────────────────────────
+
+  function _stepTheme() {
+    return ''
+      + '<h2 class="wiz-title">' + _t('wizard.theme.title', 'Choisissez votre thème') + '</h2>'
+      + '<p class="wiz-text">' + _t('wizard.theme.text', 'Sombre, clair ou auto (suit votre OS). Modifiable plus tard dans Réglages › Affichage.') + '</p>'
+      + '<div class="wiz-theme-row">'
+      + '<button class="wiz-theme-card" data-pick-theme="dark">🌙 ' + _t('settings.display.theme_dark', 'Sombre') + '</button>'
+      + '<button class="wiz-theme-card" data-pick-theme="light">☀️ ' + _t('settings.display.theme_light', 'Clair') + '</button>'
+      + '<button class="wiz-theme-card" data-pick-theme="auto">🖥️ ' + _t('settings.display.theme_auto', 'Auto') + '</button>'
+      + '</div>';
+  }
+
+  // ── Step Templates ─────────────────────────────────────────────
+
+  function _stepTemplates() {
+    return ''
+      + '<h2 class="wiz-title">' + _t('wizard.templates.title', 'Modèles de prompts') + '</h2>'
+      + '<p class="wiz-text">' + _t('wizard.templates.text', 'Cliquez sur le bouton 📝 « Modèles » pour enregistrer une saisie comme modèle réutilisable. Idéal pour les prompts récurrents (review, refacto, debug…).') + '</p>'
+      + '<ul class="wiz-list">'
+      + '<li>' + _t('wizard.templates.tip1', 'Cliquez « Modèles » → « Enregistrer la saisie » pour capturer le prompt actuel.') + '</li>'
+      + '<li>' + _t('wizard.templates.tip2', 'Cliquez sur un modèle pour l\'insérer dans la zone de saisie.') + '</li>'
+      + '<li>' + _t('wizard.templates.tip3', 'Les modèles sont sauvegardés et exportés avec votre configuration.') + '</li>'
+      + '</ul>';
+  }
+
+  // ── Step Privacy ───────────────────────────────────────────────
+
+  function _stepPrivacy() {
+    return ''
+      + '<h2 class="wiz-title">🛡️ ' + _t('wizard.privacy.title', 'Confidentialité par défaut') + '</h2>'
+      + '<p class="wiz-text">' + _t('wizard.privacy.text', 'BIAIF masque automatiquement les données sensibles avant qu\'elles soient stockées : emails, IBAN, cartes bancaires (Luhn), JWT, tokens Bearer/sk-/ghp_.') + '</p>'
+      + '<p class="wiz-text">' + _t('wizard.privacy.local', 'Tout reste local — aucune télémétrie, aucun envoi serveur. Voir le détail dans Réglages › Confidentialité.') + '</p>';
+  }
+
+  // ── Step Shortcuts ─────────────────────────────────────────────
+
+  function _stepShortcuts() {
+    return ''
+      + '<h2 class="wiz-title">⌨️ ' + _t('wizard.shortcuts.title', 'Raccourcis clavier') + '</h2>'
+      + '<ul class="wiz-shortcuts">'
+      + '<li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> — ' + _t('wizard.shortcuts.toggle', 'Ouvrir/fermer le panneau') + '</li>'
+      + '<li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> — ' + _t('wizard.shortcuts.picker', 'Sélecteur d\'élément') + '</li>'
+      + '<li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> — ' + _t('wizard.shortcuts.mic', 'Micro on/off') + '</li>'
+      + '<li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> — ' + _t('wizard.shortcuts.copy', 'Copier le prompt') + '</li>'
+      + '<li><kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> — ' + _t('wizard.shortcuts.merge', 'Fusionner avec voisin') + '</li>'
+      + '</ul>'
+      + '<p class="wiz-text wiz-text-muted">' + _t('wizard.shortcuts.customize', 'Personnalisables via chrome://extensions/shortcuts.') + '</p>';
+  }
+
+  // ── Step Ready ─────────────────────────────────────────────────
 
   function _stepReady() {
     var langLabel = '';
