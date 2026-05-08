@@ -266,6 +266,8 @@
           }
         } else if (node.tagName === 'BR') {
           text += '\n';
+        } else if (node.classList && node.classList.contains('text-chip')) {
+          text += node.textContent;
         }
       }
     }
