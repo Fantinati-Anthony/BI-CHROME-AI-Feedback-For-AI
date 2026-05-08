@@ -36,6 +36,17 @@
   var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
+  // Arme la session silencieusement (sans démarrer mic/picker).
+  // Appelé par tous les boutons outils afin d'afficher la demande-zone.
+  function _autoArm() {
+    var STATE = ctx.STATE, REFS = ctx.REFS;
+    if (STATE.armed) return;
+    STATE.armed = true;
+    if (REFS.masterBtn) REFS.masterBtn.classList.add('armed');
+    window.BIAIFRenderer.updateArmedUi();
+    window.BIAIFRenderer.updateMasterBtnLabel();
+  }
+
   function _bindSessionButtons() {
     var REFS = ctx.REFS, STATE = ctx.STATE;
     if (REFS.masterBtn) REFS.masterBtn.addEventListener('click', function () {
@@ -52,9 +63,10 @@
       STATE.pendingConversationUrl = null;
       H.updateLinkedSessionBanner();
     });
-    // "Nouvelle conv." — reset conversation context without stopping.
+    // "Nouvelle conv." — reset conversation context + ouvre la zone si besoin.
     var newConvBtn = document.querySelector('[data-act="new-conv"]');
     if (newConvBtn) newConvBtn.addEventListener('click', function () {
+      _autoArm();
       STATE.pendingConversationUrl = null;
       STATE.pendingRepoId = null;
       H.updateLinkedSessionBanner();
@@ -68,6 +80,7 @@
   function _bindTools() {
     var REFS = ctx.REFS;
     if (REFS.pickerBtn) REFS.pickerBtn.addEventListener('click', async function () {
+      _autoArm();
       var resp = await H.sendBg({ type: H.msgKey('PICKER_TOGGLE') });
       if (resp && resp.error) {
         window.BIAIFToast.show(
@@ -76,7 +89,10 @@
           'error');
       }
     });
-    if (REFS.micBtn) REFS.micBtn.addEventListener('click', function () { window.BIAIFSpeech.toggleMic(); });
+    if (REFS.micBtn) REFS.micBtn.addEventListener('click', function () {
+      _autoArm();
+      window.BIAIFSpeech.toggleMic();
+    });
   }
 
   function _bindFooter() {
@@ -101,12 +117,14 @@
     var REFS = ctx.REFS;
     REFS.shotButtons.forEach(function (btn) {
       btn.addEventListener('click', function () {
+        _autoArm();
         H.closeCaptureSubline();
         window.BIAIFSession.runShotMode(btn.dataset.shot);
       });
     });
     var captureToggle = document.querySelector('[data-act="capture-toggle"]');
     if (captureToggle) captureToggle.addEventListener('click', function (e) {
+      _autoArm();
       e.stopPropagation(); H.toggleCaptureSubline();
     });
     document.addEventListener('click', function (e) {
@@ -121,7 +139,7 @@
     var filesBtn  = document.querySelector('[data-act="open-files"]');
     var fileInput = document.getElementById('quick-file-input');
     if (!filesBtn || !fileInput) return;
-    filesBtn.addEventListener('click', function () { fileInput.click(); });
+    filesBtn.addEventListener('click', function () { _autoArm(); fileInput.click(); });
     fileInput.addEventListener('change', async function (e) {
       var files = Array.from(e.target.files || []);
       if (files.length) await H.handleCaptureFiles(files);
@@ -131,7 +149,7 @@
 
   function _bindErrorsButton() {
     var btn = document.querySelector('[data-act="open-errors"]');
-    if (btn) btn.addEventListener('click', function () { H.addAllConsoleErrors(); });
+    if (btn) btn.addEventListener('click', function () { _autoArm(); H.addAllConsoleErrors(); });
   }
 
   function _bindSortToggle() {
