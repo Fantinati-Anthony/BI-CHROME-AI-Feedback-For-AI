@@ -53,12 +53,24 @@ html, body {
   gap: 10px;
 }
 
-/* États "désarmé" : avant Démarrer, on cache les outils et la zone de
-   saisie (sauf si elle contient déjà du contenu pré-existant). Focus
-   visuel sur le bouton Démarrer + l'historique. */
+/* ── Two-state layout ───────────────────────────────────────────────────
+   REST  (not armed): history + "Nouvelle conv." only
+   ARMED (create/edit): editor zone only (history hidden)               */
+
 /* Demande zone + outils masqués tant que la session n'est pas démarrée */
 .demande-zone.is-locked,
 .biaif-quick-tools.is-locked { display: none; }
+
+/* Hide the main save button at rest (only "Nouvelle conv." stays) */
+.biaif-root:not(.is-armed) .session-main  { display: none; }
+.biaif-root:not(.is-armed) .session-disarm { display: none; }
+
+/* Armed: hide the history, focus on the editor zone */
+.biaif-root.is-armed .biaif-segments-wrap { display: none !important; }
+.biaif-root.is-armed .biaif-footer-area   { display: none !important; }
+
+/* "Nouvelle conv." rebranded to entry point at rest — keep it visible */
+.biaif-root.is-armed .session-new-conv    { display: none; }
 
 /* État "Hero vide" : aucun historique + session non démarrée → on
    cache l'historique et on centre verticalement le bloc Démarrer +
@@ -142,6 +154,5 @@ html, body {
 }
 .empty-state-cta strong { color: var(--accent-blue); font-weight: 700; }
 
-/* Nouvelle conv. inutile en état vide */
-.biaif-root.is-empty-state .session-new-conv { display: none; }
+/* Nouvelle conv. = point d'entrée visible dans tous les états non-armés */
 
