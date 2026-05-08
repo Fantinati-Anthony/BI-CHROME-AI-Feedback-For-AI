@@ -180,6 +180,9 @@
       if (!file.type.startsWith('image/')) continue;
       try {
         var dataUrl = await readFileAsDataUrl(file);
+        if (window.BIAIFImaging) {
+          try { dataUrl = await window.BIAIFImaging.compressDataUrl(dataUrl); } catch (_) {}
+        }
         window.BIAIFSession.addRefToTarget({
           type: 'screenshot', mode: 'fichier', dataUrl: dataUrl,
           fileName: file.name, ts: Date.now(),
@@ -214,6 +217,9 @@
         r.onerror = rej;
         r.readAsDataURL(blob);
       });
+      if (dataUrl && window.BIAIFImaging) {
+        try { dataUrl = await window.BIAIFImaging.compressDataUrl(dataUrl); } catch (_) {}
+      }
     } catch (_) {}
     window.BIAIFSession.addRefToTarget({
       type: 'screenshot', mode: dataUrl ? 'image' : 'image-url',
