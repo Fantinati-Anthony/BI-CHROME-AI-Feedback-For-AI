@@ -385,7 +385,7 @@
 
     card.innerHTML =
       '<header>' +
-        '<button class="seg-drag-handle" data-i="' + origIndex + '" aria-label="Glisser pour fusionner" title="Glisser sur une autre demande pour fusionner">⋮⋮</button>' +
+        '<button class="seg-drag-handle" data-i="' + origIndex + '" aria-label="' + esc(_t('aria.merge_handle', 'Glisser ou Alt+↑/↓ pour fusionner avec une demande voisine')) + '" title="' + esc(_t('seg.merge_handle_tip', 'Glisser sur une autre demande pour fusionner — ou Alt+↑/↓ au clavier')) + '">⋮⋮</button>' +
         '<span class="seg-num" aria-label="Demande ' + num + '">#' + num + '</span>' +
         '<span class="seg-meta">' + dt + ' · <span aria-label="' + refsCount + ' références">' + esc(refsLabel) + '</span></span>' +
         statusHtml +
@@ -521,6 +521,17 @@
     // Segment drag-drop for merge
     var dragHandle = card.querySelector('.seg-drag-handle');
     dragHandle.draggable = true;
+    dragHandle.setAttribute('tabindex', '0');
+    dragHandle.setAttribute('role', 'button');
+    // Keyboard accessibility: Alt+↑/↓ on the handle merges into the previous/next demande.
+    dragHandle.addEventListener('keydown', function (e) {
+      if (!e.altKey) return;
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      var dst = e.key === 'ArrowUp' ? origIndex - 1 : origIndex + 1;
+      if (dst < 0 || dst >= STATE.demandes.length) return;
+      e.preventDefault();
+      if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(origIndex, dst);
+    });
     dragHandle.addEventListener('dragstart', function (e) {
       e.stopPropagation();
       e.dataTransfer.effectAllowed = 'move';

@@ -3,7 +3,9 @@
   "name": "BI Chrome AI Feedback",
   "version": "0.4.0",
   "description": "Capture des feedbacks visuels (sélecteur d'élément CSS) + vocaux (speech-to-text) pour les transmettre à une IA (Claude Code).",
-  "permissions": ["activeTab", "storage", "clipboardWrite", "sidePanel", "contextMenus", "scripting"],
+  "author": "Anthony Fantinati",
+  "minimum_chrome_version": "114",
+  "permissions": ["activeTab", "storage", "clipboardWrite", "sidePanel", "contextMenus"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
@@ -24,13 +26,14 @@
     {
       "matches": ["<all_urls>"],
       "run_at": "document_start",
-      "js": ["shared/constants.js", "content/error-bridge.js"]
+      "js": ["shared/constants.js", "shared/utils.js", "content/error-bridge.js"]
     },
     {
       "matches": ["<all_urls>"],
       "run_at": "document_idle",
       "js": [
         "shared/constants.js",
+        "shared/utils.js",
         "shared/ai-adapters.js",
         "content/css-selector.js",
         "content/element-selector.js",
@@ -45,6 +48,7 @@
       "run_at": "document_idle",
       "js": [
         "shared/constants.js",
+        "shared/utils.js",
         "shared/ai-adapters.js",
         "content/textarea-injector.js"
       ]
@@ -65,6 +69,7 @@
       "run_at": "document_idle",
       "js": [
         "shared/constants.js",
+        "shared/utils.js",
         "shared/ai-adapters.js",
         "content/ai-watcher.js"
       ]

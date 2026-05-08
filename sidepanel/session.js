@@ -48,6 +48,8 @@
     _toast(_t('toast.session_stopped', 'Session arrêtée — ' + STATE.demandes.length + ' demande(s) capturée(s).', { n: STATE.demandes.length }), 'info');
   }
 
+  var MAX_DEMANDE_LEN = 50000;
+
   function finalizeDemande(silent) {
     if (STATE.editingDemandeIdx !== null) { exitEditMode(); return; }
     syncCurrentDemandeFromEditor();
@@ -56,6 +58,10 @@
     if (!cleaned && !refs.length) {
       if (!silent) _toast(_t('toast.nothing_to_finalize', 'Rien à finaliser — parlez ou ajoutez une référence.'), 'info');
       return;
+    }
+    if (cleaned.length > MAX_DEMANDE_LEN) {
+      cleaned = cleaned.slice(0, MAX_DEMANDE_LEN);
+      _toast(_t('toast.demande_truncated', 'Texte tronqué à ' + MAX_DEMANDE_LEN + ' caractères.', { n: MAX_DEMANDE_LEN }), 'warning', 5000);
     }
     // Derive repoId: prefer explicit pending, then scan refs
     var repoId = STATE.pendingRepoId || null;
@@ -162,15 +168,9 @@
   }
 
   function _extractGithubRepo(url) {
-    try {
-      var u = new URL(url);
-      if (u.hostname === 'github.com') {
-        var parts = u.pathname.split('/').filter(Boolean);
-        var skip  = ['orgs','settings','marketplace','explore','trending','notifications','search','login','logout'];
-        if (parts.length >= 2 && !skip.includes(parts[0])) return parts[0] + '/' + parts[1];
-      }
-    } catch (_) {}
-    return null;
+    return (window.BIAIF && window.BIAIF.utils)
+      ? window.BIAIF.utils.extractGithubRepo(url)
+      : null;
   }
 
   function addTextToTarget(text) {
@@ -389,10 +389,9 @@
   function _sendBg(payload)   { return chrome.runtime.sendMessage(payload).catch(function () { return null; }); }
   function _MSG(key)          { return window.BIAIF && window.BIAIF.MSG ? window.BIAIF.MSG[key] : 'biaif:' + key.toLowerCase().replace(/_/g, '-'); }
   function _decodeErr(e) {
-    var s = typeof e === 'string' ? e : (e && e.message || String(e));
-    if (s.includes('Receiving end does not exist') || s.includes('Could not establish connection'))
-      return "content script pas prêt — rechargez l'onglet";
-    return s;
+    return (window.BIAIF && window.BIAIF.utils)
+      ? window.BIAIF.utils.decodeErr(e)
+      : (typeof e === 'string' ? e : (e && e.message || String(e)));
   }
 
   function _appendWithSpace(container, text) {

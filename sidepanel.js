@@ -283,11 +283,19 @@
     });
     window.BIAIFRenderer.applySegFontSize();
 
-    // History search
-    if (REFS.searchInput) REFS.searchInput.addEventListener('input', (e) => {
-      STATE.searchQuery = e.target.value || '';
-      window.BIAIFRenderer.renderSegments();
-    });
+    // History search (debounced — avoids re-rendering on every keystroke)
+    if (REFS.searchInput) {
+      let _searchTimer = null;
+      REFS.searchInput.addEventListener('input', (e) => {
+        const v = e.target.value || '';
+        STATE.searchQuery = v;
+        if (_searchTimer) clearTimeout(_searchTimer);
+        _searchTimer = setTimeout(() => {
+          _searchTimer = null;
+          window.BIAIFRenderer.renderSegments();
+        }, 150);
+      });
+    }
 
     // Settings panel open/close
     if (REFS.toggleSettings) REFS.toggleSettings.addEventListener('click', (e) => {
@@ -974,10 +982,9 @@
   }
 
   function decodeContentScriptError(err) {
-    const s = typeof err === 'string' ? err : (err && err.message || String(err));
-    if (s.includes('Receiving end does not exist') || s.includes('Could not establish connection'))
-      return "content script pas prêt — rechargez l'onglet";
-    return s;
+    return (window.BIAIF && window.BIAIF.utils)
+      ? window.BIAIF.utils.decodeErr(err)
+      : (typeof err === 'string' ? err : (err && err.message || String(err)));
   }
 
   function sendBg(payload) { return chrome.runtime.sendMessage(payload).catch(() => null); }

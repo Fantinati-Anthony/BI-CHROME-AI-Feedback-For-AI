@@ -227,7 +227,7 @@
 
     try {
       var pingCtrl  = new AbortController();
-      var pingTimer = setTimeout(function () { pingCtrl.abort(); }, 1500);
+      var pingTimer = setTimeout(function () { pingCtrl.abort(); }, 3000);
       try {
         var pingResp = await fetch('http://127.0.0.1:' + port + '/ping', { signal: pingCtrl.signal });
         clearTimeout(pingTimer);
@@ -244,12 +244,19 @@
 
       _updateProgress(0, total, 'Envoi vers ' + label + '…');
 
-      var resp   = await fetch('http://127.0.0.1:' + port + '/inject', {
+      var resp = await fetch('http://127.0.0.1:' + port + '/inject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target: target, text: text, images: images }),
       });
-      var result = await resp.json();
+      if (!resp.ok) throw new Error('bridge HTTP ' + resp.status);
+      var result;
+      try {
+        result = await resp.json();
+      } catch (parseErr) {
+        throw new Error(_t('err.bridge_invalid_json', 'réponse bridge invalide (JSON malformé)'));
+      }
+      result = result || {};
 
       _updateProgress(total, total, 'Envoyé !');
       setTimeout(_hideProgress, 1400);

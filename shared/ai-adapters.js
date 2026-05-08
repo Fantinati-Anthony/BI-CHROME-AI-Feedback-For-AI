@@ -8,6 +8,14 @@
   root.BIAIF.AI_ADAPTERS = [
     {
       host: 'claude.ai',
+      // Tiptap/ProseMirror editor selectors (most specific first).
+      editor: [
+        'div[contenteditable="true"][aria-label="Prompt"].ProseMirror',
+        'div.tiptap[contenteditable="true"]',
+        'div.ProseMirror[contenteditable="true"]',
+        'div[contenteditable="true"][aria-label="Prompt"]',
+        'div[contenteditable="true"]',
+      ],
       stopBtn: [
         'button[aria-label="Stop"]',
         'button[aria-label*="Stop"]',

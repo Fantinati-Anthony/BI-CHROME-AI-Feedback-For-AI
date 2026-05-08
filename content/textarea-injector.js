@@ -258,15 +258,9 @@
   /* ── GitHub repo detection ──────────────────────────────────────────────── */
 
   function _extractGithubRepo(url) {
-    try {
-      var u = new URL(url);
-      if (u.hostname === 'github.com') {
-        var parts = u.pathname.split('/').filter(Boolean);
-        var skip  = ['orgs','settings','marketplace','explore','trending','notifications','search','login','logout'];
-        if (parts.length >= 2 && !skip.includes(parts[0])) return parts[0] + '/' + parts[1];
-      }
-    } catch (_) {}
-    return null;
+    return (window.BIAIF && window.BIAIF.utils)
+      ? window.BIAIF.utils.extractGithubRepo(url)
+      : null;
   }
 
   /* ── message helper ─────────────────────────────────────────────────────── */

@@ -6,7 +6,7 @@
 (function (window) {
   'use strict';
 
-  var MAX = 20;
+  var MAX = 50;
   var stack = [];
 
   function push(snapshot) {
