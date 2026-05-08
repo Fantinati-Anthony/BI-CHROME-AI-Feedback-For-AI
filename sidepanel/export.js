@@ -303,7 +303,11 @@
         var imgInfo = images.length ? ' + ' + images.length + ' image(s)' : '';
         _toast(_t('toast.injected', 'Demande #' + (idx + 1) + ' injectée' + imgInfo + '.', { n: idx + 1, imgs: imgInfo }), 'success');
         var dem = STATE.demandes[idx];
-        if (dem && resp.targetTabId) dem.submittedTabId = resp.targetTabId;
+        if (dem) {
+          if (resp.targetTabId) dem.submittedTabId = resp.targetTabId;
+          // Update conversationUrl from actual tab URL so AI_RESPONSE_DONE can match
+          if (resp.tabUrl && !dem.conversationUrl) dem.conversationUrl = resp.tabUrl;
+        }
         _stampSubmitted(dem, 'Claude Code');
       }
     } catch (e) {

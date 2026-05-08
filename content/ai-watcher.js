@@ -77,7 +77,15 @@
   function _isVisible(el) {
     if (!el) return false;
     var r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
+    if (r.width <= 0 || r.height <= 0) return false;
+    // Elements hidden via opacity-0 / visibility:hidden stay in DOM but are not active
+    try {
+      var cs = window.getComputedStyle(el);
+      if (parseFloat(cs.opacity) < 0.1) return false;
+      if (cs.visibility === 'hidden')    return false;
+      if (cs.display === 'none')         return false;
+    } catch (_) {}
+    return true;
   }
 
   function _queryAny(sels) {
