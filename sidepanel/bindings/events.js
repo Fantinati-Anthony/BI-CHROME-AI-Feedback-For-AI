@@ -38,15 +38,30 @@
 
   function _bindSessionButtons() {
     var REFS = ctx.REFS, STATE = ctx.STATE;
-    if (REFS.masterBtn) REFS.masterBtn.addEventListener('click', async function () {
-      if (typeof STATE.editingDemandeIdx === 'number') window.BIAIFSession.exitEditMode();
-      else if (STATE.armed) window.BIAIFSession.finalizeDemande(false);
-      else { await window.BIAIFSession.startSession(); H.updateLinkedSessionBanner(); }
+    if (REFS.masterBtn) REFS.masterBtn.addEventListener('click', function () {
+      if (typeof STATE.editingDemandeIdx === 'number') {
+        window.BIAIFSession.exitEditMode();
+      } else {
+        window.BIAIFSession.finalizeDemande(false);
+        H.updateLinkedSessionBanner();
+      }
     });
+    // Stop button kept for backward-compat (CSS hides it in new UX).
     if (REFS.stopBtn) REFS.stopBtn.addEventListener('click', function () {
       window.BIAIFSession.stopSession();
       STATE.pendingConversationUrl = null;
       H.updateLinkedSessionBanner();
+    });
+    // "Nouvelle conv." — reset conversation context without stopping.
+    var newConvBtn = document.querySelector('[data-act="new-conv"]');
+    if (newConvBtn) newConvBtn.addEventListener('click', function () {
+      STATE.pendingConversationUrl = null;
+      STATE.pendingRepoId = null;
+      H.updateLinkedSessionBanner();
+      window.BIAIFToast.show(
+        _t('toast.new_conv', 'Nouvelle conversation — le prochain segment sera indépendant.'),
+        'info'
+      );
     });
   }
 

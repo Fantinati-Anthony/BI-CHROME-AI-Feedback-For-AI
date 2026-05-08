@@ -22,10 +22,15 @@
     if (!REFS.masterBtn) return;
     var lbl = REFS.masterBtn.querySelector('.master-label');
     if (!lbl) return;
-    if (typeof STATE.editingDemandeIdx === 'number') { lbl.textContent = _t('session.finish', 'Terminer'); return; }
-    if (!STATE.armed) { lbl.textContent = _t('session.start', 'Démarrer'); return; }
     var hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
-    lbl.textContent = hasContent ? _t('session.next', 'Suivant →') : _t('session.new_segment', 'Nouveau segment');
+    if (typeof STATE.editingDemandeIdx === 'number') {
+      // Session bar is CSS-hidden during segment edit, but keep label correct.
+      lbl.textContent = _t('session.update', 'Mettre à jour ✓');
+      REFS.masterBtn.disabled = false;
+    } else {
+      lbl.textContent = _t('session.save', 'Enregistrer →');
+      REFS.masterBtn.disabled = !hasContent;
+    }
   }
 
   function updateArmedUi() {
@@ -33,16 +38,13 @@
     var root  = document.querySelector('.biaif-root');
     var editing = typeof STATE.editingDemandeIdx === 'number';
     var hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
-    var empty   = !STATE.armed && !editing && !STATE.demandes.length && !hasContent;
+    var empty   = !editing && !STATE.demandes.length && !hasContent;
     if (root) {
       root.classList.toggle('is-armed', !!STATE.armed);
       root.classList.toggle('is-editing-segment', editing);
       root.classList.toggle('is-empty-state', empty);
     }
-    var qt = document.querySelector('.biaif-quick-tools');
-    if (qt) qt.classList.toggle('is-hidden', !STATE.armed && !editing);
-    var dz = document.querySelector('.demande-zone');
-    if (dz) dz.classList.toggle('is-locked', editing || (!STATE.armed && !hasContent));
+    // Quick tools always accessible — no is-hidden / is-locked toggling
   }
 
   function updateErrorsBadges() {

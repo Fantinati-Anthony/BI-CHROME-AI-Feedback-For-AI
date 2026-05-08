@@ -56,8 +56,10 @@ html, body {
 /* États "désarmé" : avant Démarrer, on cache les outils et la zone de
    saisie (sauf si elle contient déjà du contenu pré-existant). Focus
    visuel sur le bouton Démarrer + l'historique. */
-.biaif-quick-tools.is-hidden { display: none !important; }
-.demande-zone.is-locked { display: none; }
+/* Quick tools always visible — .is-hidden no longer applied in new UX */
+/* .biaif-quick-tools.is-hidden { display: none !important; } */
+/* Demande zone always accessible — .is-locked no longer applied in new UX */
+/* .demande-zone.is-locked { display: none; } */
 
 /* État "Hero vide" : aucun historique + session non démarrée → on
    cache l'historique et on centre verticalement le bloc Démarrer +
@@ -167,3 +169,10 @@ html, body {
   border: 1px solid var(--border-card);
   border-radius: 8px;
 }
+
+/* En mode édition d'un segment, masquer la zone de saisie courante. */
+.biaif-root.is-editing-segment .biaif-quick-tools { display: none !important; }
+
+/* Nouvelle conv. inutile en état vide */
+.biaif-root.is-empty-state .session-new-conv { display: none; }
+

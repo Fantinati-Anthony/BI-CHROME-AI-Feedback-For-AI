@@ -285,12 +285,16 @@
          Session bar
     ============================================================ -->
     <div class="session-bar" role="toolbar" aria-label="Contrôles de session">
-      <button class="session-main" data-act="master" aria-label="Démarrer une session de feedback">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-        <span class="master-label" data-i18n="session.start">Démarrer</span>
+      <button class="session-new-conv" data-act="new-conv"
+        aria-label="Nouvelle conversation — le prochain segment sera indépendant"
+        title="Nouvelle conversation">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span data-i18n="session.new_conv">Nouvelle conv.</span>
       </button>
-      <button class="session-stop" data-act="stop" aria-label="Arrêter la session" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+      <button class="session-main" data-act="master" disabled
+        aria-label="Enregistrer la demande courante">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        <span class="master-label" data-i18n="session.save">Enregistrer →</span>
       </button>
     </div>
 
@@ -387,11 +391,11 @@
         <span class="empty-state-tagline-em" data-i18n="hero.tagline_em">transmis naturellement à votre IA.</span>
       </h2>
       <ol class="empty-state-steps" aria-label="Comment utiliser BIAIF">
-        <li><strong>Démarrer</strong> → active la session (micro + sélecteur)</li>
-        <li><strong>Parlez</strong> ou tapez votre instruction</li>
-        <li><strong>Cliquez un élément</strong> pour l'ajouter comme référence</li>
-        <li><strong>Suivant →</strong> pour passer à la demande suivante</li>
-        <li><strong>Copier</strong> pour coller le prompt dans Claude Code</li>
+        <li><strong>Composez</strong> → parlez ou tapez votre demande</li>
+        <li><strong>Capturez</strong> → ajoutez éléments et screenshots</li>
+        <li><strong>Enregistrer →</strong> pour sauvegarder le segment</li>
+        <li><strong>+ Nouvelle conv.</strong> pour changer de contexte</li>
+        <li><strong>Copier</strong> pour coller le prompt dans votre IA</li>
       </ol>
     </div>
 

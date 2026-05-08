@@ -52,6 +52,11 @@
 
   function finalizeDemande(silent) {
     if (STATE.editingDemandeIdx !== null) { exitEditMode(); return; }
+    // Auto-arm silently on first save (no mic/picker forced, user controls those).
+    if (!STATE.armed) {
+      STATE.armed = true;
+      if (REFS && REFS.masterBtn) REFS.masterBtn.classList.add('armed');
+    }
     syncCurrentDemandeFromEditor();
     var text    = STATE.currentDemande.text, refs = STATE.currentDemande.refs;
     var cleaned = (text || '').replace(/\s+/g, ' ').trim();

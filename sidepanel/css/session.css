@@ -58,14 +58,42 @@
   0%   { background-position: -120% 0; }
   100% { background-position: 220% 0; }
 }
-.session-stop {
-  width: 44px; padding: 0; border: none; border-radius: var(--radius-pill);
-  background: var(--danger); color: #fff;
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-  transition: opacity 0.15s, transform 0.15s;
+/* Session main — état désactivé (éditeur vide) */
+.session-main:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  animation: none !important;
+  background: var(--bg-card);
+  box-shadow: none;
+  color: var(--text-muted);
 }
-.session-stop:hover { transform: scale(1.05); }
-.session-stop[hidden] { display: none; }
+.session-main:disabled::before { display: none; }
+
+/* Bouton "Nouvelle conversation" */
+.session-new-conv {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.session-new-conv:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-50);
+  box-shadow: 0 0 10px rgba(14,165,183,0.18);
+}
+.session-new-conv svg { flex-shrink: 0; }
+
+/* Stop button hidden in new UX */
+.session-stop { display: none !important; }
 
 .biaif-buffer-preview {
   font-size: 11px; color: var(--text-muted); font-style: italic;
@@ -111,11 +139,6 @@
 }
 .subline-btn svg { flex-shrink: 0; color: var(--accent-blue); }
 
-/* Bouton Capture en mode "ouvert" (sous-ligne déployée) */
-[data-act="capture-toggle"][aria-expanded="true"] {
-  border-color: var(--accent-blue) !important;
-  background: var(--bg-card-hover) !important;
-}
 
 .tool-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -123,7 +146,38 @@
   background: var(--bg-card); color: var(--text-main);
   font-family: inherit; cursor: pointer; transition: all 0.15s;
 }
-.tool-btn:hover { background: var(--bg-card-hover); border-color: var(--accent-blue); }
-.tool-btn.active { background: var(--accent-blue-50); border-color: var(--accent-blue); }
-.tool-btn svg { color: var(--accent-blue); }
 .tool-btn .label { font-size: 11px; font-weight: 500; }
+
+/* ── Couleurs par type de bouton — miroir des chips correspondants ── */
+
+/* Micro → text-chip (vert émeraude = "live / en cours") */
+[data-act="mic"] svg                        { color: #10b981; }
+[data-act="mic"]:hover                      { border-color: #10b981; background: rgba(16,185,129,0.08); }
+[data-act="mic"].active                     { background: rgba(16,185,129,0.12); border-color: #10b981;
+                                              box-shadow: 0 0 10px rgba(16,185,129,0.25); }
+
+/* Sélecteur → element chip (bleu cyan) */
+[data-act="picker"] svg                     { color: var(--accent-blue); }
+[data-act="picker"]:hover                   { border-color: var(--accent-blue); background: var(--accent-blue-50); }
+[data-act="picker"].active                  { background: var(--accent-blue-50); border-color: var(--accent-blue);
+                                              box-shadow: 0 0 10px rgba(14,165,183,0.25); }
+
+/* Capture + Fichier → screenshot chip (violet) */
+[data-act="capture-toggle"] svg,
+[data-act="open-files"] svg                 { color: var(--accent-purple); }
+[data-act="capture-toggle"]:hover,
+[data-act="open-files"]:hover               { border-color: var(--accent-purple); background: var(--accent-purple-50); }
+[data-act="capture-toggle"][aria-expanded="true"] {
+  border-color: var(--accent-purple) !important;
+  background: var(--accent-purple-50) !important;
+  box-shadow: 0 0 10px rgba(139,92,246,0.2);
+}
+/* Sous-boutons capture → même violet */
+.subline-btn svg                            { color: var(--accent-purple); }
+.subline-btn:hover                          { border-color: var(--accent-purple); color: var(--accent-purple); }
+
+/* Erreurs → error chip (rouge) */
+[data-act="open-errors"] svg                { color: var(--danger); }
+[data-act="open-errors"]:hover              { border-color: var(--danger); background: rgba(255,69,58,0.08); }
+[data-act="open-errors"].has-errors         { border-color: rgba(255,69,58,0.45); background: rgba(255,69,58,0.08); }
+[data-act="open-errors"].has-errors svg     { color: var(--danger); }
