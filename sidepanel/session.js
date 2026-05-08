@@ -255,6 +255,23 @@
   // -----------------------------------------------------------------------
   // Merge
   // -----------------------------------------------------------------------
+  // Reorder: move src segment to the dst position (no merge).
+  function reorderDemande(srcIdx, dstIdx) {
+    if (srcIdx === dstIdx || srcIdx === dstIdx - 1) return;
+    var item = STATE.demandes.splice(srcIdx, 1)[0];
+    if (!item) return;
+    if (dstIdx > srcIdx) dstIdx--;
+    STATE.demandes.splice(dstIdx, 0, item);
+    if (typeof STATE.editingDemandeIdx === 'number') {
+      if (STATE.editingDemandeIdx === srcIdx) STATE.editingDemandeIdx = dstIdx;
+      else if (srcIdx < STATE.editingDemandeIdx && dstIdx >= STATE.editingDemandeIdx) STATE.editingDemandeIdx--;
+      else if (srcIdx > STATE.editingDemandeIdx && dstIdx <= STATE.editingDemandeIdx) STATE.editingDemandeIdx++;
+    }
+    window.BIAIFRenderer.renderSegments();
+    window.BIAIFStorage.persist(STATE);
+    _toast(_t('toast.reordered', 'Demande déplacée en position #' + (dstIdx + 1) + '.', { n: dstIdx + 1 }), 'success', 1800);
+  }
+
   function mergeDemandes(srcIdx, dstIdx) {
     if (srcIdx === dstIdx) return;
     var src = STATE.demandes[srcIdx], dst = STATE.demandes[dstIdx];
@@ -486,6 +503,7 @@
     addTextToTarget:            addTextToTarget,
     runShotMode:                runShotMode,
     mergeDemandes:              mergeDemandes,
+    reorderDemande:             reorderDemande,
     syncCurrentDemandeFromEditor: syncCurrentDemandeFromEditor,
     insertTextAtSelection:      insertTextAtSelection,
     rememberPageUrl:            rememberPageUrl,
