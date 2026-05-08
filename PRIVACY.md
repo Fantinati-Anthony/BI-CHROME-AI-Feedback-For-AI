@@ -16,6 +16,17 @@ BIAIF is **fully local-first**: nothing leaves your browser unless you explicitl
 | Re-encodes screenshots to JPEG before storage | ✅ Yes (saves quota) |
 | Auto-redacts PII / secrets (emails, IBAN, JWT, Bearer/sk-, Luhn-valid cards) | ✅ Yes, default ON |
 
+## Build variants (`dist/`)
+
+`npm run build` produces two manifests in `dist/`:
+
+| File | When to use | What changes |
+|---|---|---|
+| `manifest.dev.json` | Development / local install via `chrome://extensions` "Load unpacked" | Identical to source `manifest.json` — keeps `connect-src http://127.0.0.1:51473 http://localhost:51473` so the VS Code bridge ("VS-Code Terminal", "VS-Code Copilot Chat") works. |
+| `manifest.webstore.json` | Public Web Store publication | Removes the loopback `connect-src` from the CSP. The bridge buttons still appear but show a friendly "Bridge VS Code introuvable" toast since the fetch is blocked by CSP — no functional regression for users who don't run the bridge anyway. |
+
+The reviewer-friendly variant has zero arbitrary-URL fetches (`connect-src 'self'`).
+
 ## Permissions explained
 
 | Permission | Why we need it | What it does NOT do |
