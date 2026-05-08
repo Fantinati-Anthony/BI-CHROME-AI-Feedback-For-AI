@@ -135,4 +135,13 @@
       stopBtn: ['button[aria-label*="Stop" i]', '[class*="stop" i]'],
     },
   ];
-})(typeof window !== 'undefined' ? window : self);
+  // Soft ESM: re-export the registries for Node/Vitest consumers.
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      AI_TARGETS:    root.BIAIF.AI_TARGETS,
+      LOCAL_ACTIONS: root.BIAIF.LOCAL_ACTIONS,
+      ALL_BUTTONS:   root.BIAIF.ALL_BUTTONS,
+      AI_ADAPTERS:   root.BIAIF.AI_ADAPTERS,
+    };
+  }
+})(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis));

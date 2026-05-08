@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * BIAIF Shared Utils
  * Cross-context helpers (sidepanel, content scripts, service worker).
@@ -72,7 +73,7 @@
     }
   }
 
-  root.BIAIF.utils = {
+  var api = {
     extractGithubRepo: extractGithubRepo,
     t:                 t,
     decodeErr:         decodeErr,
@@ -81,5 +82,7 @@
     toast:             toast,
     sendBg:            sendBg,
   };
+  root.BIAIF.utils = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
-})(typeof window !== 'undefined' ? window : self);
+})(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis));

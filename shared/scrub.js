@@ -79,11 +79,15 @@
     return !STATE || STATE.privacyScrub !== false;
   }
 
-  root.BIAIFScrub = {
+  var api = {
     scrubText:    scrubText,
     scrubRef:     scrubRef,
     scrubDemande: scrubDemande,
     isEnabled:    isEnabled,
     _luhnOk:      _luhnOk,
   };
-})(typeof window !== 'undefined' ? window : self);
+  root.BIAIFScrub = api;
+  // Soft ESM: expose as CommonJS export when running in Node (Vitest)
+  // — no-op in browsers, lets tests do `import` via vite-node.
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis));
