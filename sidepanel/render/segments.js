@@ -194,6 +194,89 @@
         if (typeof fn === 'function') fn(idx);
       }
     });
+
+    // ── Drag-drop merge / reorder (delegated, was per-card before) ───
+    function _idxFor(target) {
+      var card = target.closest && target.closest('.biaif-segment');
+      if (!card) return -1;
+      var i = Number(card.dataset.i);
+      return Number.isNaN(i) ? -1 : i;
+    }
+    function _dropMode(card, e) {
+      var rect = card.getBoundingClientRect();
+      var y    = e.clientY - rect.top;
+      if (y < rect.height * 0.25) return 'before';
+      if (y > rect.height * 0.75) return 'after';
+      return 'merge';
+    }
+    function _clearAll() {
+      document.querySelectorAll('.biaif-segment.is-drop-target, .biaif-segment.is-drop-before, .biaif-segment.is-drop-after')
+        .forEach(function (c) { c.classList.remove('is-drop-target', 'is-drop-before', 'is-drop-after'); });
+    }
+
+    // dragstart MUST come from the handle element (HTML5 DnD requires it)
+    wrap.addEventListener('dragstart', function (e) {
+      var handle = e.target.closest && e.target.closest('.seg-drag-handle');
+      if (!handle) return;
+      var idx = _idxFor(handle);
+      if (idx < 0) return;
+      e.stopPropagation();
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', '__biaif_segment__'); } catch (_) {}
+      ctx.SEG_DRAG.sourceIdx = idx;
+      var card = handle.closest('.biaif-segment');
+      if (card) card.classList.add('is-dragging-seg');
+    });
+    wrap.addEventListener('dragend', function () {
+      ctx.SEG_DRAG.sourceIdx = -1;
+      document.querySelectorAll('.biaif-segment.is-dragging-seg').forEach(function (c) {
+        c.classList.remove('is-dragging-seg');
+      });
+      _clearAll();
+    });
+    wrap.addEventListener('dragover', function (e) {
+      var card = e.target.closest && e.target.closest('.biaif-segment');
+      if (!card || ctx.SEG_DRAG.sourceIdx < 0) return;
+      var idx = Number(card.dataset.i);
+      if (idx === ctx.SEG_DRAG.sourceIdx) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      var mode = _dropMode(card, e);
+      ctx.SEG_DRAG.dropMode = mode;
+      _clearAll();
+      card.classList.add(mode === 'merge' ? 'is-drop-target' : (mode === 'before' ? 'is-drop-before' : 'is-drop-after'));
+    });
+    wrap.addEventListener('dragleave', function (e) {
+      var card = e.target.closest && e.target.closest('.biaif-segment');
+      if (!card) return;
+      if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+      card.classList.remove('is-drop-target', 'is-drop-before', 'is-drop-after');
+    });
+    wrap.addEventListener('drop', function (e) {
+      var card = e.target.closest && e.target.closest('.biaif-segment');
+      if (!card || ctx.SEG_DRAG.sourceIdx < 0) return;
+      var idx = Number(card.dataset.i);
+      if (idx === ctx.SEG_DRAG.sourceIdx) return;
+      e.preventDefault(); _clearAll();
+      var src  = ctx.SEG_DRAG.sourceIdx; ctx.SEG_DRAG.sourceIdx = -1;
+      var mode = ctx.SEG_DRAG.dropMode || 'merge';
+      ctx.SEG_DRAG.dropMode = null;
+      if (!window.BIAIFSession) return;
+      if (mode === 'merge') window.BIAIFSession.mergeDemandes(src, idx);
+      else                  window.BIAIFSession.reorderDemande(src, mode === 'before' ? idx : idx + 1);
+    });
+
+    // Alt+↑/↓ on the focused drag handle merges with neighbours.
+    wrap.addEventListener('keydown', function (e) {
+      if (!e.altKey) return;
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      var handle = e.target.closest && e.target.closest('.seg-drag-handle');
+      if (!handle) return;
+      var idx = _idxFor(handle);
+      var dst = e.key === 'ArrowUp' ? idx - 1 : idx + 1;
+      if (idx < 0 || dst < 0 || dst >= ctx.STATE.demandes.length) return;
+      e.preventDefault();
+      if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(idx, dst);
+    });
   }
 
   // Auto-bind on the first render() so the wrapper exists in the DOM.

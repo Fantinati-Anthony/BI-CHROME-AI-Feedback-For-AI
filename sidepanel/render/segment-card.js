@@ -208,67 +208,14 @@
     var textEl = card.querySelector('.demande-text');
     Chips.renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true, demKey: origIndex });
 
-    // Click handlers (edit, delete, action buttons) live on the segments
-    // wrapper as a single delegated listener — see ensureDelegatedHandlers().
-
-    // ── Drag-drop merge (handle) + Alt+↑/↓ keyboard merge ────────────
+    // Click + drag handlers live on the .biaif-segments wrapper as a
+    // single delegated set — see segments.js → ensureDelegatedHandlers().
+    // We just mark the drag handle as draggable + tabbable here.
     var dragHandle = card.querySelector('.seg-drag-handle');
-    dragHandle.draggable = true;
-    dragHandle.setAttribute('tabindex', '0');
-    dragHandle.addEventListener('keydown', function (e) {
-      if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-      var dst = e.key === 'ArrowUp' ? origIndex - 1 : origIndex + 1;
-      if (dst < 0 || dst >= STATE.demandes.length) return;
-      e.preventDefault();
-      if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(origIndex, dst);
-    });
-    dragHandle.addEventListener('dragstart', function (e) {
-      e.stopPropagation();
-      e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', '__biaif_segment__'); } catch (_) {}
-      ctx.SEG_DRAG.sourceIdx = origIndex;
-      card.classList.add('is-dragging-seg');
-    });
-    dragHandle.addEventListener('dragend', function () {
-      ctx.SEG_DRAG.sourceIdx = -1;
-      document.querySelectorAll('.biaif-segment.is-dragging-seg, .biaif-segment.is-drop-target')
-        .forEach(function (c) { c.classList.remove('is-dragging-seg', 'is-drop-target'); });
-    });
-    function _dropMode(e) {
-      var rect = card.getBoundingClientRect();
-      var y    = e.clientY - rect.top;
-      if (y < rect.height * 0.25) return 'before';
-      if (y > rect.height * 0.75) return 'after';
-      return 'merge';
+    if (dragHandle) {
+      dragHandle.draggable = true;
+      dragHandle.setAttribute('tabindex', '0');
     }
-    function _clearDropClasses() {
-      card.classList.remove('is-drop-target', 'is-drop-before', 'is-drop-after');
-    }
-    card.addEventListener('dragover', function (e) {
-      if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
-      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-      var mode = _dropMode(e);
-      ctx.SEG_DRAG.dropMode = mode;
-      _clearDropClasses();
-      if (mode === 'merge')       card.classList.add('is-drop-target');
-      else if (mode === 'before') card.classList.add('is-drop-before');
-      else                        card.classList.add('is-drop-after');
-    });
-    card.addEventListener('dragleave', function (e) {
-      if (e.relatedTarget && card.contains(e.relatedTarget)) return;
-      _clearDropClasses();
-    });
-    card.addEventListener('drop', function (e) {
-      if (ctx.SEG_DRAG.sourceIdx < 0 || ctx.SEG_DRAG.sourceIdx === origIndex) return;
-      e.preventDefault(); _clearDropClasses();
-      var src  = ctx.SEG_DRAG.sourceIdx; ctx.SEG_DRAG.sourceIdx = -1;
-      var mode = ctx.SEG_DRAG.dropMode || 'merge';
-      ctx.SEG_DRAG.dropMode = null;
-      if (!window.BIAIFSession) return;
-      if (mode === 'merge') window.BIAIFSession.mergeDemandes(src, origIndex);
-      else                  window.BIAIFSession.reorderDemande(src, mode === 'before' ? origIndex : origIndex + 1);
-    });
-
     return card;
   }
 
