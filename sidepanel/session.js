@@ -426,11 +426,13 @@
   // -----------------------------------------------------------------------
   // Private helpers
   // -----------------------------------------------------------------------
-  // Silently disarm: go back to history view, stop mic/picker if not needed
+  // Silently disarm: leave new/edit mode → stop mic + picker (they only run
+  // while a session is armed). Switch back to the history view.
   function _disarm() {
     STATE.armed = false;
     if (REFS && REFS.masterBtn) REFS.masterBtn.classList.remove('armed');
-    if (STATE.micActive && !STATE.armed) window.BIAIFSpeech.stopMic && window.BIAIFSpeech.stopMic();
+    if (STATE.micActive    && window.BIAIFSpeech.stopMic) window.BIAIFSpeech.stopMic();
+    if (STATE.pickerActive) _sendBg({ type: _MSG('PICKER_DISABLE') });
     window.BIAIFRenderer.updateArmedUi();
     window.BIAIFRenderer.updateMasterBtnLabel();
   }

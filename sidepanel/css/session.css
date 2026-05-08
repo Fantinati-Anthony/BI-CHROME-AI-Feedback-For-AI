@@ -1,10 +1,10 @@
 /* ============== Session bar (Démarrer / Suivant / Stop) ============== */
 .session-bar { display: flex; gap: 8px; }
 .session-main {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 12px 18px; border: none; border-radius: var(--radius-pill);
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 14px; border: none; border-radius: var(--radius-pill);
   color: #fff;
-  font-family: inherit; font-size: 14px; font-weight: 700; letter-spacing: 0.3px;
+  font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
   cursor: pointer;
   position: relative; overflow: hidden;
   /* Gradient AI : bleu électrique → cyan → violet en mouvement permanent */
@@ -74,10 +74,10 @@
    Reprend le gradient AI animé du bouton master (mêmes effets visuels). */
 .session-new-conv {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 12px 18px;
+  padding: 8px 14px;
   border: none; border-radius: var(--radius-pill);
   color: #fff;
-  font-family: inherit; font-size: 14px; font-weight: 700; letter-spacing: 0.3px;
+  font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
   cursor: pointer; white-space: nowrap; flex-shrink: 0;
   position: relative; overflow: hidden;
   background: linear-gradient(120deg, #4f46e5 0%, #06b6d4 35%, #8b5cf6 70%, #4f46e5 100%);
@@ -137,7 +137,7 @@
 
 /* ─── Topbar row : [session-bar | topbar-tools] on a single line ── */
 .topbar-row {
-  --topbar-h: 44px;
+  --topbar-h: 36px;
   display: flex; align-items: center; gap: 8px;
   min-width: 0;
 }
