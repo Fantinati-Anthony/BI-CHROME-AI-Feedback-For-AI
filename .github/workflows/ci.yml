@@ -63,6 +63,9 @@ jobs:
         # Files without // @ts-check are skipped (jsconfig has
         # checkJs: false). Adding @ts-check to a file opts it into gating.
 
+      - name: i18n coverage audit (every key in 7 langs + no orphan refs)
+        run: npm run i18n:check
+
       - name: Run tests with coverage gate
         run: npm run test:coverage
 

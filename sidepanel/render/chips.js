@@ -55,6 +55,13 @@
         var img = document.createElement('img');
         img.className = 'ref-details-img'; img.src = ref.dataUrl; img.alt = 'capture #' + num;
         details.appendChild(img);
+      } else if (ref.blobId) {
+        // Pending IndexedDB rehydrate — show a shimmer placeholder
+        // so the user doesn't see an empty card during the 50–200ms gap.
+        var sk = document.createElement('span');
+        sk.className = 'ref-details-img is-skeleton';
+        sk.setAttribute('aria-label', 'capture #' + num + ' (chargement…)');
+        details.appendChild(sk);
       }
       var meta = document.createElement('span');
       meta.className = 'ref-details-meta';
