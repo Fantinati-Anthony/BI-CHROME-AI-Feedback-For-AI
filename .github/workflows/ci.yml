@@ -8,7 +8,7 @@ on:
 
 jobs:
   validate:
-    name: Lint & syntax check
+    name: Lint, type-check, test, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,26 +17,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
 
       - name: Validate JSON files
         run: |
           set -e
-          for f in manifest.json .eslintrc.json .prettierrc vscode-extension/package.json; do
-            echo "→ $f"
-            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))"
+          for f in manifest.json .eslintrc.json .prettierrc package.json jsconfig.json; do
+            [ -f "$f" ] && echo "→ $f" && node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))"
           done
 
       - name: Syntax-check every .js
         run: |
           set -e
-          # node --check on every script except SW (which uses importScripts).
-          # For SW we strip the importScripts() lines first.
           fail=0
           while IFS= read -r f; do
-            if [ "$f" = "background.js" ]; then
+            if [ "$f" = "./background.js" ]; then
               tmp=$(mktemp --suffix=.js)
-              # Strip importScripts() (Node doesn't recognise them) but keep
-              # line numbers identical so error messages stay accurate.
               sed -E "s/^[[:space:]]*importScripts\([^)]*\);/\/\/ stripped/" "$f" > "$tmp"
               node --check "$tmp" || fail=1
               rm -f "$tmp"
@@ -46,18 +45,22 @@ jobs:
           done < <(find . -type f -name '*.js' \
                      -not -path './node_modules/*' \
                      -not -path './vscode-extension/node_modules/*' \
+                     -not -path './coverage/*' \
+                     -not -path './dist/*' \
                      -not -path './.git/*')
           exit $fail
 
-      - name: Install ESLint + Prettier
-        run: npm i --no-save eslint@8 prettier@3
-
       - name: ESLint
-        run: npx eslint . --max-warnings=200 || true
-        # `|| true` for now — ESLint config is freshly added; remove once
-        # the codebase is clean. CI still fails on syntax errors above.
+        run: npx eslint . --max-warnings=200
 
       - name: Prettier check
-        run: npx prettier --check . || true
-        # Same caveat as ESLint — remove the `|| true` once the codebase is
-        # uniformly formatted.
+        run: npx prettier --check '**/*.{js,mjs,json,md,html,css}' --ignore-path .prettierignore || echo "::warning::Prettier found formatting issues"
+
+      - name: TypeScript type-check
+        run: npx -y -p typescript@5.4.5 tsc -p jsconfig.json --noEmit || echo "::warning::TS check soft-failed (JS-only project, opt-in via // @ts-check)"
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build distribution bundles
+        run: npm run build

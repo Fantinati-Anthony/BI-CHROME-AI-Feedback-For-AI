@@ -57,12 +57,29 @@
     return null;
   }
 
+  // Toast wrapper — safe even if BIAIFToast isn't loaded yet (content scripts).
+  function toast(msg, kind, duration) {
+    if (root.BIAIFToast && root.BIAIFToast.show) root.BIAIFToast.show(msg, kind, duration);
+  }
+
+  // Best-effort runtime.sendMessage wrapper — swallows the lastError noise
+  // that fires on closed channels / disabled tabs.
+  function sendBg(payload) {
+    try {
+      return root.chrome.runtime.sendMessage(payload).catch(function () { return null; });
+    } catch (_) {
+      return Promise.resolve(null);
+    }
+  }
+
   root.BIAIF.utils = {
     extractGithubRepo: extractGithubRepo,
     t:                 t,
     decodeErr:         decodeErr,
     msgKey:            msgKey,
     findAiAdapter:     findAiAdapter,
+    toast:             toast,
+    sendBg:            sendBg,
   };
 
 })(typeof window !== 'undefined' ? window : self);

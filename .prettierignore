@@ -1,4 +1,9 @@
 vscode-extension/node_modules/
+node_modules/
+dist/
+coverage/
 **/*.min.js
 CHANGELOG.md
 LICENSE
+PRIVACY.md
+shared/i18n.js
