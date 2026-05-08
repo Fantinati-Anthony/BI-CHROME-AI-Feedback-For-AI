@@ -356,6 +356,7 @@
     return ''
       + '<h2 class="wiz-title">⌨️ ' + _t('wizard.shortcuts.title', 'Raccourcis clavier') + '</h2>'
       + '<ul class="wiz-shortcuts">'
+      + '<li><kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd> — ' + _t('wizard.shortcuts.palette', 'Palette de commandes') + '</li>'
       + '<li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> — ' + _t('wizard.shortcuts.toggle', 'Ouvrir/fermer le panneau') + '</li>'
       + '<li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> — ' + _t('wizard.shortcuts.picker', 'Sélecteur d\'élément') + '</li>'
       + '<li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> — ' + _t('wizard.shortcuts.mic', 'Micro on/off') + '</li>'

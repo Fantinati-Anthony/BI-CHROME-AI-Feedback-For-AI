@@ -167,6 +167,7 @@
     window.BIAIFSpeech.init(STATE, REFS);
     window.BIAIFSession.init(STATE, REFS);
     if (window.BIAIFTemplates) window.BIAIFTemplates.init(STATE);
+    if (window.BIAIFPalette) window.BIAIFPalette.init();
     window.BIAIFExport.init(STATE, REFS);
 
     // Wire UI events, runtime messages, keyboard, and tab lifecycle.
