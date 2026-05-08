@@ -29,15 +29,17 @@
     {
       "matches": ["<all_urls>"],
       "run_at": "document_start",
-      "js": ["shared/constants.js", "shared/utils.js", "shared/logger.js", "content/error-bridge.js"]
+      "js": ["shared/constants.js", "shared/config.js", "shared/utils.js", "shared/logger.js", "shared/dom.js", "content/error-bridge.js"]
     },
     {
       "matches": ["<all_urls>"],
       "run_at": "document_idle",
       "js": [
         "shared/constants.js",
+        "shared/config.js",
         "shared/utils.js",
         "shared/logger.js",
+        "shared/dom.js",
         "shared/ai-adapters.js",
         "content/css-selector.js",
         "content/element-selector.js",
@@ -52,8 +54,10 @@
       "run_at": "document_idle",
       "js": [
         "shared/constants.js",
+        "shared/config.js",
         "shared/utils.js",
         "shared/logger.js",
+        "shared/dom.js",
         "shared/ai-adapters.js",
         "content/textarea-injector.js"
       ]
@@ -74,8 +78,10 @@
       "run_at": "document_idle",
       "js": [
         "shared/constants.js",
+        "shared/config.js",
         "shared/utils.js",
         "shared/logger.js",
+        "shared/dom.js",
         "shared/ai-adapters.js",
         "content/ai-watcher.js"
       ]

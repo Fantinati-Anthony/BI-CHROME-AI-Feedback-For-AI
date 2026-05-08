@@ -3,6 +3,7 @@
  */
 
 importScripts('shared/constants.js');
+importScripts('shared/config.js');
 importScripts('shared/utils.js');
 importScripts('shared/logger.js');
 importScripts('shared/ai-adapters.js');

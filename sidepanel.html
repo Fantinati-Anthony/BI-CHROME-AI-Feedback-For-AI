@@ -486,17 +486,35 @@
   </div>
 
   <!-- Scripts — load order matters: constants → i18n → modules → intent-parser → orchestrator -->
+  <!-- Shared (must load first — every module reads BIAIF.* globals) -->
   <script src="shared/constants.js"></script>
+  <script src="shared/config.js"></script>
   <script src="shared/i18n.js"></script>
   <script src="shared/utils.js"></script>
   <script src="shared/logger.js"></script>
+  <script src="shared/dom.js"></script>
+
+  <!-- Sidepanel modules -->
   <script src="sidepanel/wizard.js"></script>
   <script src="sidepanel/toast.js"></script>
   <script src="sidepanel/undo.js"></script>
   <script src="sidepanel/storage.js"></script>
   <script src="sidepanel/export.js"></script>
   <script src="sidepanel/speech.js"></script>
+
+  <!-- Renderer (split into focused modules under sidepanel/render/) -->
+  <script src="sidepanel/render/ctx.js"></script>
+  <script src="sidepanel/render/icons.js"></script>
+  <script src="sidepanel/render/chips.js"></script>
+  <script src="sidepanel/render/editor.js"></script>
+  <script src="sidepanel/render/ui-state.js"></script>
+  <script src="sidepanel/render/segment-card.js"></script>
+  <script src="sidepanel/render/archive-zone.js"></script>
+  <script src="sidepanel/render/conversation-group.js"></script>
+  <script src="sidepanel/render/filter-chips.js"></script>
+  <script src="sidepanel/render/segments.js"></script>
   <script src="sidepanel/renderer.js"></script>
+
   <script src="sidepanel/session.js"></script>
   <script src="shared/intent-parser.js"></script>
   <script src="console.js"></script>
