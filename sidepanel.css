@@ -773,6 +773,100 @@ html, body {
   display: flex;
 }
 
+/* ── Conversation group card ─────────────────────────────────────────────── */
+.biaif-conv-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 8px 8px 8px;
+  background: var(--bg-card);
+}
+.biaif-conv-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 4px;
+  border-bottom: 1px solid var(--border-card);
+}
+.biaif-conv-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.biaif-conv-url {
+  flex: 1;
+  color: var(--accent-blue);
+  font-size: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.biaif-conv-url:hover { text-decoration: underline; }
+.biaif-conv-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Segments inside the group get a slight indent and no top border-radius */
+.biaif-conv-group > .biaif-segment {
+  margin-left: 2px;
+  border-color: var(--border-card);
+}
+
+/* ── Conversation done sub-segments (archived within a group) ────────────── */
+.biaif-conv-done-wrap {
+  margin-top: 2px;
+}
+.biaif-conv-done-toggle {
+  width: 100%;
+  background: none;
+  border: 1px dashed var(--border-card);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+}
+.biaif-conv-done-toggle:hover {
+  border-color: var(--accent-blue-50);
+  color: var(--text-main);
+}
+.biaif-conv-done-chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.biaif-conv-done-wrap.is-expanded .biaif-conv-done-chevron {
+  transform: rotate(180deg);
+}
+.biaif-conv-done-label { flex: 1; }
+.biaif-conv-done-ts {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.biaif-conv-done-body {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding-left: 4px;
+}
+.biaif-conv-done-wrap.is-expanded .biaif-conv-done-body {
+  display: flex;
+}
+
 /* Bouton "Éditer" / "Terminer" du segment historique */
 .seg-edit-btn {
   margin-left: auto;
