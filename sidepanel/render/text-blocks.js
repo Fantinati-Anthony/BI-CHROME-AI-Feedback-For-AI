@@ -20,8 +20,11 @@
   'use strict';
   window.BIAIFRender = window.BIAIFRender || {};
 
-  var SLOT_KEY        = '__biaif_tchip_slot__';
+  var SLOT_KEY         = '__biaif_tchip_slot__';
   var _globalDragBound = false;
+  var _globalClickBound = false;
+  var _activeChip      = null;   // chip currently in edit mode
+  var _activeOnSync    = null;
 
   // ── Text-chip factory ──────────────────────────────────────────────────
   function _makeChip(text) {
@@ -48,8 +51,26 @@
     });
   }
 
+  // ── Global click-outside handler (installed once) ─────────────────────
+  // Uses mousedown (fires before focus change) so clicking on the editor
+  // background reliably exits the active chip even inside a contenteditable.
+  function _ensureGlobalClickOut() {
+    if (_globalClickBound) return;
+    _globalClickBound = true;
+    document.addEventListener('mousedown', function (e) {
+      if (!_activeChip) return;
+      if (_activeChip.contains(e.target)) return; // click inside chip — ok
+      _exitEdit(_activeChip, _activeOnSync);
+    }, true); // capture phase so it fires before the editor's own click handler
+  }
+
   // ── Edit mode helpers ──────────────────────────────────────────────────
-  function _enterEdit(chip) {
+  function _enterEdit(chip, onSync) {
+    _ensureGlobalClickOut();
+    // Exit any other chip that may be open
+    if (_activeChip && _activeChip !== chip) _exitEdit(_activeChip, _activeOnSync);
+    _activeChip   = chip;
+    _activeOnSync = onSync;
     chip.contentEditable = 'true';
     chip.draggable       = false;
     chip.classList.add('text-chip--editing');
@@ -76,6 +97,7 @@
   }
 
   function _exitEdit(chip, onSync) {
+    if (_activeChip === chip) { _activeChip = null; _activeOnSync = null; }
     var text = _getEditedText(chip);
     chip.contentEditable = 'false';
     chip.draggable       = true;
@@ -172,21 +194,10 @@
       if (!chip || !textEl.contains(chip)) return;
       if (chip.contentEditable === 'true') return;
       e.stopPropagation();
-      _enterEdit(chip);
+      _enterEdit(chip, slot.onSync);
     });
 
-    // Blur → exit edit mode
-    textEl.addEventListener('focusout', function (e) {
-      var chip = e.target;
-      if (!chip || !chip.classList || !chip.classList.contains('text-chip')) return;
-      if (chip.contentEditable !== 'true') return;
-      // Defer slightly so click-on-other-chip fires before exit
-      setTimeout(function () {
-        if (chip.contentEditable === 'true') _exitEdit(chip, slot.onSync);
-      }, 80);
-    });
-
-    // Escape → cancel edit, restore original text
+    // Escape → exit edit mode
     textEl.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
       var chip = e.target.closest && e.target.closest('.text-chip');
