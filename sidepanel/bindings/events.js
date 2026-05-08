@@ -324,13 +324,12 @@
 
   function _bindButtonVisibility() {
     var STATE = ctx.STATE;
-    var keys = ['inject', 'vscode', 'copilot', 'copy', 'download',
-      'claude_online', 'chatgpt', 'gemini', 'perplexity', 'grok', 'lechat', 'deepseek'];
-    keys.forEach(function (key) {
-      var cb = document.getElementById('vis-' + key);
+    var ALL = (window.BIAIF && window.BIAIF.ALL_BUTTONS) || [];
+    ALL.forEach(function (def) {
+      var cb = document.getElementById('vis-' + def.key);
       if (!cb) return;
       cb.addEventListener('change', function () {
-        STATE.visibleButtons[key] = cb.checked;
+        STATE.visibleButtons[def.key] = cb.checked;
         window.BIAIFRenderer.renderSegments();
         window.BIAIFStorage.persist(STATE);
       });

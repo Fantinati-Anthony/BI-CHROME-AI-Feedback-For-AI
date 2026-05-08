@@ -19,35 +19,24 @@
   var esc   = DOM.esc || function (s) { return String(s == null ? '' : s); };
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
-  var VB_MAP = {
-    inject: 'seg-inject', vscode: 'seg-vscode', copilot: 'seg-copilot',
-    copy: 'seg-copy', download: 'seg-download',
-    claude_online: 'seg-claude-online', chatgpt: 'seg-chatgpt', gemini: 'seg-gemini',
-    perplexity: 'seg-perplexity', grok: 'seg-grok', lechat: 'seg-lechat', deepseek: 'seg-deepseek',
-  };
-  var DEFAULT_FALSE_BUTTONS = ['claude_online','chatgpt','gemini','perplexity','grok','lechat','deepseek'];
+  // Single source of truth: shared/ai-adapters.js. Build local lookup maps lazily.
+  function _allButtons() { return (window.BIAIF && window.BIAIF.ALL_BUTTONS) || []; }
+  function _aiTargets()  { return (window.BIAIF && window.BIAIF.AI_TARGETS)  || []; }
 
-  var ONLINE_FN = {
-    'seg-claude-online': 'openInClaudeOnline',
-    'seg-chatgpt':       'openInChatgpt',
-    'seg-gemini':        'openInGemini',
-    'seg-perplexity':    'openInPerplexity',
-    'seg-grok':          'openInGrok',
-    'seg-lechat':        'openInLechat',
-    'seg-deepseek':      'openInDeepseek',
-  };
-
-  function _onlineButton(origIndex, slug, i18nKey, fallback) {
+  function _onlineButton(origIndex, target) {
     var ICONS = window.BIAIFRender.icons;
-    var label = esc(_t(i18nKey, fallback));
-    var aria  = esc(_t('aria.open_in_new_tab', 'Ouvrir ' + fallback + ' dans un nouvel onglet et copier le prompt', { name: fallback }));
+    var label = esc(_t(target.i18nKey, target.label));
+    var aria  = esc(_t('aria.open_in_new_tab', 'Ouvrir ' + target.label + ' dans un nouvel onglet et copier le prompt', { name: target.label }));
     return (
-      '<button class="seg-action-btn seg-action-btn--online seg-action-btn--' + slug +
-        '" data-act="seg-' + slug + '" data-i="' + origIndex + '" aria-label="' + aria +
+      '<button class="seg-action-btn seg-action-btn--online seg-action-btn--' + target.slug +
+        '" data-act="seg-' + target.slug + '" data-i="' + origIndex + '" aria-label="' + aria +
         '" title="' + label + '">' +
         ICONS.chat(11) + label +
       '</button>'
     );
+  }
+  function _onlineButtonsHtml(origIndex) {
+    return _aiTargets().map(function (t) { return _onlineButton(origIndex, t); }).join('');
   }
 
   function _buildPageTag(url) {
@@ -132,11 +121,11 @@
 
   function _applyButtonVisibility(card, STATE) {
     var VB = STATE.visibleButtons || {};
-    Object.keys(VB_MAP).forEach(function (key) {
-      var v = VB[key];
-      var visible = (v === undefined) ? (DEFAULT_FALSE_BUTTONS.indexOf(key) === -1) : !!v;
+    _allButtons().forEach(function (def) {
+      var v = VB[def.key];
+      var visible = (v === undefined) ? def.defaultVisible : !!v;
       if (!visible) {
-        var b = card.querySelector('[data-act="' + VB_MAP[key] + '"]');
+        var b = card.querySelector('[data-act="seg-' + def.slug + '"]');
         if (b) b.hidden = true;
       }
     });
@@ -202,13 +191,7 @@
           '" title="' + esc(_t('btn.copilot','VS-Code GH for Copilot')) + '">' +
           ICONS.octocat(11) + esc(_t('btn.copilot','VS-Code GH for Copilot')) +
         '</button>' +
-        _onlineButton(origIndex, 'claude-online', 'btn.claude_online', 'Claude.ai') +
-        _onlineButton(origIndex, 'chatgpt',       'btn.chatgpt',       'ChatGPT') +
-        _onlineButton(origIndex, 'gemini',        'btn.gemini',        'Gemini') +
-        _onlineButton(origIndex, 'perplexity',    'btn.perplexity',    'Perplexity') +
-        _onlineButton(origIndex, 'grok',          'btn.grok',          'Grok') +
-        _onlineButton(origIndex, 'lechat',        'btn.lechat',        'Le Chat') +
-        _onlineButton(origIndex, 'deepseek',      'btn.deepseek',      'DeepSeek') +
+        _onlineButtonsHtml(origIndex) +
         '<button class="seg-action-btn" data-act="seg-copy" data-i="' + origIndex +
           '" aria-label="Copier le prompt de cette demande" title="Copier le prompt">' +
           ICONS.copy(11) + 'Copier' +
@@ -225,33 +208,15 @@
     var textEl = card.querySelector('.demande-text');
     Chips.renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true, demKey: origIndex });
 
-    // ── Action buttons ─────────────────────────────────────────────────
-    var Export = window.BIAIFExport;
-    var ACTIONS = {
-      'seg-inject':   Export && Export.injectDemande,
-      'seg-vscode':   Export && Export.injectToVscode,
-      'seg-copilot':  Export && Export.injectToCopilot,
-      'seg-copy':     Export && Export.copyPromptForDemande,
-      'seg-download': Export && Export.downloadDemande,
-    };
-    Object.keys(ACTIONS).forEach(function (act) {
-      var fn  = ACTIONS[act];
-      if (!fn) return;
-      var btn = card.querySelector('[data-act="' + act + '"]');
+    // ── Action buttons (wired from the shared AI/local-action registry)
+    _allButtons().forEach(function (def) {
+      if (!def.exportFn) return;
+      var btn = card.querySelector('[data-act="seg-' + def.slug + '"]');
       if (!btn) return;
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        fn(Number(e.currentTarget.dataset.i));
-      });
-    });
-    Object.keys(ONLINE_FN).forEach(function (act) {
-      var btn = card.querySelector('[data-act="' + act + '"]');
-      if (!btn) return;
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (window.BIAIFExport && window.BIAIFExport[ONLINE_FN[act]]) {
-          window.BIAIFExport[ONLINE_FN[act]](Number(e.currentTarget.dataset.i));
-        }
+        var fn = window.BIAIFExport && window.BIAIFExport[def.exportFn];
+        if (typeof fn === 'function') fn(Number(e.currentTarget.dataset.i));
       });
     });
 

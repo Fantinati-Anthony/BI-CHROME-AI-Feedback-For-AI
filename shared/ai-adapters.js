@@ -5,6 +5,33 @@
 (function (root) {
   'use strict';
   root.BIAIF = root.BIAIF || {};
+  // Online "open in" targets — single source of truth for the segment-card
+  // online buttons + visibility toggles + i18n labels.
+  // Each entry: { key, slug, label, i18nKey, webUrl, defaultVisible, exportFn }
+  // Listed in the order they should appear on the segment card.
+  root.BIAIF.AI_TARGETS = [
+    { key: 'claude_online', slug: 'claude-online', label: 'Claude.ai',  i18nKey: 'btn.claude_online', webUrl: 'https://claude.ai/new',          defaultVisible: false, exportFn: 'openInClaudeOnline' },
+    { key: 'chatgpt',       slug: 'chatgpt',       label: 'ChatGPT',    i18nKey: 'btn.chatgpt',       webUrl: 'https://chatgpt.com/',           defaultVisible: false, exportFn: 'openInChatgpt'      },
+    { key: 'gemini',        slug: 'gemini',        label: 'Gemini',     i18nKey: 'btn.gemini',        webUrl: 'https://gemini.google.com/app',  defaultVisible: false, exportFn: 'openInGemini'       },
+    { key: 'perplexity',    slug: 'perplexity',    label: 'Perplexity', i18nKey: 'btn.perplexity',    webUrl: 'https://www.perplexity.ai/',     defaultVisible: false, exportFn: 'openInPerplexity'   },
+    { key: 'grok',          slug: 'grok',          label: 'Grok',       i18nKey: 'btn.grok',          webUrl: 'https://grok.com/',              defaultVisible: false, exportFn: 'openInGrok'         },
+    { key: 'lechat',        slug: 'lechat',        label: 'Le Chat',    i18nKey: 'btn.lechat',        webUrl: 'https://chat.mistral.ai/chat',   defaultVisible: false, exportFn: 'openInLechat'       },
+    { key: 'deepseek',      slug: 'deepseek',      label: 'DeepSeek',   i18nKey: 'btn.deepseek',      webUrl: 'https://chat.deepseek.com/',     defaultVisible: false, exportFn: 'openInDeepseek'     },
+  ];
+
+  // Local-action buttons (inject / vscode / copilot / copy / download)
+  // Same shape as AI_TARGETS but without webUrl/exportFn (they have ad-hoc handlers).
+  root.BIAIF.LOCAL_ACTIONS = [
+    { key: 'inject',   slug: 'inject',   label: 'Injecter',                i18nKey: 'btn.inject',   defaultVisible: true,  exportFn: 'injectDemande'        },
+    { key: 'vscode',   slug: 'vscode',   label: 'VS-Code Terminal',        i18nKey: 'btn.vscode',   defaultVisible: true,  exportFn: 'injectToVscode'       },
+    { key: 'copilot',  slug: 'copilot',  label: 'VS-Code GH for Copilot',  i18nKey: 'btn.copilot',  defaultVisible: true,  exportFn: 'injectToCopilot'      },
+    { key: 'copy',     slug: 'copy',     label: 'Copier',                  i18nKey: 'btn.copy',     defaultVisible: true,  exportFn: 'copyPromptForDemande' },
+    { key: 'download', slug: 'download', label: '.MD',                     i18nKey: 'btn.download', defaultVisible: true,  exportFn: 'downloadDemande'      },
+  ];
+
+  // Convenience: full ordered list (local actions first, then online targets).
+  root.BIAIF.ALL_BUTTONS = root.BIAIF.LOCAL_ACTIONS.concat(root.BIAIF.AI_TARGETS);
+
   root.BIAIF.AI_ADAPTERS = [
     {
       host: 'claude.ai',
