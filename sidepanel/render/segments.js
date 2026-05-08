@@ -38,6 +38,7 @@
     var rf = (STATE.repoFilter         || '').trim();
     var df = (STATE.domainFilter       || '').trim();
     var pf = (STATE.pageFilter         || '').trim();
+    var tf = (STATE.tagFilter          || '').trim().toLowerCase();
     var hostname = DOM.hostname || function (u) { try { return new URL(u).hostname; } catch (_) { return ''; } };
 
     return STATE.demandes
@@ -56,6 +57,10 @@
           if (!hasDom) return false;
         }
         if (pf && !refs.some(function (r) { return r.tabUrl === pf; })) return false;
+        if (tf) {
+          var tags = (dem.tags || []).map(function (t) { return String(t || '').toLowerCase(); });
+          if (tags.indexOf(tf) === -1) return false;
+        }
         return _matchesText(dem, q);
       });
   }
@@ -187,12 +192,54 @@
         }
         return;
       }
+      if (act === 'seg-tag-add') {
+        e.stopPropagation();
+        var stT = ctx.STATE;
+        var demT = stT.demandes[idx];
+        if (!demT) return;
+        var existing = (demT.tags || []).join(', ');
+        var raw = window.prompt(_t('tags.prompt', 'Tags (séparés par des virgules) :'), existing);
+        if (raw == null) return;
+        // Normalise: trim, lowercase letters/digits/-/_, max 24 chars, max 5 tags.
+        var clean = raw.split(',')
+          .map(function (s) { return String(s || '').trim().slice(0, 24); })
+          .filter(Boolean)
+          .map(function (s) { return s.replace(/\s+/g, '-'); })
+          .slice(0, 5);
+        // Dedup preserving order
+        var seen = {};
+        demT.tags = clean.filter(function (s) { if (seen[s]) return false; seen[s] = 1; return true; });
+        render();
+        if (window.BIAIFStorage) window.BIAIFStorage.persist(stT);
+        return;
+      }
+
       var exportFnName = FN_BY_SLUG[act];
       if (exportFnName) {
         e.stopPropagation();
         var fn = window.BIAIFExport && window.BIAIFExport[exportFnName];
         if (typeof fn === 'function') fn(idx);
       }
+    });
+
+    // ── Tag delete (per-tag ✕ inside chip) ─────────────────────────
+    wrap.addEventListener('click', function (e) {
+      var del = e.target.closest && e.target.closest('[data-tag-del]');
+      if (!del) return;
+      e.stopPropagation();
+      var card = del.closest('.biaif-segment');
+      if (!card) return;
+      var idx = Number(card.dataset.i);
+      if (Number.isNaN(idx)) return;
+      var tag = del.dataset.tagDel;
+      var st = ctx.STATE;
+      var d  = st.demandes[idx];
+      if (!d || !Array.isArray(d.tags)) return;
+      d.tags = d.tags.filter(function (t) { return t !== tag; });
+      // If we just removed the active filter target, clear the filter too.
+      if (st.tagFilter === tag) st.tagFilter = '';
+      render();
+      if (window.BIAIFStorage) window.BIAIFStorage.persist(st);
     });
 
     // ── Drag-drop merge / reorder (delegated, was per-card before) ───

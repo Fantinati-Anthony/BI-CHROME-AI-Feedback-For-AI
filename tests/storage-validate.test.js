@@ -95,6 +95,26 @@ describe('importBundle — demande validation', () => {
     expect(STATE.sortOrder).toBe('asc');
   });
 
+  it('accepts demandes with tags array', () => {
+    const STATE = makeState();
+    const bundle = ok({
+      demandes: [{ text: 'x', refs: [], url: null, tags: ['feat', 'bug', 'urgent'] }],
+    });
+    const r = window.BIAIFStorage.importBundle(STATE, bundle);
+    expect(r.ok).toBe(true);
+    expect(STATE.demandes[0].tags).toEqual(['feat', 'bug', 'urgent']);
+  });
+
+  it('rejects oversized tags array (> 10) or oversize tag string', () => {
+    const STATE = makeState();
+    const tooMany = ok({ demandes: [{ text: 'x', refs: [], url: null,
+      tags: ['a','b','c','d','e','f','g','h','i','j','k'] }] });
+    expect(window.BIAIFStorage.importBundle(STATE, tooMany).ok).toBe(false);
+    const tooLong = ok({ demandes: [{ text: 'x', refs: [], url: null,
+      tags: ['x'.repeat(33)] }] });
+    expect(window.BIAIFStorage.importBundle(STATE, tooLong).ok).toBe(false);
+  });
+
   it('drops unknown settings keys (whitelist)', () => {
     const STATE = makeState();
     const bundle = ok({ demandes: [], unknownEvil: 'pwned' });

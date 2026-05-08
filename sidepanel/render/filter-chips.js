@@ -18,6 +18,7 @@
     { key: 'repoFilter',         icon: '⎇', label: 'Repo' },
     { key: 'domainFilter',       icon: '⊙', label: 'Domaine' },
     { key: 'pageFilter',         icon: '⤢', label: 'Page' },
+    { key: 'tagFilter',          icon: '#', label: 'Tag' },
   ];
 
   function build(parentNode) {
