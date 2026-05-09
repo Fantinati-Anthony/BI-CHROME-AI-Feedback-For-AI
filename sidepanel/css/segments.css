@@ -1,6 +1,10 @@
 /* ============== Segments — focus de la sidebar ============== */
 .biaif-segments-wrap {
   display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0;
+  /* History scrolls internally so the topbar stays in view at all times,
+     regardless of the .topbar-bottom setting. */
+  overflow-y: auto;
+  overflow-x: hidden;
   /* Taille de texte des segments (modifiable via les boutons A- / A+) */
   --seg-text-size: 13px;
 }
