@@ -21,15 +21,23 @@
   display: flex; flex-direction: column;
   gap: 10px;
   transform: translateX(100%);
+  visibility: hidden;
   pointer-events: none;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Visibility flips AFTER the slide-out completes (0.28s delay) so the
+     contents stay rendered during the animation. On open, visibility
+     flips immediately (no delay). */
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0.28s;
   overflow-y: auto;
   scrollbar-width: thin;
 }
 .biaif-root.is-armed .biaif-compose-drawer,
 .biaif-root.is-editing-segment .biaif-compose-drawer {
   transform: translateX(0);
+  visibility: visible;
   pointer-events: all;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0s;
 }
 /* Inverted layout: topbar at bottom → drawer slides in covering the top */
 .biaif-root.topbar-bottom .biaif-compose-drawer {
