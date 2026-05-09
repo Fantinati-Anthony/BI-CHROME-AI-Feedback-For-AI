@@ -132,6 +132,20 @@
     _reattachQuickTools(qt);
     R.uiState.updateMasterBtnLabel();
     R.uiState.updateArmedUi();
+    // Overflow detection runs after browser has laid out the new cards
+    requestAnimationFrame(_checkTextOverflow);
+  }
+
+  function _checkTextOverflow() {
+    document.querySelectorAll('.demande-text:not(.demande-text-empty)').forEach(function (el) {
+      var overflows = el.scrollHeight > el.clientHeight + 2;
+      el.classList.toggle('has-overflow', overflows && !el.classList.contains('is-expanded'));
+      var btn = el.nextElementSibling;
+      if (btn && btn.classList.contains('demande-text-toggle')) {
+        btn.classList.toggle('is-visible', overflows);
+        btn.textContent = el.classList.contains('is-expanded') ? '▲ Réduire' : '▼ Voir plus';
+      }
+    });
   }
 
   function setFilter(key, val) {
@@ -192,6 +206,20 @@
         }
         return;
       }
+      if (act === 'seg-expand-text' || act === 'seg-expand-text-btn') {
+        e.stopPropagation();
+        var textEl = card.querySelector('.demande-text');
+        if (!textEl || textEl.classList.contains('demande-text-empty')) return;
+        textEl.classList.toggle('is-expanded');
+        var overflows = textEl.scrollHeight > textEl.clientHeight + 2;
+        textEl.classList.toggle('has-overflow', overflows && !textEl.classList.contains('is-expanded'));
+        var toggleBtn = textEl.nextElementSibling;
+        if (toggleBtn && toggleBtn.classList.contains('demande-text-toggle')) {
+          toggleBtn.textContent = textEl.classList.contains('is-expanded') ? '▲ Réduire' : '▼ Voir plus';
+        }
+        return;
+      }
+
       if (act === 'seg-tag-add') {
         e.stopPropagation();
         var stT = ctx.STATE;

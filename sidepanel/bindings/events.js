@@ -191,12 +191,20 @@
 
   function _bindFontSize() {
     document.addEventListener('click', function (e) {
-      var btn = e.target.closest('[data-act="seg-font-down"],[data-act="seg-font-up"]');
+      var btn = e.target.closest('[data-act="seg-font-down"],[data-act="seg-font-up"],' +
+        '[data-act="seg-lines-down"],[data-act="seg-lines-up"]');
       if (!btn) return;
-      window.BIAIFRenderer.bumpSegFontSize(btn.dataset.act === 'seg-font-up' ? +1 : -1);
-      H.updateSpFontVal();
+      var a = btn.dataset.act;
+      if (a === 'seg-font-up' || a === 'seg-font-down') {
+        window.BIAIFRenderer.bumpSegFontSize(a === 'seg-font-up' ? +1 : -1);
+        H.updateSpFontVal();
+      } else {
+        window.BIAIFRenderer.bumpSegTextLines(a === 'seg-lines-up' ? +1 : -1);
+        H.updateSpLinesVal();
+      }
     });
     window.BIAIFRenderer.applySegFontSize();
+    window.BIAIFRenderer.applySegTextLines();
   }
 
   function _bindHistorySearch() {

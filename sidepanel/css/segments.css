@@ -529,10 +529,44 @@
   word-wrap: break-word;
   border-radius: 0 4px 4px 0;
   user-select: text;
+  /* Collapsible: clamped to N lines by default */
+  position: relative;
+  max-height: calc(var(--seg-card-lines, 5) * var(--seg-text-size, 13px) * 1.5);
+  overflow: hidden;
+  transition: max-height 0.22s ease;
 }
+/* Fade-out gradient at the bottom when text is clipped */
+.demande-text.has-overflow::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: calc(var(--seg-text-size, 13px) * 2);
+  background: linear-gradient(to bottom, transparent, var(--bg-card));
+  pointer-events: none;
+}
+/* Expand toggle button */
+.demande-text-toggle {
+  display: none; /* shown via JS only when has-overflow */
+  width: 100%; margin-top: 4px;
+  background: transparent; border: none; padding: 2px 0;
+  font: inherit; font-size: 10px; font-weight: 600;
+  color: var(--accent-purple); cursor: pointer;
+  text-align: left; letter-spacing: 0.3px;
+  transition: color 0.12s;
+}
+.demande-text-toggle.is-visible { display: block; }
+.demande-text-toggle:hover { color: var(--accent-blue); }
+/* Expanded state: remove height cap */
+.demande-text.is-expanded {
+  max-height: 600em;
+}
+.demande-text.is-expanded::after { display: none; }
 /* Card being edited gets a cyan accent to show it's loaded in the top editor */
 .biaif-segment.is-editing .demande-text { border-left-color: var(--accent-blue); }
-.demande-text-empty { color: var(--text-muted); font-style: italic; }
+.demande-text-empty {
+  color: var(--text-muted); font-style: italic;
+  /* Don't clamp empty placeholder */
+  max-height: none !important; overflow: visible !important; cursor: default;
+}
 
 /* Chip : pliée par défaut (pill inline). Au clic, .expanded devient un
    bloc 100% qui inclut un panneau de détails en dessous du label.
