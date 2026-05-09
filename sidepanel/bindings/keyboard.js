@@ -105,7 +105,7 @@
 
       // Esc — contextual close (subline → edit mode → settings)
       if (e.key === 'Escape') {
-        var sub = document.querySelector('.quick-tools-subline');
+        var sub = document.getElementById('capture-subline');
         if (sub && !sub.hasAttribute('hidden')) { H.closeCaptureSubline(); return; }
         if (ctx.STATE.editingDemandeIdx !== null) { window.BIAIFSession.exitEditMode(); return; }
         var pop = ctx.REFS.settingsPopover;

@@ -19,6 +19,18 @@
   const TAG_ID     = 'biaif-picker-tag';
   let _rafPending  = false;
 
+  // chrome.runtime.sendMessage throws SYNCHRONOUSLY (not via the returned
+  // promise) when the extension has been reloaded — the .catch() handler
+  // does not catch synchronous throws. Wrap every call so a stale
+  // content script doesn't leak "Extension context invalidated" errors
+  // into the host page console.
+  function _safeSend(msg) {
+    try {
+      var p = chrome.runtime.sendMessage(msg);
+      if (p && typeof p.catch === 'function') p.catch(function () {});
+    } catch (_) { /* extension reloaded — ignore */ }
+  }
+
   const ElementSelector = {
     state: {
       active: false,
@@ -137,12 +149,12 @@
       }
 
       // descriptor._el (référence DOM) n'est pas sérialisable : on l'omet.
-      chrome.runtime.sendMessage({
+      _safeSend({
         type: 'biaif:element-picked',
         descriptor,
         screenshot,
         metadata,
-      }).catch(() => {});
+      });
 
       // Multi-pick par défaut : on reste actif. Échap, le bouton picker du
       // panel ou le STOP master pour quitter.
@@ -166,7 +178,7 @@
       document.addEventListener('click',     this.onClickCapture, true);
       document.addEventListener('keydown',   this.onKeyDown,      true);
 
-      chrome.runtime.sendMessage({ type: 'biaif:picker-state', active: true }).catch(() => {});
+      _safeSend({ type: 'biaif:picker-state', active: true });
     },
 
     disable() {
@@ -181,7 +193,7 @@
       document.removeEventListener('click',     this.onClickCapture, true);
       document.removeEventListener('keydown',   this.onKeyDown,      true);
 
-      chrome.runtime.sendMessage({ type: 'biaif:picker-state', active: false }).catch(() => {});
+      _safeSend({ type: 'biaif:picker-state', active: false });
     },
 
     toggle() {

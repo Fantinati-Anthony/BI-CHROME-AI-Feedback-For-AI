@@ -46,20 +46,23 @@
   }
 
   // ── Capture subline (toolbar dropdown) ─────────────────────────────
+  // The .quick-tools-subline class is shared with #templates-popover, so
+  // querySelector('.quick-tools-subline') would return the FIRST match
+  // (the templates popover) — must target #capture-subline explicitly.
   function openCaptureSubline() {
-    var sub = document.querySelector('.quick-tools-subline');
+    var sub = document.getElementById('capture-subline');
     var btn = document.querySelector('[data-act="capture-toggle"]');
     if (sub) sub.removeAttribute('hidden');
     if (btn) btn.setAttribute('aria-expanded', 'true');
   }
   function closeCaptureSubline() {
-    var sub = document.querySelector('.quick-tools-subline');
+    var sub = document.getElementById('capture-subline');
     var btn = document.querySelector('[data-act="capture-toggle"]');
     if (sub) sub.setAttribute('hidden', '');
     if (btn) btn.setAttribute('aria-expanded', 'false');
   }
   function toggleCaptureSubline() {
-    var sub = document.querySelector('.quick-tools-subline');
+    var sub = document.getElementById('capture-subline');
     if (!sub) return;
     sub.hasAttribute('hidden') ? openCaptureSubline() : closeCaptureSubline();
   }
