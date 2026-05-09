@@ -66,10 +66,10 @@
         var btn = document.querySelector('[data-act="toggle-settings"]');
         if (btn) btn.click();
       } });
-    out.push({ id: 'cmd.search',     kind: 'cmd', label: _t('palette.cmd.search', "Rechercher dans l'historique"),
+    out.push({ id: 'cmd.search',     kind: 'cmd', label: _t('palette.cmd.search', "Filtrer l'historique (texte, tag, domaine…)"),
       run: function () {
-        var btn = document.querySelector('[data-act="search-toggle"]');
-        if (btn) btn.click();
+        if (window.BIAIFFilterPanel) window.BIAIFFilterPanel.open();
+        else { var b = document.querySelector('[data-act="filter-toggle"], [data-act="search-toggle"]'); if (b) b.click(); }
       } });
 
     // 2) Templates — insert into the editor with full {{var}} interpolation.

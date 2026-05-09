@@ -410,7 +410,10 @@
       </button>
       <button class="session-main" data-act="master" disabled
         aria-label="Enregistrer la demande courante" title="Enregistrer la demande courante">
-        <span class="master-label" data-i18n="session.save" aria-hidden="true">
+        <!-- SVG ✓ — no data-i18n on the inner span (applyDOM would
+             overwrite the SVG with the translated string). The label
+             lives in aria-label + title via updateMasterBtnLabel(). -->
+        <span class="master-label" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
         </span>
       </button>
@@ -425,10 +428,12 @@
          Topbar centre — search loupe (expandable input)
     ============================================================ -->
     <div class="topbar-col topbar-col--center" role="toolbar" aria-label="Recherche">
-      <button class="topbar-icon-btn" data-act="search-toggle" aria-label="Rechercher dans l'historique" aria-expanded="false" title="Rechercher">
+      <button class="topbar-icon-btn" data-act="filter-toggle" aria-label="Filtrer l'historique" aria-expanded="false" title="Filtrer (texte, tag, domaine, page, conv., repo)">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
       </button>
-      <input type="search" id="history-search" class="topbar-search-input" placeholder="Rechercher dans l'historique…" aria-label="Rechercher dans l'historique des demandes" data-i18n-placeholder="segments.search_placeholder" hidden>
+      <!-- Hidden #history-search kept for backwards compat with REFS lookup
+           (read by storage hydration / search-binding code paths). -->
+      <input type="search" id="history-search" hidden>
     </div>
 
     <!-- ============================================================
@@ -655,6 +660,7 @@
   <script src="sidepanel/blob-store.js"></script>
   <script src="sidepanel/perf.js"></script>
   <script src="sidepanel/palette.js"></script>
+  <script src="sidepanel/filter-panel.js"></script>
   <script src="sidepanel/storage.js"></script>
   <script src="sidepanel/templates.js"></script>
   <script src="sidepanel/export.js"></script>
