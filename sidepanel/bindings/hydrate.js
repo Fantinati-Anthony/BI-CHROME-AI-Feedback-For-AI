@@ -59,8 +59,10 @@
     }
 
     H.updateSpFontVal();
+    H.updateSpLinesVal();
     window.BIAIFRenderer.updateSortToggleLabel();
     window.BIAIFRenderer.applySegFontSize();
+    window.BIAIFRenderer.applySegTextLines();
     window.BIAIFRenderer.renderDemandeEditor();
     window.BIAIFRenderer.renderSegments();
     window.BIAIFRenderer.updateArmedUi();

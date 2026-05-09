@@ -40,6 +40,11 @@
     if (el) el.textContent = (ctx.STATE.segFontSize || 13) + 'px';
   }
 
+  function updateSpLinesVal() {
+    var el = document.getElementById('sp-seg-lines-val');
+    if (el) el.textContent = (ctx.STATE.segTextLines || 5) + ' lignes';
+  }
+
   // ── Capture subline (toolbar dropdown) ─────────────────────────────
   function openCaptureSubline() {
     var sub = document.querySelector('.quick-tools-subline');
@@ -285,6 +290,7 @@
     msgKey:                   msgKey,
     decodeContentScriptError: decodeContentScriptError,
     updateSpFontVal:          updateSpFontVal,
+    updateSpLinesVal:         updateSpLinesVal,
     openCaptureSubline:       openCaptureSubline,
     closeCaptureSubline:      closeCaptureSubline,
     toggleCaptureSubline:     toggleCaptureSubline,

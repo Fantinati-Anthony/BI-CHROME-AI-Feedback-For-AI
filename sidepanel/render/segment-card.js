@@ -208,9 +208,11 @@
       '</header>' +
       _buildMetaTags(dem) +
       '<div class="demande-text ' + (dem.text ? '' : 'demande-text-empty') +
-        '" data-i="' + origIndex +
-        '" aria-label="Texte de la demande ' + num +
+        '" data-i="' + origIndex + '" data-act="seg-expand-text"' +
+        ' aria-label="Texte de la demande ' + num +
         '" data-placeholder="(demande vide)"></div>' +
+      '<button class="demande-text-toggle" data-act="seg-expand-text-btn" data-i="' + origIndex +
+        '" type="button" aria-label="Déplier le texte de la demande"></button>' +
       '<div class="seg-actions">' +
         '<button class="seg-action-btn seg-action-btn--inject" data-act="seg-inject" data-i="' +
           origIndex + '" aria-label="Injecter dans Claude Code (texte + images)" ' +

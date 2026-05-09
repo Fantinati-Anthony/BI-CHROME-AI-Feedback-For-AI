@@ -85,6 +85,27 @@
     if (fontUp)   fontUp.disabled   = STATE.segFontSize >= max;
   }
 
+  function applySegTextLines() {
+    var STATE = ctx.STATE;
+    var wrap  = document.querySelector('.biaif-segments-wrap');
+    var n     = Math.max(1, Math.min(20, STATE.segTextLines || 5));
+    if (wrap) wrap.style.setProperty('--seg-card-lines', String(n));
+    var dn = document.querySelector('[data-act="seg-lines-down"]');
+    var up = document.querySelector('[data-act="seg-lines-up"]');
+    if (dn) dn.disabled = n <= 1;
+    if (up) up.disabled = n >= 20;
+  }
+
+  function bumpSegTextLines(delta) {
+    var STATE = ctx.STATE;
+    var n = Math.max(1, Math.min(20, (STATE.segTextLines || 5) + delta));
+    if (n === (STATE.segTextLines || 5)) return;
+    STATE.segTextLines = n;
+    applySegTextLines();
+    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    if (window.BIAIFRenderer) window.BIAIFRenderer.renderSegments();
+  }
+
   function bumpSegFontSize(delta) {
     var STATE = ctx.STATE;
     var min = UI.MIN_SEG_FONT_PX || 8;
@@ -128,6 +149,8 @@
     updateSortToggleLabel: updateSortToggleLabel,
     applySegFontSize:      applySegFontSize,
     bumpSegFontSize:       bumpSegFontSize,
+    applySegTextLines:     applySegTextLines,
+    bumpSegTextLines:      bumpSegTextLines,
     updateEditorContext:   updateEditorContext,
   };
 })(window);
