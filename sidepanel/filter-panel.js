@@ -94,11 +94,15 @@
     var ov = document.createElement('div');
     ov.className = 'biaif-filter-overlay';
     ov.setAttribute('role', 'dialog');
-    ov.setAttribute('aria-modal', 'false');
+    ov.setAttribute('aria-modal', 'true');
     ov.setAttribute('aria-label', _t('filter.aria', "Filtrer l'historique"));
     ov.innerHTML =
       '<div class="biaif-filter-panel" role="group">' +
         '<div class="biaif-filter-header">' +
+          '<button class="sp-back biaif-filter-back" data-act="filter-close" type="button" aria-label="' +
+            _t('filter.close', 'Fermer') + '">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>' +
+          '</button>' +
           '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>' +
           '<span>' + _t('filter.title', "Filtrer l'historique") + '</span>' +
           '<button class="biaif-filter-clear" data-act="filter-clear-all" type="button">' +
@@ -135,7 +139,8 @@
 
   function _bindOverlay() {
     if (!_overlay) return;
-    _overlay.addEventListener('click', function (e) { if (e.target === _overlay) close(); });
+    var backBtn = _overlay.querySelector('[data-act="filter-close"]');
+    if (backBtn) backBtn.addEventListener('click', close);
     var input = _overlay.querySelector('[data-filter-search]');
     if (input) {
       input.addEventListener('input', function () {
@@ -169,21 +174,41 @@
 
   function open() {
     if (_overlay) return;
+    // Defensive: a previous overlay may still be in DOM mid-slide-out.
+    // Remove it synchronously so we don't briefly stack two panels.
+    var stale = document.querySelector('.biaif-filter-overlay');
+    if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
     _overlay = _build();
     if (!_overlay) return;
     document.body.appendChild(_overlay);
     _bindOverlay();
-    _trigger = document.querySelector('[data-act="search-toggle"]');
+    // Force a reflow so the browser registers the initial offscreen state
+    // before the .is-open class triggers the slide-in transition.
+    // eslint-disable-next-line no-unused-expressions
+    _overlay.offsetWidth;
+    _overlay.classList.add('is-open');
+    _trigger = document.querySelector('[data-act="filter-toggle"], [data-act="search-toggle"]');
     if (_trigger) _trigger.setAttribute('aria-expanded', 'true');
   }
 
   function close() {
     if (!_overlay) return;
     document.removeEventListener('keydown', _onKey, true);
-    if (_overlay.parentNode) _overlay.parentNode.removeChild(_overlay);
+    var ov = _overlay;
     _overlay = null;
     if (_trigger) _trigger.setAttribute('aria-expanded', 'false');
     _trigger = null;
+    // Trigger slide-out, then remove from DOM after the transition completes.
+    ov.classList.remove('is-open');
+    var done = false;
+    var finish = function () {
+      if (done) return;
+      done = true;
+      if (ov.parentNode) ov.parentNode.removeChild(ov);
+    };
+    ov.addEventListener('transitionend', finish, { once: true });
+    // Fallback in case transitionend doesn't fire (e.g. reduced motion).
+    setTimeout(finish, 320);
   }
 
   function toggle() { _overlay ? close() : open(); }
