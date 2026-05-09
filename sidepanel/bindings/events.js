@@ -178,22 +178,14 @@
 
   // Toggle search input visibility (loupe button)
   function _bindSearchToggle() {
-    var btn   = document.querySelector('[data-act="search-toggle"]');
-    var input = document.getElementById('history-search');
-    if (!btn || !input) return;
-    btn.addEventListener('click', function () {
-      var willOpen = input.hasAttribute('hidden');
-      if (willOpen) {
-        input.removeAttribute('hidden');
-        btn.setAttribute('aria-expanded', 'true');
-        setTimeout(function () { input.focus(); }, 30);
-      } else {
-        input.setAttribute('hidden', '');
-        btn.setAttribute('aria-expanded', 'false');
-        ctx.STATE.searchQuery = '';
-        input.value = '';
-        window.BIAIFRenderer.renderSegments();
-      }
+    // The loupe (now [data-act="filter-toggle"]) opens the full filter
+    // panel — text search + tag/domain/page/conv/repo selectors. The
+    // legacy [data-act="search-toggle"] handler is kept as a fallback
+    // alias for backwards compat with anyone wiring against the old name.
+    document.querySelectorAll('[data-act="filter-toggle"], [data-act="search-toggle"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (window.BIAIFFilterPanel) window.BIAIFFilterPanel.toggle();
+      });
     });
   }
 
