@@ -197,6 +197,10 @@
      col 3 (right)  — sort + font (on cog hover) + cog (+ optional logs)    */
 .topbar-row {
   --topbar-h: 36px;
+  position: relative;
+  z-index: 801; /* above .biaif-compose-drawer (800) so button pulses /
+                   shadows that extend below the topbar aren't clipped
+                   by the drawer's opaque background */
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
