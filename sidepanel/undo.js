@@ -1,42 +1,49 @@
 // @ts-check
 /**
- * BIAIF Undo Stack
- * Snapshots (demandes + currentDemande) pushed before every persist().
- * Ctrl+Z in the side panel restores the previous snapshot.
+ * BIAIF Undo / Redo Stack
+ * Snapshots pushed before every persist(). Ctrl+Z restores; Ctrl+Shift+Z re-applies.
  */
 (function (window) {
   'use strict';
 
-  /** @type {number} Maximum snapshots kept (FIFO eviction). */
   var MAX = 50;
   /** @type {string[]} */
-  var stack = [];
+  var _undo = [];
+  /** @type {string[]} */
+  var _redo = [];
 
-  /** @param {object} snapshot */
   function push(snapshot) {
     try {
-      stack.push(JSON.stringify(snapshot));
-      if (stack.length > MAX) stack.shift();
+      _undo.push(JSON.stringify(snapshot));
+      if (_undo.length > MAX) _undo.shift();
+      _redo = []; // new action invalidates redo history
     } catch (e) {
       console.warn('[BIAIF Undo] push failed', e && e.message);
     }
   }
 
-  function pop() {
-    if (!stack.length) return null;
+  // Undo: pop from undo stack, save current to redo stack
+  function pop(currentSnapshot) {
+    if (!_undo.length) return null;
     try {
-      return JSON.parse(stack.pop());
-    } catch (e) {
-      return null;
-    }
+      if (currentSnapshot) {
+        _redo.push(JSON.stringify(currentSnapshot));
+        if (_redo.length > MAX) _redo.shift();
+      }
+      return JSON.parse(_undo.pop());
+    } catch (e) { return null; }
   }
 
-  function canUndo() { return stack.length > 0; }
+  // Redo: pop from redo stack
+  function popRedo() {
+    if (!_redo.length) return null;
+    try { return JSON.parse(_redo.pop()); } catch (e) { return null; }
+  }
 
-  function clear() { stack = []; }
+  function canUndo() { return _undo.length > 0; }
+  function canRedo() { return _redo.length > 0; }
+  function clear()   { _undo = []; _redo = []; }
+  function size()    { return _undo.length; }
 
-  function size() { return stack.length; }
-
-  window.BIAIFUndo = { push: push, pop: pop, canUndo: canUndo, clear: clear, size: size };
-
+  window.BIAIFUndo = { push, pop, popRedo, canUndo, canRedo, clear, size };
 })(window);

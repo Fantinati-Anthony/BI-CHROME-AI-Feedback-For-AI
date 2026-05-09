@@ -23,7 +23,17 @@ function setupContextMenus() {
     });
     chrome.contextMenus.create({
       id: 'biaif-selection',
-      title: 'BIAIF — Ajouter cette sélection',
+      title: 'BIAIF — Ajouter cette sélection à la demande',
+      contexts: ['selection'],
+    });
+    chrome.contextMenus.create({
+      id: 'biaif-new-segment',
+      title: 'BIAIF — Créer un segment depuis la sélection',
+      contexts: ['selection'],
+    });
+    chrome.contextMenus.create({
+      id: 'biaif-append-text',
+      title: 'BIAIF — Ajouter à la demande en cours',
       contexts: ['selection'],
     });
     chrome.contextMenus.create({
@@ -54,6 +64,18 @@ if (chrome.contextMenus) {
     } else if (info.menuItemId === 'biaif-selection') {
       chrome.runtime.sendMessage({
         type: MSG.CONTEXT_ADD_TEXT,
+        text: info.selectionText || '',
+        pageUrl: info.pageUrl || tab?.url || null,
+      }).catch(() => {});
+    } else if (info.menuItemId === 'biaif-new-segment') {
+      chrome.runtime.sendMessage({
+        type: MSG.CONTEXT_NEW_SEGMENT,
+        text: info.selectionText || '',
+        pageUrl: info.pageUrl || tab?.url || null,
+      }).catch(() => {});
+    } else if (info.menuItemId === 'biaif-append-text') {
+      chrome.runtime.sendMessage({
+        type: MSG.CONTEXT_APPEND_TEXT,
         text: info.selectionText || '',
         pageUrl: info.pageUrl || tab?.url || null,
       }).catch(() => {});

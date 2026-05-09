@@ -274,8 +274,23 @@
     searchEl.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { e.preventDefault(); close(); return; }
       if (e.key === 'Enter') {
+        // If a chip is focused, toggle it
+        var focused = body.querySelector('.biaif-tp-chip:focus, .biaif-tp-create:focus');
+        if (focused) { focused.click(); return; }
         var n = _norm(searchEl.value);
         if (n) { e.preventDefault(); _createAndAdd(n, body, searchEl); }
+        return;
+      }
+      // Arrow keys navigate chips
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        var chips = Array.from(body.querySelectorAll('.biaif-tp-chip, .biaif-tp-create'));
+        if (!chips.length) return;
+        e.preventDefault();
+        var focusedIdx = chips.indexOf(document.activeElement);
+        var next = e.key === 'ArrowDown' || e.key === 'ArrowRight'
+          ? (focusedIdx < 0 ? 0 : Math.min(chips.length - 1, focusedIdx + 1))
+          : (focusedIdx < 0 ? chips.length - 1 : Math.max(0, focusedIdx - 1));
+        chips[next].focus();
       }
     });
 

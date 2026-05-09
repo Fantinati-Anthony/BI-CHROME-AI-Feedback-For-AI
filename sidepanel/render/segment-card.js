@@ -245,6 +245,8 @@
     // ── Display-only text area (editing is done via the unified top editor)
     var textEl = card.querySelector('.demande-text');
     Chips.renderTextWithChips(dem.text || '', dem.refs || [], textEl, { readOnly: true, demKey: origIndex });
+    var sq = ctx.STATE.searchQuery || '';
+    if (sq) _highlightSearch(textEl, sq);
 
     // Click + drag handlers live on the .biaif-segments wrapper as a
     // single delegated set — see segments.js → ensureDelegatedHandlers().
@@ -255,6 +257,33 @@
       dragHandle.setAttribute('tabindex', '0');
     }
     return card;
+  }
+
+  function _highlightSearch(el, query) {
+    var q = query.toLowerCase();
+    var re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+    var nodes = [];
+    var node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    nodes.forEach(function (tn) {
+      if (!tn.nodeValue || tn.nodeValue.toLowerCase().indexOf(q) < 0) return;
+      var parts = tn.nodeValue.split(re);
+      if (parts.length <= 1) return;
+      var frag = document.createDocumentFragment();
+      parts.forEach(function (p) {
+        if (!p) return;
+        if (p.toLowerCase() === q) {
+          var mark = document.createElement('mark');
+          mark.className = 'biaif-hl';
+          mark.textContent = p;
+          frag.appendChild(mark);
+        } else {
+          frag.appendChild(document.createTextNode(p));
+        }
+      });
+      tn.parentNode.replaceChild(frag, tn);
+    });
   }
 
   window.BIAIFRender.segmentCard = {

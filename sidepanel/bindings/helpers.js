@@ -266,23 +266,41 @@
   }
 
   // ── Undo (Ctrl+Z) ──────────────────────────────────────────────────
-  function performUndo() {
+  function _applySnapshot(snapshot) {
     var STATE = ctx.STATE;
-    if (!window.BIAIFUndo.canUndo()) {
-      window.BIAIFToast.show(_t('toast.nothing_to_undo', 'Rien à annuler.'), 'info', 1500);
-      return;
-    }
-    var snapshot = window.BIAIFUndo.pop();
-    if (!snapshot) return;
     STATE.demandes       = snapshot.demandes;
     STATE.currentDemande = snapshot.currentDemande;
     window.BIAIFRenderer.renderDemandeEditor();
     window.BIAIFRenderer.renderSegments();
     window.BIAIFRenderer.updateArmedUi();
-    // Persist the FULL state (preserves settings, i18n, toggles, etc.)
-    // without pushing a fresh undo entry — we just popped one.
     window.BIAIFStorage.persist(STATE, { skipUndo: true });
+  }
+
+  function _currentSnapshot() {
+    var STATE = ctx.STATE;
+    return { demandes: JSON.parse(JSON.stringify(STATE.demandes)), currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)) };
+  }
+
+  function performUndo() {
+    if (!window.BIAIFUndo.canUndo()) {
+      window.BIAIFToast.show(_t('toast.nothing_to_undo', 'Rien à annuler.'), 'info', 1500);
+      return;
+    }
+    var snapshot = window.BIAIFUndo.pop(_currentSnapshot());
+    if (!snapshot) return;
+    _applySnapshot(snapshot);
     window.BIAIFToast.show(_t('toast.undone', 'Action annulée.'), 'success', 2000);
+  }
+
+  function performRedo() {
+    if (!window.BIAIFUndo.canRedo()) {
+      window.BIAIFToast.show(_t('toast.nothing_to_redo', 'Rien à rétablir.'), 'info', 1500);
+      return;
+    }
+    var snapshot = window.BIAIFUndo.popRedo();
+    if (!snapshot) return;
+    _applySnapshot(snapshot);
+    window.BIAIFToast.show(_t('toast.redone', 'Action rétablie.'), 'success', 2000);
   }
 
   window.BIAIFBindings.helpers = {
@@ -308,5 +326,6 @@
     addImageFromContext:      addImageFromContext,
     clearAll:                 clearAll,
     performUndo:              performUndo,
+    performRedo:              performRedo,
   };
 })(window);

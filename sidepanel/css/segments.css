@@ -640,3 +640,11 @@
 }
 .ref-details-btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
+
+/* Search term highlight */
+mark.biaif-hl {
+  background: rgba(250, 204, 21, .28);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
