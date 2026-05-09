@@ -561,6 +561,15 @@
   max-height: 600em;
 }
 .demande-text.is-expanded::after { display: none; }
+/* When a ref-chip inside the segment text is expanded, drop the line-clamp
+   so the chip's details panel isn't clipped by the parent's max-height +
+   overflow: hidden (otherwise the chip "doesn't open" — it does, but its
+   details render outside the visible area). */
+.demande-text:has(.ref-chip.expanded) {
+  max-height: none;
+  overflow: visible;
+}
+.demande-text:has(.ref-chip.expanded)::after { display: none; }
 /* Card being edited gets a cyan accent to show it's loaded in the top editor */
 .biaif-segment.is-editing .demande-text { border-left-color: var(--accent-blue); }
 .demande-text-empty {
