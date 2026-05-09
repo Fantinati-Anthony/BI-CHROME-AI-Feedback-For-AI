@@ -198,7 +198,7 @@
 .topbar-row {
   --topbar-h: 36px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 8px;
   min-width: 0;
