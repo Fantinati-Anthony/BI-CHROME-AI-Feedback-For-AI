@@ -187,6 +187,11 @@
         return;
       }
       if (act === 'seg-expand-text' || act === 'seg-expand-text-btn') {
+        // Clicks on a ref-chip bubble up here because the parent .demande-text
+        // carries data-act="seg-expand-text". Don't intercept those — let
+        // them propagate to the document-level chip-toggle handler in
+        // chips.js (which toggles .expanded on the chip itself).
+        if (act === 'seg-expand-text' && e.target.closest('.ref-chip')) return;
         e.stopPropagation();
         var textEl = card.querySelector('.demande-text');
         if (!textEl || textEl.classList.contains('demande-text-empty')) return;
