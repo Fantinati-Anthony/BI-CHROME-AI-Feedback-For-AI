@@ -45,11 +45,21 @@
 .session-main.armed {
   background: linear-gradient(120deg, #ec4899 0%, #8b5cf6 35%, #4f46e5 70%, #06b6d4 100%);
   background-size: 220% 220%;
-  animation: ai-gradient 4s ease-in-out infinite;
-  box-shadow:
-    0 0 28px rgba(236, 72, 153, 0.45),
-    0 0 56px rgba(139, 92, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: ai-gradient 4s ease-in-out infinite, biaif-master-pulse 2s ease-in-out infinite;
+}
+
+@keyframes biaif-master-pulse {
+  0%, 100% { box-shadow: 0 0 28px rgba(236,72,153,0.45), 0 0 56px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.2); transform: scale(1); }
+  50%      { box-shadow: 0 0 44px rgba(236,72,153,0.75), 0 0 80px rgba(139,92,246,0.55), inset 0 1px 0 rgba(255,255,255,0.25); transform: scale(1.06); }
+}
+
+@keyframes biaif-sessionbar-pulse {
+  0%, 100% { box-shadow: none; }
+  50%      { box-shadow: 0 0 18px rgba(236,72,153,0.28), 0 0 36px rgba(139,92,246,0.18); }
+}
+.biaif-root.is-armed .session-bar {
+  border-radius: 10px;
+  animation: biaif-sessionbar-pulse 2.2s ease-in-out infinite;
 }
 
 @keyframes ai-gradient {
