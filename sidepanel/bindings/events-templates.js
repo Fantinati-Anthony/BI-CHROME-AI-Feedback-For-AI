@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * BIAIF Bindings — Templates popover.
  *

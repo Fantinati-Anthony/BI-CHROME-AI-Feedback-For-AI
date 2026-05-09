@@ -25,10 +25,24 @@ describe('BIAIFImaging.compressDataUrl', () => {
   });
 
   it('returns the original when Image fails to load', async () => {
-    // jsdom's <canvas> isn't fully wired up — Image.onerror fires for
-    // invalid base64 — the module falls back to the original dataUrl.
-    const dataUrl = 'data:image/png;base64,not-a-real-image';
-    const out = await window.BIAIFImaging.compressDataUrl(dataUrl);
-    expect(out).toBe(dataUrl);
+    // jsdom's <canvas> isn't fully wired up — Image neither fires
+    // onload nor onerror for synthetic data URLs. We stub it with a
+    // version that calls onerror on the next tick so the module's
+    // fallback path is exercised deterministically.
+    const RealImage = window.Image;
+    window.Image = function () {
+      const img = {
+        set src(_) { setTimeout(() => { img.onerror && img.onerror(); }, 0); },
+        onload: null, onerror: null,
+      };
+      return img;
+    };
+    try {
+      const dataUrl = 'data:image/png;base64,not-a-real-image';
+      const out = await window.BIAIFImaging.compressDataUrl(dataUrl);
+      expect(out).toBe(dataUrl);
+    } finally {
+      window.Image = RealImage;
+    }
   });
 });

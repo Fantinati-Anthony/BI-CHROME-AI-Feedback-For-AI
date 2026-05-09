@@ -110,6 +110,41 @@
 .seg-filter-badge--conv:hover  { border-color: #6c47ff; }
 .seg-filter-badge--domain { border-color: rgba(255,255,255,.12); }
 
+/* ── User-defined tag chips ──────────────────────────────────────── */
+.seg-tag-chip {
+  border-color: rgba(245,158,11,.35);
+  color: #f59e0b;
+  background: rgba(245,158,11,.08);
+  display: inline-flex; align-items: center; gap: 2px;
+  position: relative;
+}
+.seg-tag-chip:hover { border-color: #f59e0b; background: rgba(245,158,11,.16); }
+.seg-tag-chip.is-active { border-color: #f59e0b; background: rgba(245,158,11,.22); color: #fbbf24; box-shadow: 0 0 6px rgba(245,158,11,.35); }
+.seg-tag-hash { opacity: 0.7; margin-right: 1px; }
+.seg-tag-del {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 12px; height: 12px;
+  margin-left: 3px; padding: 0;
+  border-radius: 50%; opacity: 0; cursor: pointer;
+  font-weight: 700; font-size: 10px; line-height: 1;
+  transition: opacity 0.12s, background 0.12s;
+}
+.seg-tag-chip:hover .seg-tag-del { opacity: 0.7; }
+.seg-tag-del:hover { opacity: 1; background: rgba(255,69,58,0.4); color: #fff; }
+
+/* "+ tag" pill at end of meta-tags row */
+.seg-tag-add {
+  display: inline-flex; align-items: center;
+  background: transparent;
+  border: 1px dashed rgba(255,255,255,.18);
+  color: var(--text-muted);
+  border-radius: 4px; padding: 2px 6px;
+  font: inherit; font-size: 9px; cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+}
+.seg-tag-add:hover { border-color: #f59e0b; color: #f59e0b; background: rgba(245,158,11,.06); }
+
 /* ── Chip domain badge (@hostname) ──────────────────────────────────────── */
 .ref-chip-domain {
   font-size: 8.5px; color: #6c8aff;

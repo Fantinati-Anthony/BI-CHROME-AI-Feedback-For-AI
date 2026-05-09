@@ -386,6 +386,10 @@
     if (!d.refs.every(_validRef)) return false;
     if (d.url !== undefined && !_isUrl(d.url)) return false;
     if (d.conversationUrl !== undefined && !_isUrl(d.conversationUrl)) return false;
+    if (d.tags !== undefined) {
+      if (!Array.isArray(d.tags) || d.tags.length > 10) return false;
+      if (!d.tags.every(function (t) { return typeof t === 'string' && t.length <= 32; })) return false;
+    }
     return true;
   }
   function _validTemplate(t) {

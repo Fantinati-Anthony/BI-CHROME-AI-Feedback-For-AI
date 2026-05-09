@@ -86,6 +86,25 @@
         '" title="Filtrer par domaine : ' + esc(host) + '" type="button">' +
         esc(host) + '</button>');
     });
+    // User-defined tags — clickable to filter, ✕ to remove on hover.
+    var origIndexAttr = STATE.demandes.indexOf(dem);
+    (dem.tags || []).forEach(function (tg) {
+      var safe = String(tg || '').slice(0, 24);
+      var activeTag = STATE.tagFilter === safe;
+      // Class includes seg-filter-badge so the existing delegated handler
+      // in bindings/events.js picks it up (sets STATE.tagFilter on click).
+      parts.push('<button class="seg-filter-badge seg-tag-chip' + (activeTag ? ' is-active' : '') +
+        '" data-fk="tagFilter" data-fv="' + esc(safe) +
+        '" data-i="' + origIndexAttr +
+        '" title="Filtrer par tag : ' + esc(safe) + '" type="button">' +
+        '<span class="seg-tag-hash">#</span>' + esc(safe) +
+        '<span class="seg-tag-del" data-tag-del="' + esc(safe) + '" data-i="' + origIndexAttr + '" aria-label="Retirer ce tag">×</span>' +
+        '</button>');
+    });
+    // "+" button to add a tag (visible on every card)
+    parts.push('<button class="seg-tag-add" data-i="' + origIndexAttr +
+      '" data-act="seg-tag-add" title="Ajouter un tag" type="button">+ tag</button>');
+
     if (!parts.length) return _buildPageTag(dem.url || '');
     return '<div class="seg-meta-tags">' + parts.join('') + '</div>';
   }

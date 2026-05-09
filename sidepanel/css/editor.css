@@ -131,7 +131,10 @@
    (typical 50-200ms after panel open). Animated shimmer respects
    prefers-reduced-motion via the global rule in base.css. */
 .ref-mini-thumb.is-skeleton,
-.ref-chip-thumb.is-skeleton {
+.ref-chip-thumb.is-skeleton,
+.ref-details-img.is-skeleton {
+  display: block;
+  min-height: 80px;
   background:
     linear-gradient(
       90deg,
@@ -141,6 +144,7 @@
     );
   background-size: 200% 100%;
   animation: biaif-skeleton 1.2s ease-in-out infinite;
+  border-radius: 4px;
 }
 @keyframes biaif-skeleton {
   0%   { background-position: 100% 0; }

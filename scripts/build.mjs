@@ -41,6 +41,33 @@ async function readScriptOrder(htmlPath, prefixFilter) {
   return list;
 }
 
+// Emit two manifest variants alongside the bundles:
+//   dist/manifest.dev.json  — full feature set (incl. VS-Code bridge → loopback CSP)
+//   dist/manifest.webstore.json — Web Store ready: no loopback connect-src, no
+//                                  bridge-related host_permissions surface.
+//
+// CI for the publish flow should grab manifest.webstore.json. The dev
+// flow (loaded unpacked) uses the source manifest.json as-is.
+async function writeManifestVariants(srcManifest) {
+  await mkdir(DIST, { recursive: true });
+  // Dev = source manifest copy (loopback included)
+  const devCopy = JSON.parse(JSON.stringify(srcManifest));
+  await writeFile(path.join(DIST, 'manifest.dev.json'), JSON.stringify(devCopy, null, 2));
+  // Webstore variant: scrub loopback connect-src + drop the bridge port
+  const wsCopy = JSON.parse(JSON.stringify(srcManifest));
+  if (wsCopy.content_security_policy && wsCopy.content_security_policy.extension_pages) {
+    wsCopy.content_security_policy.extension_pages =
+      wsCopy.content_security_policy.extension_pages
+        .replace(/\s*http:\/\/127\.0\.0\.1:\d+/g, '')
+        .replace(/\s*http:\/\/localhost:\d+/g, '');
+  }
+  // Tag the variant so callers can detect at runtime.
+  wsCopy._variant = 'webstore';
+  devCopy._variant = 'dev';
+  await writeFile(path.join(DIST, 'manifest.webstore.json'), JSON.stringify(wsCopy, null, 2));
+  console.log('  → dist/manifest.dev.json + dist/manifest.webstore.json');
+}
+
 async function concat(files) {
   const buffers = await Promise.all(files.map(async (rel) => {
     const abs = path.join(ROOT, rel);
@@ -73,6 +100,7 @@ async function buildAll() {
   // background = manifest.json's service_worker file. Currently a single
   // ES module entry — esbuild will follow imports if any.
   const manifest = JSON.parse(await readFile(path.join(ROOT, 'manifest.json'), 'utf8'));
+  await writeManifestVariants(manifest);
   if (manifest.background && manifest.background.service_worker) {
     const swPath = manifest.background.service_worker;
     await esbuild.build({

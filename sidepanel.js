@@ -54,6 +54,7 @@
     conversationFilter:     '',
     repoFilter:             '',
     domainFilter:           '',
+    tagFilter:              '',
     pageFilter:             '',
 
     // 2) DATA — user-generated content (persisted)
@@ -91,7 +92,7 @@
     session: ['armed','pickerActive','micActive','currentInterim','replacingRef',
               'dictationTarget','modalTarget','consoleErrors','editingDemandeIdx',
               'searchQuery','pendingConversationUrl','pendingRepoId','lastShot',
-              'lastShotMode','conversationFilter','repoFilter','domainFilter','pageFilter'],
+              'lastShotMode','conversationFilter','repoFilter','domainFilter','pageFilter','tagFilter'],
     data:    ['currentDemande','demandes','templates'],
     settings:['lang','uiLang','micDeviceId','sortOrder','segFontSize',
               'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage',

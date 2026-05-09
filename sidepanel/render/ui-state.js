@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * BIAIF Render — UI state sync
  *

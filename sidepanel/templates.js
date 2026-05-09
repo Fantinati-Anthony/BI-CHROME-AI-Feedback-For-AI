@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * BIAIF Templates — reusable prompt snippets.
  *
@@ -23,6 +22,7 @@
   function init(state) {
     STATE = state;
     if (!Array.isArray(STATE.templates)) STATE.templates = [];
+    _bindTabTitleWatchers();
   }
 
   function list() {
@@ -65,16 +65,48 @@
   //   {{aiLang}} (speech-recognition lang), {{n}} (number of demandes)
   // Custom prompts: {{var:label}} or {{var:label?default}} — popped via
   //                 prompt() at insertion time.
-  // Best-effort title pulled async on each focusedTab change. Cached
-  // synchronously here so {{title}} can resolve in interpolate().
+  // ── Active-tab title cache ─────────────────────────────────────
+  // {{title}} needs to resolve synchronously inside interpolate(). We
+  // keep a fresh cache by listening to chrome.tabs.onActivated and
+  // chrome.tabs.onUpdated (only the title field) — that way the FIRST
+  // template insertion already has the right value, no race.
   var _activeTabTitle = '';
+  var _activeTabId    = -1;
   function _refreshActiveTabTitle() {
     try {
       if (chrome && chrome.tabs && chrome.tabs.query) {
         chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-          var t = tabs && tabs[0] && tabs[0].title;
-          if (typeof t === 'string') _activeTabTitle = t;
+          var tab = tabs && tabs[0];
+          if (!tab) return;
+          _activeTabId    = tab.id != null ? tab.id : _activeTabId;
+          if (typeof tab.title === 'string') _activeTabTitle = tab.title;
         });
+      }
+    } catch (_) {}
+  }
+  function _bindTabTitleWatchers() {
+    try {
+      if (!chrome || !chrome.tabs) return;
+      // Initial fetch on init.
+      _refreshActiveTabTitle();
+      // Tab swap.
+      if (chrome.tabs.onActivated) chrome.tabs.onActivated.addListener(function (info) {
+        _activeTabId = info.tabId;
+        try {
+          chrome.tabs.get(info.tabId, function (tab) {
+            if (tab && typeof tab.title === 'string') _activeTabTitle = tab.title;
+          });
+        } catch (_) {}
+      });
+      // Title update (e.g. SPA route change in same tab).
+      if (chrome.tabs.onUpdated) chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+        if (tab && tab.active && typeof changeInfo.title === 'string') {
+          _activeTabTitle = changeInfo.title;
+        }
+      });
+      // Window focus swap (multiple windows).
+      if (chrome.windows && chrome.windows.onFocusChanged) {
+        chrome.windows.onFocusChanged.addListener(function () { _refreshActiveTabTitle(); });
       }
     } catch (_) {}
   }

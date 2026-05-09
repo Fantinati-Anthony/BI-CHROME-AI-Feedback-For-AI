@@ -8,6 +8,8 @@
     "test:watch":    "vitest",
     "test:coverage": "vitest run --coverage",
     "lint":          "eslint . --ext .js",
+    "i18n:check":    "node scripts/i18n-coverage.mjs",
+    "i18n:strict":   "node scripts/i18n-coverage.mjs --strict",
     "build":         "node scripts/build.mjs",
     "build:watch":   "node scripts/build.mjs --watch"
   },
@@ -17,6 +19,8 @@
     "jsdom":               "^24.0.0",
     "eslint":              "^8.57.0",
     "esbuild":             "^0.21.0",
-    "fake-indexeddb":      "^5.0.2"
+    "fake-indexeddb":      "^5.0.2",
+    "@types/chrome":       "^0.0.268",
+    "typescript":          "^5.4.5"
   }
 }
