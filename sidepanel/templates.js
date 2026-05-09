@@ -155,8 +155,21 @@
   function insertIntoEditor(id) {
     var t = (STATE.templates || []).find(function (x) { return x.id === id; });
     if (!t || !window.BIAIFSession) return;
-    interpolate._promptCache = null; // fresh ask per insertion
-    window.BIAIFSession.addTextToTarget(interpolate(t.body));
+
+    var VP = window.BIAIFVarPrompt;
+    var vars = VP ? VP.collect(t.body) : [];
+
+    if (!vars.length) {
+      interpolate._promptCache = null;
+      window.BIAIFSession.addTextToTarget(interpolate(t.body));
+      return;
+    }
+
+    VP.prompt(vars, function (values) {
+      interpolate._promptCache = values;
+      window.BIAIFSession.addTextToTarget(interpolate(t.body));
+      interpolate._promptCache = null;
+    });
   }
 
   function saveCurrentAsTemplate(name) {

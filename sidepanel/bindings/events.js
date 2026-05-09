@@ -312,9 +312,17 @@
     var importBtn   = document.querySelector('[data-act="import-json"]');
     var importInput = document.getElementById('import-json-input');
     var stripCb     = document.getElementById('export-strip-imgs');
+    var exportMdBtn = document.querySelector('[data-act="export-md-all"]');
+    var exportCsvBtn = document.querySelector('[data-act="export-csv"]');
     if (exportBtn) exportBtn.addEventListener('click', function () {
       window.BIAIFStorage.exportToFile(STATE, { stripDataUrls: stripCb && stripCb.checked });
       window.BIAIFToast.show(_t('toast.exported', 'Fichier exporté.'), 'success');
+    });
+    if (exportMdBtn) exportMdBtn.addEventListener('click', function () {
+      if (window.BIAIFExport) window.BIAIFExport.downloadBundle();
+    });
+    if (exportCsvBtn) exportCsvBtn.addEventListener('click', function () {
+      if (window.BIAIFExport) window.BIAIFExport.downloadCsv();
     });
     if (importBtn && importInput) {
       importBtn.addEventListener('click', function () { importInput.click(); });
@@ -546,6 +554,11 @@
       window.BIAIFStorage.persist(STATE);
     });
     syncDep();
+    var cbStaysArmed = document.getElementById('save-stays-armed');
+    if (cbStaysArmed) cbStaysArmed.addEventListener('change', function () {
+      STATE.saveStaysArmed = cbStaysArmed.checked;
+      window.BIAIFStorage.persist(STATE);
+    });
   }
 
   function _bindUiLangButtons() {

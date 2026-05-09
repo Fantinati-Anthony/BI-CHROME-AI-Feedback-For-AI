@@ -36,10 +36,12 @@
     HOTKEY:            'biaif:hotkey',
     RELOAD_ACTIVE_TAB: 'biaif:reload-active-tab',
     // Context menu forwarding
-    CONTEXT_STATUS:    'biaif:context-status',
-    CONTEXT_SHOT:      'biaif:context-shot',
-    CONTEXT_ADD_TEXT:  'biaif:context-add-text',
-    CONTEXT_ADD_IMAGE: 'biaif:context-add-image',
+    CONTEXT_STATUS:        'biaif:context-status',
+    CONTEXT_SHOT:          'biaif:context-shot',
+    CONTEXT_ADD_TEXT:      'biaif:context-add-text',
+    CONTEXT_ADD_IMAGE:     'biaif:context-add-image',
+    CONTEXT_NEW_SEGMENT:   'biaif:context-new-segment',
+    CONTEXT_APPEND_TEXT:   'biaif:context-append-text',
     // CustomEvent name (MAIN world → isolated world bridge)
     PAGE_ERROR_EVENT:  '__biaif_page_error__',
     // Inject into external editor (Claude.ai)

@@ -70,6 +70,14 @@
     }
   }
 
+  async function onContextNewSegment(text, pageUrl) {
+    var STATE = ctx.STATE;
+    if (!STATE.armed) await window.BIAIFSession.startSession();
+    if (text) window.BIAIFSession.addTextToTarget(text);
+    if (pageUrl && STATE.currentDemande) STATE.currentDemande.pageUrl = pageUrl;
+    window.BIAIFToast.show(_t('toast.segment_created', 'Nouveau segment créé depuis la sélection.'), 'success', 2500);
+  }
+
   async function onStartLinkedSegment(conversationUrl, repoId) {
     var STATE = ctx.STATE;
     STATE.conversationFilter     = conversationUrl || '';
@@ -152,6 +160,8 @@
       if (msg.type === T('CONTEXT_SHOT'))      { window.BIAIFSession.runShotMode(msg.mode); return; }
       if (msg.type === T('CONTEXT_ADD_TEXT'))  { H.addTextFromContext(msg.text, msg.pageUrl); return; }
       if (msg.type === T('CONTEXT_ADD_IMAGE')) { H.addImageFromContext(msg.srcUrl, msg.pageUrl); return; }
+      if (msg.type === T('CONTEXT_NEW_SEGMENT')) { onContextNewSegment(msg.text, msg.pageUrl); return; }
+      if (msg.type === T('CONTEXT_APPEND_TEXT')) { H.addTextFromContext(msg.text, msg.pageUrl); return; }
       if (msg.type === T('HOTKEY')) {
         if (msg.action === 'toggle-mic')  window.BIAIFSpeech.toggleMic();
         if (msg.action === 'copy-prompt') window.BIAIFExport.copyPrompt();
@@ -182,6 +192,7 @@
     onAiResponseDone:    onAiResponseDone,
     onOpenWithFilter:    onOpenWithFilter,
     onStartLinkedSegment: onStartLinkedSegment,
+    onContextNewSegment: onContextNewSegment,
     onPickerState:       onPickerState,
     onElementPicked:     onElementPicked,
   };

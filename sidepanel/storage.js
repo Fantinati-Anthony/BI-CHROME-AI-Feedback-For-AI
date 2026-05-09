@@ -161,9 +161,15 @@
     // Cross-device sync (settings + templates only — never blobs).
     if (STATE.syncEnabled && chrome.storage.sync) {
       var syncPayload = _buildSyncPayload(STATE);
-      chrome.storage.sync.set({ [SYNC_KEY]: syncPayload }).catch(function (err) {
-        console.warn('[BIAIF Storage] sync failed:', err && err.message);
-      });
+      _setSyncDot('syncing');
+      chrome.storage.sync.set({ [SYNC_KEY]: syncPayload })
+        .then(function () { _setSyncDot('ok'); })
+        .catch(function (err) {
+          console.warn('[BIAIF Storage] sync failed:', err && err.message);
+          _setSyncDot('error');
+        });
+    } else if (!STATE.syncEnabled) {
+      _setSyncDot('off');
     }
 
     // Remove legacy keys silently
@@ -173,6 +179,12 @@
   // ─── Cross-device sync (chrome.storage.sync) ─────────────────────
   // Quota: 100 KB total, 8 KB per item. We cap templates and exclude
   // all heavy/transient data. Keep this list small and human-curated.
+
+  function _setSyncDot(status) {
+    var dot = document.getElementById('sync-dot');
+    if (dot) dot.dataset.status = status;
+  }
+
   var SYNC_KEY = 'biaif:sync';
   var SYNC_KEYS_WHITELIST = [
     'lang','uiLang','sortOrder','segFontSize','visibleButtons',

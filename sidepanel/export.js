@@ -391,6 +391,27 @@
     return fallback || key;
   }
 
+  function _csvEscape(v) {
+    var s = String(v == null ? '' : v).replace(/"/g, '""');
+    return /[",\n\r]/.test(s) ? '"' + s + '"' : s;
+  }
+
+  function downloadCsv() {
+    var dems = STATE.demandes || [];
+    if (!dems.length) { _toast(_t('toast.nothing_to_export', 'Aucune demande à exporter.'), 'info'); return; }
+    var header = ['#', 'Date', 'Statut', 'Texte', 'Tags', 'Repo', 'Conversation', 'URL', 'Refs'];
+    var rows = dems.map(function (d, i) {
+      var dt = d.ts ? new Date(d.ts).toISOString().slice(0, 16).replace('T', ' ') : '';
+      var tags = (d.tags || []).join('; ');
+      var refs = (d.refs || []).length;
+      var text = (d.text || '').replace(/\{\{ref:\d+\}\}/g, '[ref]').slice(0, 300);
+      return [i + 1, dt, d.status || '', text, tags, d.repoId || '', d.conversationUrl || '', d.pageUrl || '', refs];
+    });
+    var csv = [header].concat(rows).map(function (row) { return row.map(_csvEscape).join(','); }).join('\r\n');
+    _downloadFile('biaif-export-' + Date.now() + '.csv', new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+    _toast(_t('toast.csv_exported', dems.length + ' demande(s) exportées en CSV.', { n: dems.length }), 'success', 2500);
+  }
+
   window.BIAIFExport = {
     init: init,
     buildPrompt: buildPrompt,
@@ -399,6 +420,7 @@
     copyPromptForDemande: copyPromptForDemande,
     downloadBundle: downloadBundle,
     downloadDemande: downloadDemande,
+    downloadCsv: downloadCsv,
     injectDemande: injectDemande,
     injectToVscode: injectToVscode,
     injectToCopilot: injectToCopilot,

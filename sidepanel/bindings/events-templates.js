@@ -185,16 +185,31 @@
         return;
       }
       if (typeof _autoArm === 'function') _autoArm();
-      if (window.BIAIFTemplates && window.BIAIFTemplates.interpolate) {
-        body = window.BIAIFTemplates.interpolate(body);
+      var VP = window.BIAIFVarPrompt;
+      var vars = VP ? VP.collect(body) : [];
+      var _doInsert = function (resolvedBody) {
+        if (window.BIAIFSession && window.BIAIFSession.addTextToTarget) {
+          window.BIAIFSession.addTextToTarget(resolvedBody);
+        }
+        _close();
+        if (window.BIAIFToast) {
+          window.BIAIFToast.show(_t('toast.template_inserted', 'Modèle inséré.'), 'success', 1800);
+        }
+      };
+      var interp = window.BIAIFTemplates && window.BIAIFTemplates.interpolate;
+      if (!vars.length) {
+        _doInsert(interp ? interp(body) : body);
+        return;
       }
-      if (window.BIAIFSession && window.BIAIFSession.addTextToTarget) {
-        window.BIAIFSession.addTextToTarget(body);
-      }
-      _close();
-      if (window.BIAIFToast) {
-        window.BIAIFToast.show(_t('toast.template_inserted', 'Modèle inséré.'), 'success', 1800);
-      }
+      VP.prompt(vars, function (values) {
+        if (interp) {
+          interp._promptCache = values;
+          _doInsert(interp(body));
+          interp._promptCache = null;
+        } else {
+          _doInsert(body);
+        }
+      });
     });
   }
 
@@ -212,7 +227,11 @@
     FT.scan().then(function (tree) {
       container.innerHTML = '';
       if (!tree) {
-        _renderFolderEmpty(container);
+        if (FT.hasFolder()) {
+          _renderFolderPermissionLost(container);
+        } else {
+          _renderFolderEmpty(container);
+        }
         return;
       }
       if (!tree.length) {
@@ -228,6 +247,35 @@
       container.innerHTML = '';
       container.appendChild(_el('p', 'tm-empty tm-empty--error', _t('templates.folder_error', 'Erreur de lecture du dossier')));
     });
+  }
+
+  function _renderFolderPermissionLost(container) {
+    var FT = window.BIAIFFileTemplates;
+    var wrap = _el('div', 'tm-pick-folder');
+    var icon = document.createElement('div');
+    icon.className = 'tm-pick-folder-icon';
+    icon.innerHTML =
+      '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+      '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>' +
+      '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    var msg = _el('p', 'tm-pick-folder-hint',
+      _t('templates.permission_lost', 'L\'accès au dossier a expiré. Cliquez pour réautoriser.'));
+    var reAuthBtn = _btn('tm-action-btn tm-action-btn--primary',
+      _t('templates.reauth', 'Réautoriser l\'accès'),
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/>' +
+      '<path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>');
+    reAuthBtn.addEventListener('click', function () {
+      if (!FT) return;
+      FT.pickFolder().then(function (name) {
+        if (name) _renderFolder(container);
+      });
+    });
+    wrap.appendChild(icon);
+    wrap.appendChild(msg);
+    wrap.appendChild(reAuthBtn);
+    container.appendChild(wrap);
   }
 
   function _renderFolderEmpty(container) {
@@ -425,11 +473,14 @@
     setTimeout(function () { panel.focus && panel.focus(); }, 30);
   }
 
+  var _triggerBtn = null; // reference kept to update aria-expanded cleanly
+
   function _close() {
     if (!_modal) return;
     document.removeEventListener('keydown', _onKey, true);
     if (_modal.parentNode) _modal.parentNode.removeChild(_modal);
     _modal = null;
+    if (_triggerBtn) _triggerBtn.setAttribute('aria-expanded', 'false');
   }
 
   function _onKey(e) {
@@ -441,23 +492,17 @@
   function bindTemplatesPopover(autoArm) {
     var btn = document.querySelector('[data-act="open-templates"]');
     if (!btn) return;
+    _triggerBtn = btn;
 
     // Init file-templates async
     if (window.BIAIFFileTemplates) window.BIAIFFileTemplates.init();
 
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      if (_modal) { _close(); btn.setAttribute('aria-expanded', 'false'); return; }
+      if (_modal) { _close(); return; }
       _open(autoArm);
       btn.setAttribute('aria-expanded', 'true');
     });
-
-    // Clean up aria-expanded when modal closes by other means
-    var origClose = _close;
-    _close = function () {
-      origClose();
-      btn.setAttribute('aria-expanded', 'false');
-    };
   }
 
   window.BIAIFBindings.bindTemplatesPopover = bindTemplatesPopover;
