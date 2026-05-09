@@ -68,6 +68,36 @@
   function showReloadModal() { if (ctx.REFS.reloadModal) ctx.REFS.reloadModal.removeAttribute('hidden'); }
   function hideReloadModal() { if (ctx.REFS.reloadModal) ctx.REFS.reloadModal.setAttribute('hidden', ''); }
 
+  // ── Confirm modal (generic destructive-action gate) ────────────────
+  function confirmModal(opts) {
+    var modal = document.getElementById('confirm-modal');
+    if (!modal) { if (opts && opts.onConfirm) opts.onConfirm(); return; }
+    var titleEl  = modal.querySelector('.confirm-title');
+    var descEl   = modal.querySelector('.confirm-desc');
+    var okBtn    = modal.querySelector('[data-act="confirm-ok"]');
+    var cancelEl = modal.querySelector('[data-act="confirm-cancel"]');
+    if (titleEl) titleEl.textContent = opts.title || '';
+    if (descEl)  descEl.textContent  = opts.desc  || '';
+    if (okBtn)   okBtn.textContent   = opts.confirmText || _t('modal.confirm.ok', 'Confirmer');
+    function close() {
+      modal.setAttribute('hidden', '');
+      if (okBtn)    okBtn.removeEventListener('click', onOk);
+      if (cancelEl) cancelEl.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey);
+    }
+    function onOk()     { close(); if (opts.onConfirm) opts.onConfirm(); }
+    function onCancel() { close(); if (opts.onCancel)  opts.onCancel();  }
+    function onBackdrop(e) { if (e.target === modal) onCancel(); }
+    function onKey(e)   { if (e.key === 'Escape') onCancel(); }
+    if (okBtn)    okBtn.addEventListener('click', onOk);
+    if (cancelEl) cancelEl.addEventListener('click', onCancel);
+    modal.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey);
+    modal.removeAttribute('hidden');
+    if (cancelEl) cancelEl.focus();
+  }
+
   // ── Capture progress bar ───────────────────────────────────────────
   function updateCaptureProgress(current, total, label) {
     var REFS = ctx.REFS;
@@ -314,6 +344,7 @@
     toggleCaptureSubline:     toggleCaptureSubline,
     showReloadModal:          showReloadModal,
     hideReloadModal:          hideReloadModal,
+    confirmModal:             confirmModal,
     updateCaptureProgress:    updateCaptureProgress,
     updateLinkedSessionBanner: updateLinkedSessionBanner,
     shortLabel:               shortLabel,

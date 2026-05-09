@@ -162,6 +162,39 @@
 }
 .reload-dismiss:hover { color: var(--text-main); }
 
+/* ============== Confirm modal (destructive-action gate) ============== */
+.biaif-confirm-modal {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0, 0, 0, 0.78); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.biaif-confirm-modal[hidden] { display: none; }
+.confirm-modal-content {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
+  background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 12px;
+  padding: 22px 18px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  width: 100%; max-width: 320px;
+}
+.confirm-icon { color: var(--danger); }
+.confirm-title { font-size: 16px; font-weight: 700; color: var(--text-main); }
+.confirm-desc  { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.confirm-actions {
+  display: flex; gap: 8px; width: 100%; margin-top: 4px;
+}
+.confirm-actions .btn-primary,
+.confirm-actions .btn-secondary { padding: 10px; font-size: 13px; }
+.confirm-ok--danger {
+  background: var(--danger);
+  background-image: none;
+  animation: none;
+  box-shadow: 0 2px 12px rgba(255, 69, 58, 0.35);
+}
+.confirm-ok--danger::before { display: none; }
+.confirm-ok--danger:hover {
+  background: #ff5e54;
+  box-shadow: 0 4px 22px rgba(255, 69, 58, 0.55);
+}
+
 /* ============== Toast notifications (sticky at bottom of sidebar) ============== */
 #toast-container {
   position: fixed;
