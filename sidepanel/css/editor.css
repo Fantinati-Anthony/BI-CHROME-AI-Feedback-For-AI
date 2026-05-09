@@ -39,10 +39,15 @@
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
               visibility 0s linear 0s;
 }
-/* Inverted layout: topbar at bottom → drawer slides in covering the top */
+/* Inverted layout: topbar at bottom → drawer slides in covering the top.
+   flex-direction: column-reverse so the quick-tools (1st DOM child) render
+   at the bottom of the drawer — i.e. just above the topbar — and the
+   demande-zone sits above. Mirrors the natural reading flow when controls
+   are at the bottom. */
 .biaif-root.topbar-bottom .biaif-compose-drawer {
   --compose-top: 0;
   --compose-bottom: 48px;
+  flex-direction: column-reverse;
 }
 /* Visibility of demande-zone + quick-tools is now governed entirely by
    the drawer wrapper transform. The legacy .is-locked display:none rule

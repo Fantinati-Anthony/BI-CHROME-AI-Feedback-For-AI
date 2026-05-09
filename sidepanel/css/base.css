@@ -134,8 +134,14 @@ html, body {
 }
 /* User-controlled vertical layout — inverts the whole sidebar */
 .biaif-root.topbar-bottom { flex-direction: column-reverse; }
-/* When inverted, push history segments to the bottom of their wrapper */
-.biaif-root.topbar-bottom .biaif-segments-wrap { justify-content: flex-end; }
+/* When inverted, anchor the segment list to the bottom of the wrap.
+   margin-top: auto on the inner .biaif-segments achieves the visual
+   "stick near the topbar" effect WITHOUT the classic flex+overflow
+   gotcha: justify-content: flex-end on a scroll container makes the
+   topmost overflowing items unreachable (they render above the scroll
+   origin). margin-top: auto is overridden once content overflows, so
+   the wrap scrolls correctly with many segments. */
+.biaif-root.topbar-bottom .biaif-segments { margin-top: auto; }
 /* Notifications flip to the top edge as well */
 .biaif-root.topbar-bottom #toast-container,
 .biaif-root.topbar-bottom .biaif-status { top: var(--pad-md); bottom: auto; }
