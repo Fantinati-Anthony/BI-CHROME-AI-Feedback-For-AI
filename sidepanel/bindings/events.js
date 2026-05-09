@@ -65,17 +65,20 @@
       H.updateLinkedSessionBanner();
     });
     // "Nouvelle conv." — clears any leftover draft and arms a fresh session.
-    var newConvBtn = document.querySelector('[data-act="new-conv"]');
-    if (newConvBtn) newConvBtn.addEventListener('click', function () {
-      // Always start with an empty editor (no leftover from previous session)
-      STATE.currentDemande = { text: '', refs: [], pageUrl: null };
-      if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
-      window.BIAIFRenderer.renderDemandeRefsStrip();
-      _autoArm();
-      STATE.pendingConversationUrl = null;
-      STATE.pendingRepoId = null;
-      H.updateLinkedSessionBanner();
-      window.BIAIFStorage.persist(STATE);
+    // Two buttons share data-act="new-conv": the topbar + (.session-new-conv)
+    // AND the empty-state orb (.empty-state-orb). Bind both.
+    document.querySelectorAll('[data-act="new-conv"]').forEach(function (newConvBtn) {
+      newConvBtn.addEventListener('click', function () {
+        // Always start with an empty editor (no leftover from previous session)
+        STATE.currentDemande = { text: '', refs: [], pageUrl: null };
+        if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
+        window.BIAIFRenderer.renderDemandeRefsStrip();
+        _autoArm();
+        STATE.pendingConversationUrl = null;
+        STATE.pendingRepoId = null;
+        H.updateLinkedSessionBanner();
+        window.BIAIFStorage.persist(STATE);
+      });
     });
     // "✕ Disarm" — saves any pending work and goes back to history view.
     var disarmBtn = document.querySelector('[data-act="disarm"]');
@@ -103,10 +106,28 @@
   }
 
   function _bindFooter() {
-    var REFS = ctx.REFS;
-    if (REFS.clearBtn)    REFS.clearBtn.addEventListener('click',    function () { H.clearAll(); });
+    var REFS = ctx.REFS, STATE = ctx.STATE;
+    if (REFS.clearBtn) REFS.clearBtn.addEventListener('click', function () {
+      // Don't prompt if there's nothing to clear — clearAll is a no-op anyway.
+      var hasContent = STATE.demandes.length
+        || (STATE.currentDemande.text || '').trim()
+        || STATE.currentDemande.refs.length;
+      if (!hasContent) return;
+      H.confirmModal({
+        title:       _t('modal.clear.title', 'Vider la session ?'),
+        desc:        _t('modal.clear.desc', 'Toutes les demandes enregistrées seront supprimées. Vous pourrez annuler immédiatement après depuis le toast.'),
+        confirmText: _t('modal.clear.confirm', 'Vider'),
+        onConfirm:   function () { H.clearAll(); },
+      });
+    });
     if (REFS.copyBtn)     REFS.copyBtn.addEventListener('click',     function () { window.BIAIFExport.copyPrompt(); });
     if (REFS.downloadBtn) REFS.downloadBtn.addEventListener('click', function () { window.BIAIFExport.downloadBundle(); });
+
+    // Empty-state "Voir le guide" — re-opens the onboarding wizard.
+    var guideBtn = document.querySelector('[data-act="open-wizard"]');
+    if (guideBtn) guideBtn.addEventListener('click', function () {
+      if (window.BIAIFWizard) window.BIAIFWizard.open(STATE, function () { window.BIAIFStorage.persist(STATE); });
+    });
   }
 
   function _bindLangSelect() {

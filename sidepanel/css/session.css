@@ -83,23 +83,10 @@
 .session-main:disabled::before { display: none; }
 
 /* Bouton "Nouvelle conversation" — point d'entrée principal en mode repos.
-   Reprend le gradient AI animé du bouton master (mêmes effets visuels). */
-/* Sonar ring expanding outward from the + button */
-@keyframes new-conv-sonar {
-  0%   { box-shadow:
-    0 0 22px rgba(139,92,246,.35), 0 0 44px rgba(6,182,212,.18),
-    inset 0 1px 0 rgba(255,255,255,.15),
-    0 0 0 0   rgba(139,92,246,.65); }
-  60%  { box-shadow:
-    0 0 22px rgba(139,92,246,.35), 0 0 44px rgba(6,182,212,.18),
-    inset 0 1px 0 rgba(255,255,255,.15),
-    0 0 0 14px rgba(139,92,246,.0); }
-  100% { box-shadow:
-    0 0 22px rgba(139,92,246,.35), 0 0 44px rgba(6,182,212,.18),
-    inset 0 1px 0 rgba(255,255,255,.15),
-    0 0 0 0   rgba(139,92,246,.0); }
-}
-
+   Reprend la signature visuelle de l'orb du hero (.empty-state-orb) :
+   double highlight radial (blanc top-left + violet bottom-right) + glass
+   effect interne. Anime via hero-orb-pulse pour rester en cohérence avec
+   l'orb du hero quand les deux coexistent. */
 .session-new-conv {
   display: flex; align-items: center; justify-content: center;
   width: var(--topbar-h, 36px); height: var(--topbar-h, 36px);
@@ -109,30 +96,24 @@
   color: #fff;
   font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
   cursor: pointer;
-  position: relative; overflow: hidden;
-  background: linear-gradient(120deg, #4f46e5 0%, #06b6d4 35%, #8b5cf6 70%, #4f46e5 100%);
-  background-size: 220% 220%;
-  animation: ai-gradient 6s ease-in-out infinite, new-conv-sonar 2.2s ease-out infinite;
+  position: relative;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), transparent 38%),
+    radial-gradient(circle at 72% 78%, rgba(139, 92, 246, 0.50), transparent 55%),
+    linear-gradient(135deg, #4f46e5 0%, #06b6d4 50%, #8b5cf6 100%);
+  box-shadow:
+    0 0 18px rgba(139, 92, 246, 0.50),
+    0 0 36px rgba(6, 182, 212, 0.25),
+    inset 0 0 12px rgba(255, 255, 255, 0.12),
+    inset 0 -6px 14px rgba(139, 92, 246, 0.20);
+  animation: hero-orb-pulse 3s ease-in-out infinite;
   transition: transform 0.18s ease;
 }
-.session-new-conv::before {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
-  background-size: 250% 100%;
-  animation: ai-shine 3.5s linear infinite;
-  pointer-events: none;
-}
-.session-new-conv:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow:
-    0 0 36px rgba(139, 92, 246, 0.55),
-    0 0 70px rgba(6, 182, 212, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-.session-new-conv:active { transform: translateY(0) scale(0.99); }
-.session-new-conv svg, .session-new-conv span {
+.session-new-conv:hover  { transform: scale(1.08); }
+.session-new-conv:active { transform: scale(0.96); }
+.session-new-conv svg {
   position: relative; z-index: 1;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
   flex-shrink: 0;
 }
 
