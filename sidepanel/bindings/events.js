@@ -546,6 +546,11 @@
       window.BIAIFStorage.persist(STATE);
     });
     syncDep();
+    var cbStaysArmed = document.getElementById('save-stays-armed');
+    if (cbStaysArmed) cbStaysArmed.addEventListener('change', function () {
+      STATE.saveStaysArmed = cbStaysArmed.checked;
+      window.BIAIFStorage.persist(STATE);
+    });
   }
 
   function _bindUiLangButtons() {

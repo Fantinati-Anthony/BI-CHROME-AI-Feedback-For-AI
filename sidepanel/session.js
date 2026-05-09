@@ -94,13 +94,20 @@
     });
     STATE.currentDemande = { text: '', refs: [], pageUrl: null };
     if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
-    // Stay armed and ready for the next segment.
-    // The ✕ disarm button is the explicit "go back to history" action.
-    window.BIAIFRenderer.renderDemandeEditor();
-    window.BIAIFRenderer.renderDemandeRefsStrip();
-    window.BIAIFRenderer.renderSegments();
-    window.BIAIFRenderer.updateArmedUi();
-    window.BIAIFRenderer.updateMasterBtnLabel();
+    if (STATE.saveStaysArmed !== false) {
+      // Stay armed and ready for the next segment (default).
+      // ✕ disarm is the explicit "go back to history" action.
+      window.BIAIFRenderer.renderDemandeEditor();
+      window.BIAIFRenderer.renderDemandeRefsStrip();
+      window.BIAIFRenderer.renderSegments();
+      window.BIAIFRenderer.updateArmedUi();
+      window.BIAIFRenderer.updateMasterBtnLabel();
+    } else {
+      // Go back to history view.
+      _disarm();
+      window.BIAIFRenderer.renderDemandeRefsStrip();
+      window.BIAIFRenderer.renderSegments();
+    }
     window.BIAIFStorage.persist(STATE);
     if (!silent) _toast(_t('toast.demande_finalized', 'Demande #' + savedNum + ' finalisée.', { n: savedNum }), 'success');
   }
