@@ -113,18 +113,28 @@
 /* Stop button hidden in new UX */
 .session-stop { display: none !important; }
 
-/* Token counter — pills appended after the session-main button */
+/* Token counter — pill in the .demande-header next to the refs counter.
+   Visible whenever the editor zone is shown (armed OR editing). */
 .token-counter {
   display: inline-flex; align-items: center; justify-content: center;
-  height: 22px; padding: 0 8px; flex-shrink: 0;
+  height: 18px; padding: 0 7px; flex-shrink: 0;
+  margin-left: auto; margin-right: 6px;
   font-family: 'Inter', monospace; font-size: 10px; font-weight: 700;
   color: var(--text-muted); background: var(--bg-card);
   border: 1px solid var(--border-card); border-radius: var(--radius-pill);
-  margin-left: -2px; align-self: center;
   pointer-events: none; user-select: none;
+  text-transform: none; letter-spacing: 0;
   transition: all 0.15s;
 }
 .token-counter[hidden] { display: none; }
+/* In-card variant lives in the segment header, not the editor strip — so
+   no auto-margin-left, smaller spacing, sits next to the meta info. */
+.token-counter.token-counter--seg {
+  margin: 0 4px 0 0;
+  font-size: 9px;
+  height: 16px;
+  padding: 0 6px;
+}
 .token-counter[data-kind="info"]   { color: var(--accent-blue); border-color: var(--accent-blue-100); background: var(--accent-blue-50); }
 .token-counter[data-kind="warn"]   { color: #f59e0b; border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); }
 .token-counter[data-kind="danger"] { color: var(--danger); border-color: rgba(255,69,58,0.5); background: rgba(255,69,58,0.12); animation: token-danger-pulse 1.4s ease-in-out infinite; }

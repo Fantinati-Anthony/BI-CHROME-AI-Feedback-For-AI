@@ -69,27 +69,41 @@
   }
 
   function _ensureBadge() {
-    var badge = document.querySelector('.token-counter');
+    // Anchor inside the demande-zone header, right next to the "N réfs"
+    // counter — both belong to the editor's metadata strip and are
+    // visible when the user is composing.
+    var header = document.querySelector('.demande-zone .demande-header');
+    var refsCt = header && header.querySelector('.demande-refs-count');
+    if (!header) return null;
+    var badge  = document.querySelector('.token-counter');
+    if (badge && badge.parentNode !== header) {
+      // A previous build anchored the badge in .session-bar — re-anchor.
+      badge.parentNode.removeChild(badge);
+      badge = null;
+    }
     if (badge) return badge;
-    var anchor = document.querySelector('.session-bar');
-    if (!anchor) return null;
     badge = document.createElement('span');
     badge.className = 'token-counter';
     badge.setAttribute('role', 'status');
     badge.setAttribute('aria-live', 'polite');
     badge.title = _t('tokens.tooltip', 'Estimation des tokens (heuristique BPE)');
-    anchor.appendChild(badge);
+    if (refsCt) header.insertBefore(badge, refsCt);
+    else        header.appendChild(badge);
     return badge;
   }
 
   function update() {
     var STATE = ctx.STATE;
     if (!STATE) return;
-    var text   = (STATE.currentDemande && STATE.currentDemande.text) || '';
-    var tokens = _estimate(text);
-    var badge  = _ensureBadge();
+    var text     = (STATE.currentDemande && STATE.currentDemande.text) || '';
+    var tokens   = _estimate(text);
+    var armed    = !!STATE.armed;
+    var editing  = typeof STATE.editingDemandeIdx === 'number';
+    var badge    = _ensureBadge();
     if (!badge) return;
-    if (!STATE.armed || !text) { badge.hidden = true; return; }
+    // Visible whenever the editor zone is shown (armed OR editing) —
+    // even at 0 tokens, so the user always sees the budget meter.
+    if (!armed && !editing) { badge.hidden = true; return; }
     badge.hidden = false;
     badge.dataset.kind = _kindFor(tokens);
     badge.textContent  = '~' + _format(tokens) + ' ' + _t('tokens.unit', 'tok');

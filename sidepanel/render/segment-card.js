@@ -125,6 +125,21 @@
     return '';
   }
 
+  // Per-card token estimate badge — uses the same heuristic + colour
+  // thresholds as the live editor counter (sidepanel/render/token-counter.js).
+  function _tokenBadgeHtml(dem) {
+    var TC = window.BIAIFRender.tokenCounter;
+    if (!TC || !TC._estimate || !TC._kindFor) return '';
+    var stripped = String(dem.text || '').replace(/\{\{ref:\d+\}\}/g, '');
+    var n   = TC._estimate(stripped);
+    if (!n) return '';
+    var kind  = TC._kindFor(n);
+    var label = (n < 1000 ? n : (n < 10000 ? (n / 1000).toFixed(1) + 'k' : Math.round(n / 1000) + 'k'));
+    var unit  = _t('tokens.unit', 'tok');
+    var tip   = esc(_t('tokens.tooltip', 'Estimation des tokens (heuristique BPE)'));
+    return '<span class="token-counter token-counter--seg" data-kind="' + kind + '" title="' + tip + '">~' + label + ' ' + esc(unit) + '</span>';
+  }
+
   function _editBtnHtml(origIndex, isEditing) {
     var ICONS = window.BIAIFRender.icons;
     if (isEditing) {
@@ -185,6 +200,7 @@
         '<span class="seg-num" aria-label="Demande ' + num + '">#' + num + '</span>' +
         '<span class="seg-meta">' + dt + ' · <span aria-label="' + refsCount + ' références">' +
           esc(refsLabel) + '</span></span>' +
+        _tokenBadgeHtml(dem) +
         _statusHtml(dem) +
         _editBtnHtml(origIndex, isEditing) +
         '<button class="seg-del" data-act="seg-del" data-i="' + origIndex +
