@@ -402,17 +402,17 @@
          Topbar — single row: [session-bar (left)] [topbar-tools (right)]
     ============================================================ -->
     <div class="topbar-row">
-    <div class="session-bar" role="toolbar" aria-label="Contrôles de session">
+    <div class="session-bar topbar-col topbar-col--left" role="toolbar" aria-label="Contrôles de session">
       <button class="session-new-conv" data-act="new-conv"
         aria-label="Nouvelle conversation — le prochain segment sera indépendant"
         title="Nouvelle conversation">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span data-i18n="session.new_conv">Nouvelle conv.</span>
       </button>
       <button class="session-main" data-act="master" disabled
-        aria-label="Enregistrer la demande courante">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        <span class="master-label" data-i18n="session.save">Enregistrer</span>
+        aria-label="Enregistrer la demande courante" title="Enregistrer la demande courante">
+        <span class="master-label" data-i18n="session.save" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
       </button>
       <!-- Disarm: save changes and go back to history view -->
       <button class="session-disarm" data-act="disarm"
@@ -422,14 +422,19 @@
     </div>
 
     <!-- ============================================================
-         Topbar tools — search / sort / font / settings
+         Topbar centre — search loupe (expandable input)
     ============================================================ -->
-    <div class="topbar-tools" role="toolbar" aria-label="Outils de navigation">
+    <div class="topbar-col topbar-col--center" role="toolbar" aria-label="Recherche">
       <button class="topbar-icon-btn" data-act="search-toggle" aria-label="Rechercher dans l'historique" aria-expanded="false" title="Rechercher">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
       </button>
       <input type="search" id="history-search" class="topbar-search-input" placeholder="Rechercher dans l'historique…" aria-label="Rechercher dans l'historique des demandes" data-i18n-placeholder="segments.search_placeholder" hidden>
+    </div>
 
+    <!-- ============================================================
+         Topbar right — sort / font / settings (logs hidden by default)
+    ============================================================ -->
+    <div class="topbar-tools topbar-col topbar-col--right" role="toolbar" aria-label="Outils de navigation">
       <!-- Sort split-button: ↑ A→Z / ↓ Z→A -->
       <div class="topbar-split" role="group" aria-label="Trier l'historique">
         <button class="topbar-split-half topbar-split-up" data-act="sort-asc" aria-label="Trier A→Z" title="A→Z (plus ancien en haut)">
@@ -586,11 +591,8 @@
         <span class="demande-title" aria-hidden="true" data-i18n="demande.title">Demande en cours</span>
         <span class="demande-refs-count" data-count="0" aria-live="polite" aria-label="0 référence">0 réf</span>
       </div>
-      <!-- Shown when editing an existing segment — hides when creating new -->
-      <div class="demande-zone-ctx" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        <span class="demande-ctx-label"></span>
-      </div>
+      <!-- (demande-zone-ctx supprimé : la classe .demande-title.is-editing
+           juste au-dessus rend déjà l'état d'édition explicite.) -->
       <!-- URL bar: page URL for new, segment URL when editing -->
       <div class="demande-zone-urlbar" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
