@@ -128,12 +128,12 @@
   function _editBtnHtml(origIndex, isEditing) {
     var ICONS = window.BIAIFRender.icons;
     if (isEditing) {
-      return '<button class="seg-edit-btn is-active" data-i="' + origIndex +
+      return '<button class="seg-edit-btn is-active" data-act="seg-edit" data-i="' + origIndex +
         '" aria-label="Terminer l\'édition" title="Terminer l\'édition">' +
         ICONS.checkmark(12).replace('stroke-width="2"', 'stroke-width="2.5"') +
         '<span>Terminer</span></button>';
     }
-    return '<button class="seg-edit-btn" data-i="' + origIndex +
+    return '<button class="seg-edit-btn" data-act="seg-edit" data-i="' + origIndex +
       '" aria-label="Éditer cette demande" title="Éditer (voix, picker, capture s\'y insèrent)">' +
       ICONS.pencil(12) + '</button>';
   }
@@ -187,7 +187,7 @@
           esc(refsLabel) + '</span></span>' +
         _statusHtml(dem) +
         _editBtnHtml(origIndex, isEditing) +
-        '<button class="seg-del" data-i="' + origIndex +
+        '<button class="seg-del" data-act="seg-del" data-i="' + origIndex +
           '" aria-label="Supprimer la demande ' + num + '" title="Supprimer">×</button>' +
       '</header>' +
       _buildMetaTags(dem) +
