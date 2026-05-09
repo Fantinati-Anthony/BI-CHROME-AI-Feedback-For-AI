@@ -197,10 +197,7 @@
      col 3 (right)  — sort + font (on cog hover) + cog (+ optional logs)    */
 .topbar-row {
   --topbar-h: 36px;
-  /* Sticky: stays visible while the segments list scrolls. top: 0 in
-     default mode, bottom: 0 in topbar-bottom mode (handled below). */
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 801; /* above .biaif-compose-drawer (800) so button pulses /
                    shadows that extend below the topbar aren't clipped
                    by the drawer's opaque background */
@@ -209,35 +206,6 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-
-  /* Edge-to-edge background: cancel root's horizontal padding with a
-     negative margin and re-add it as internal padding so the buttons
-     stay aligned but the bg stretches across the full sidebar width.
-     Solid var(--bg-app) hides segments scrolling under the bar. */
-  margin-left:  calc(var(--pad-md) * -1);
-  margin-right: calc(var(--pad-md) * -1);
-  padding-left:  var(--pad-md);
-  padding-right: var(--pad-md);
-  background: var(--bg-app);
-}
-/* Soft fade just below the bar so segments transition smoothly under it
-   instead of clipping against a hard edge. */
-.topbar-row::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0;
-  top: 100%; height: 10px;
-  background: linear-gradient(180deg, var(--bg-app) 0%, transparent 100%);
-  pointer-events: none;
-}
-/* topbar-bottom mode: pin to viewport bottom and flip the fade upward. */
-.biaif-root.topbar-bottom .topbar-row {
-  top: auto;
-  bottom: 0;
-}
-.biaif-root.topbar-bottom .topbar-row::after {
-  top: auto; bottom: 100%;
-  background: linear-gradient(0deg, var(--bg-app) 0%, transparent 100%);
 }
 .topbar-col {
   display: flex; align-items: center; gap: 6px;
