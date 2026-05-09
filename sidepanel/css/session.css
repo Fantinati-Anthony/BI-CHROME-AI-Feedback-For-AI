@@ -59,7 +59,7 @@
 }
 .biaif-root.is-armed .session-bar {
   border-radius: 10px;
-  animation: biaif-sessionbar-pulse 2.2s ease-in-out infinite;
+  /* animation: biaif-sessionbar-pulse 2.2s ease-in-out infinite; — pulse moved off .session-bar */
 }
 
 @keyframes ai-gradient {

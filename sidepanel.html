@@ -234,6 +234,32 @@
             </span>
             <span class="sp-switch"><input type="checkbox" id="save-stays-armed" aria-label="Rester en mode nouveau segment après enregistrement"><span class="sp-switch-track"><span class="sp-switch-thumb"></span></span></span>
           </label>
+
+          <h4 class="sp-subsection-title" data-i18n="settings.shortcut_mode.title">Raccourcis Micro &amp; Sélecteur</h4>
+          <p class="sp-section-desc" data-i18n="settings.shortcut_mode.desc">Comportement de Alt+Shift+M (micro) et Alt+Shift+E (sélecteur).</p>
+          <div class="sp-radio-group" role="radiogroup" aria-label="Mode des raccourcis">
+            <label class="sp-radio-row">
+              <input type="radio" name="shortcut-mode" value="smart" id="shortcut-mode-smart">
+              <span class="sp-radio-info">
+                <span class="sp-radio-name" data-i18n="settings.shortcut_mode.smart_label">Smart (recommandé)</span>
+                <span class="sp-radio-hint" data-i18n="settings.shortcut_mode.smart_hint">Clic court = bascule on/off. Maintien = push-to-talk (s'arrête au relâcher).</span>
+              </span>
+            </label>
+            <label class="sp-radio-row">
+              <input type="radio" name="shortcut-mode" value="toggle" id="shortcut-mode-toggle">
+              <span class="sp-radio-info">
+                <span class="sp-radio-name" data-i18n="settings.shortcut_mode.toggle_label">Toggle</span>
+                <span class="sp-radio-hint" data-i18n="settings.shortcut_mode.toggle_hint">1 clic démarre, 1 clic arrête. Mains libres pour dictée longue.</span>
+              </span>
+            </label>
+            <label class="sp-radio-row">
+              <input type="radio" name="shortcut-mode" value="hold" id="shortcut-mode-hold">
+              <span class="sp-radio-info">
+                <span class="sp-radio-name" data-i18n="settings.shortcut_mode.hold_label">Hold (push-to-talk)</span>
+                <span class="sp-radio-hint" data-i18n="settings.shortcut_mode.hold_hint">Maintenir pour activer, relâcher pour arrêter. Pas de risque d'oubli.</span>
+              </span>
+            </label>
+          </div>
           </div>
         </details>
         <details class="sp-section">
