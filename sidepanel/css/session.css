@@ -84,6 +84,22 @@
 
 /* Bouton "Nouvelle conversation" — point d'entrée principal en mode repos.
    Reprend le gradient AI animé du bouton master (mêmes effets visuels). */
+/* Sonar ring expanding outward from the + button */
+@keyframes new-conv-sonar {
+  0%   { box-shadow:
+    0 0 22px rgba(139,92,246,.35), 0 0 44px rgba(6,182,212,.18),
+    inset 0 1px 0 rgba(255,255,255,.15),
+    0 0 0 0   rgba(139,92,246,.65); }
+  60%  { box-shadow:
+    0 0 22px rgba(139,92,246,.35), 0 0 44px rgba(6,182,212,.18),
+    inset 0 1px 0 rgba(255,255,255,.15),
+    0 0 0 14px rgba(139,92,246,.0); }
+  100% { box-shadow:
+    0 0 22px rgba(139,92,246,.35), 0 0 44px rgba(6,182,212,.18),
+    inset 0 1px 0 rgba(255,255,255,.15),
+    0 0 0 0   rgba(139,92,246,.0); }
+}
+
 .session-new-conv {
   display: flex; align-items: center; justify-content: center;
   width: var(--topbar-h, 36px); height: var(--topbar-h, 36px);
@@ -96,12 +112,8 @@
   position: relative; overflow: hidden;
   background: linear-gradient(120deg, #4f46e5 0%, #06b6d4 35%, #8b5cf6 70%, #4f46e5 100%);
   background-size: 220% 220%;
-  animation: ai-gradient 6s ease-in-out infinite;
-  box-shadow:
-    0 0 22px rgba(139, 92, 246, 0.35),
-    0 0 44px rgba(6, 182, 212, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transition: transform 0.18s ease, box-shadow 0.25s ease;
+  animation: ai-gradient 6s ease-in-out infinite, new-conv-sonar 2.2s ease-out infinite;
+  transition: transform 0.18s ease;
 }
 .session-new-conv::before {
   content: ''; position: absolute; inset: 0;
@@ -180,9 +192,9 @@
 .session-disarm svg { color: #fff; }
 
 /* ─── Topbar row : 3-column grid
-     col 1 (left)   — new-conv + master + disarm  (session-bar)
-     col 2 (center) — search loupe (expandable)
-     col 3 (right)  — sort + font + cog (+ optional logs)             */
+     col 1 (left)   — search loupe (was col 2)
+     col 2 (center) — new-conv + master + disarm  (session-bar, was col 1)
+     col 3 (right)  — sort + font (on cog hover) + cog (+ optional logs)    */
 .topbar-row {
   --topbar-h: 36px;
   display: grid;
@@ -196,15 +208,34 @@
   height: var(--topbar-h);
   min-width: 0;
 }
-.topbar-col--center { justify-content: center; }
-.topbar-col--right  { justify-content: flex-end; }
+/* Column order: search loupe → col 1, session bar → col 2, tools → col 3 */
+.topbar-col--left   { order: 2; }
+.topbar-col--center { order: 1; justify-content: flex-start; }
+.topbar-col--right  { order: 3; justify-content: flex-end; }
 
 /* When the search input expands inside the centre column, let it grow */
 .topbar-col--center .topbar-search-input { flex: 1; min-width: 0; }
 
-/* Legacy alias kept for the session-bar children — they sit in col 1 */
+/* Legacy alias — session-bar now in col 2 (1fr) */
 .topbar-row .session-bar { align-items: center; }
 .topbar-tools { flex-shrink: 0; }
+
+/* ── Sort + font extras — revealed on .topbar-tools hover ──────────────
+   clip-path: inset(0 0 0 100%) = clipped from the left (nothing visible)
+   clip-path: inset(0 0 0   0%) = fully visible
+   As left-inset shrinks 100%→0%, content reveals right-first (left last)
+   → right-to-left unfurl on open. Closing reverses: right disappears first.
+   pointer-events: none while hidden prevents phantom clicks.             */
+.topbar-extras {
+  display: flex; align-items: center; gap: 6px;
+  clip-path: inset(0 0 0 100% round 18px);
+  pointer-events: none;
+  transition: clip-path 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar-tools:hover .topbar-extras {
+  clip-path: inset(0 0 0 0% round 18px);
+  pointer-events: auto;
+}
 
 /* All circular controls share the same square footprint */
 .topbar-row .session-disarm,

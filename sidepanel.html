@@ -472,24 +472,27 @@
          Topbar right — sort / font / settings (logs hidden by default)
     ============================================================ -->
     <div class="topbar-tools topbar-col topbar-col--right" role="toolbar" aria-label="Outils de navigation">
-      <!-- Sort split-button: ↑ A→Z / ↓ Z→A -->
-      <div class="topbar-split" role="group" aria-label="Trier l'historique">
-        <button class="topbar-split-half topbar-split-up" data-act="sort-asc" aria-label="Trier A→Z" title="A→Z (plus ancien en haut)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>
-        </button>
-        <button class="topbar-split-half topbar-split-down" data-act="sort-desc" aria-label="Trier Z→A" title="Z→A (plus récent en haut)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-      </div>
+      <!-- Sort + Font split-buttons — revealed on cog hover via .topbar-extras -->
+      <div class="topbar-extras" aria-label="Trier et redimensionner">
+        <!-- Sort split-button: ↑ A→Z / ↓ Z→A -->
+        <div class="topbar-split" role="group" aria-label="Trier l'historique">
+          <button class="topbar-split-half topbar-split-up" data-act="sort-asc" aria-label="Trier A→Z" title="A→Z (plus ancien en haut)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>
+          </button>
+          <button class="topbar-split-half topbar-split-down" data-act="sort-desc" aria-label="Trier Z→A" title="Z→A (plus récent en haut)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
 
-      <!-- Font-size split-button: A+ / A− -->
-      <div class="topbar-split" role="group" aria-label="Taille du texte">
-        <button class="topbar-split-half topbar-split-up" data-act="seg-font-up" aria-label="Agrandir le texte" title="Agrandir A+">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><text x="3" y="17" font-size="14" font-family="Inter,sans-serif" font-weight="800" fill="currentColor" stroke="none">A</text><line x1="16" y1="9" x2="16" y2="15"/><line x1="13" y1="12" x2="19" y2="12"/></svg>
-        </button>
-        <button class="topbar-split-half topbar-split-down" data-act="seg-font-down" aria-label="Réduire le texte" title="Réduire A−">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><text x="3" y="17" font-size="14" font-family="Inter,sans-serif" font-weight="800" fill="currentColor" stroke="none">A</text><line x1="13" y1="12" x2="19" y2="12"/></svg>
-        </button>
+        <!-- Font-size split-button: A+ / A− -->
+        <div class="topbar-split" role="group" aria-label="Taille du texte">
+          <button class="topbar-split-half topbar-split-up" data-act="seg-font-up" aria-label="Agrandir le texte" title="Agrandir A+">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><text x="3" y="17" font-size="14" font-family="Inter,sans-serif" font-weight="800" fill="currentColor" stroke="none">A</text><line x1="16" y1="9" x2="16" y2="15"/><line x1="13" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="topbar-split-half topbar-split-down" data-act="seg-font-down" aria-label="Réduire le texte" title="Réduire A−">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><text x="3" y="17" font-size="14" font-family="Inter,sans-serif" font-weight="800" fill="currentColor" stroke="none">A</text><line x1="13" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
       </div>
 
       <!-- Console toggle (visible only if enabled in settings) -->
