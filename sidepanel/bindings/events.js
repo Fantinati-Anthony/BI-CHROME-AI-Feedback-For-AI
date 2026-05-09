@@ -156,9 +156,9 @@
       e.stopPropagation(); H.toggleCaptureSubline();
     });
     document.addEventListener('click', function (e) {
-      var sub = document.querySelector('.quick-tools-subline');
+      var sub = document.getElementById('capture-subline');
       if (!sub || sub.hasAttribute('hidden')) return;
-      if (e.target.closest('[data-act="capture-toggle"]') || e.target.closest('.quick-tools-subline')) return;
+      if (e.target.closest('[data-act="capture-toggle"]') || e.target.closest('#capture-subline')) return;
       H.closeCaptureSubline();
     });
   }

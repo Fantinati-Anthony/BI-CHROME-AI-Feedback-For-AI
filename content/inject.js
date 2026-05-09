@@ -9,6 +9,15 @@
   if (window.__BIAIF_INJECT__) return;
   window.__BIAIF_INJECT__ = true;
 
+  // Wrap chrome.runtime.sendMessage so a synchronous "Extension context
+  // invalidated" throw (after a reload) doesn't leak into the host page.
+  function _safeSend(msg) {
+    try {
+      var p = chrome.runtime.sendMessage(msg);
+      if (p && typeof p.catch === 'function') p.catch(function () {});
+    } catch (_) { /* extension reloaded — ignore */ }
+  }
+
   // Editor selectors come from shared/ai-adapters.js (per-host config).
   // Generic fallback list for unknown hosts.
   var FALLBACK_EDITORS = [
@@ -173,10 +182,10 @@
       if (msg.text) {
         await injectText(editor, msg.text);
         done++;
-        chrome.runtime.sendMessage({
+        _safeSend({
           type: window.BIAIF.MSG.CAPTURE_PROGRESS,
           current: done, total: total, label: 'Texte injecté…',
-        }).catch(function () {});
+        });
         await sleep(200);
       }
 
@@ -185,10 +194,10 @@
       for (var i = 0; i < images.length; i++) {
         await injectImage(editor, images[i]);
         done++;
-        chrome.runtime.sendMessage({
+        _safeSend({
           type: window.BIAIF.MSG.CAPTURE_PROGRESS,
           current: done, total: total, label: 'Image ' + (i + 1) + '/' + images.length + ' injectée…',
-        }).catch(function () {});
+        });
         await sleep(150);
       }
 
