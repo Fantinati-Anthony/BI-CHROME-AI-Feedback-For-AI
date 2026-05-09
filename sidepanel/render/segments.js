@@ -65,27 +65,10 @@
       });
   }
 
-  // Tear down the current quick-tools / filter bar / segments before re-rendering.
-  function _detachQuickTools() {
-    var qt = document.querySelector('.biaif-quick-tools');
-    if (qt && qt.parentNode) qt.parentNode.removeChild(qt);
-    return qt;
-  }
-
-  function _reattachQuickTools(qt) {
-    if (!qt) return;
-    // Unified zone: quick-tools live as a sibling AFTER .topbar-row
-    // (so the topbar's single-line layout stays intact).
-    var anchor = document.querySelector('.topbar-row') || document.querySelector('.session-bar');
-    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(qt, anchor.nextSibling);
-    else { var r = document.querySelector('.biaif-root'); if (r) r.appendChild(qt); }
-  }
-
   function render() {
     var REFS = ctx.REFS, STATE = ctx.STATE;
     if (!REFS.segments) return;
 
-    var qt = _detachQuickTools();
     var R  = window.BIAIFRender;
 
     REFS.segments.innerHTML = '';
@@ -97,14 +80,12 @@
 
     if (!STATE.demandes.length) {
       REFS.segments.appendChild(DOM.makeEmpty(_t('segments.empty', 'Aucune demande pour le moment')));
-      _reattachQuickTools(qt);
       R.uiState.updateMasterBtnLabel();
       R.uiState.updateArmedUi();
       return;
     }
     if (!filtered.length) {
       REFS.segments.appendChild(DOM.makeEmpty(_t('segments.no_results', 'Aucun résultat pour cette recherche')));
-      _reattachQuickTools(qt);
       R.uiState.updateMasterBtnLabel();
       R.uiState.updateArmedUi();
       return;
@@ -129,7 +110,6 @@
       REFS.segments.appendChild(R.archiveZone.build(orphanDone));
     }
 
-    _reattachQuickTools(qt);
     R.uiState.updateMasterBtnLabel();
     R.uiState.updateArmedUi();
     // Overflow detection runs after browser has laid out the new cards
