@@ -195,22 +195,10 @@
       if (act === 'seg-tag-add') {
         e.stopPropagation();
         var stT = ctx.STATE;
-        var demT = stT.demandes[idx];
-        if (!demT) return;
-        var existing = (demT.tags || []).join(', ');
-        var raw = window.prompt(_t('tags.prompt', 'Tags (séparés par des virgules) :'), existing);
-        if (raw == null) return;
-        // Normalise: trim, lowercase letters/digits/-/_, max 24 chars, max 5 tags.
-        var clean = raw.split(',')
-          .map(function (s) { return String(s || '').trim().slice(0, 24); })
-          .filter(Boolean)
-          .map(function (s) { return s.replace(/\s+/g, '-'); })
-          .slice(0, 5);
-        // Dedup preserving order
-        var seen = {};
-        demT.tags = clean.filter(function (s) { if (seen[s]) return false; seen[s] = 1; return true; });
-        render();
-        if (window.BIAIFStorage) window.BIAIFStorage.persist(stT);
+        if (!stT.demandes[idx]) return;
+        if (window.BIAIFTagPicker) {
+          window.BIAIFTagPicker.open(idx, stT);
+        }
         return;
       }
 
