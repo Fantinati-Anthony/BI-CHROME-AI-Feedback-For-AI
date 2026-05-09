@@ -20,17 +20,19 @@
   function updateMasterBtnLabel() {
     var REFS = ctx.REFS, STATE = ctx.STATE;
     if (!REFS.masterBtn) return;
-    var lbl = REFS.masterBtn.querySelector('.master-label');
-    if (!lbl) return;
     var hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
+    var label;
     if (typeof STATE.editingDemandeIdx === 'number') {
-      // Session bar is CSS-hidden during segment edit, but keep label correct.
-      lbl.textContent = _t('session.update', 'Enregistrer ✓');
+      label = _t('session.update', 'Enregistrer');
       REFS.masterBtn.disabled = false;
     } else {
-      lbl.textContent = _t('session.save', 'Enregistrer');
+      label = _t('session.save', 'Enregistrer');
       REFS.masterBtn.disabled = !hasContent;
     }
+    // The button is icon-only (✓ SVG inside .master-label) — expose the
+    // i18n string via aria-label + title for screen readers + tooltip.
+    REFS.masterBtn.setAttribute('aria-label', label);
+    REFS.masterBtn.title = label;
     if (window.BIAIFRender.tokenCounter) window.BIAIFRender.tokenCounter.update();
   }
 
@@ -103,14 +105,8 @@
         : _t('demande.title', 'Demande en cours');
       title.classList.toggle('is-editing', isEdit);
     }
-    var ctx = document.querySelector('.demande-zone-ctx');
-    if (ctx) {
-      var lbl = ctx.querySelector('.demande-ctx-label');
-      if (lbl) lbl.textContent = isEdit
-        ? _t('demande.edit_ctx', 'édition du segment #' + (editingIdx + 1), { n: editingIdx + 1 })
-        : '';
-      ctx.hidden = !isEdit;
-    }
+    // .demande-zone-ctx removed — the .demande-title.is-editing styling
+    // above already conveys the editing state.
     var urlbar = document.querySelector('.demande-zone-urlbar');
     if (urlbar) {
       if (isEdit && url) {

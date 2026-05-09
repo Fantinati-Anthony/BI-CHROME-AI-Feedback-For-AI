@@ -1,8 +1,10 @@
 /* ============== Session bar (Démarrer / Suivant / Stop) ============== */
 .session-bar { display: flex; gap: 8px; }
 .session-main {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 8px 14px; border: none; border-radius: var(--radius-pill);
+  display: flex; align-items: center; justify-content: center;
+  width: var(--topbar-h, 36px); height: var(--topbar-h, 36px);
+  flex-shrink: 0;
+  padding: 0; border: none; border-radius: 50%;
   color: #fff;
   font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
   cursor: pointer;
@@ -73,12 +75,14 @@
 /* Bouton "Nouvelle conversation" — point d'entrée principal en mode repos.
    Reprend le gradient AI animé du bouton master (mêmes effets visuels). */
 .session-new-conv {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 8px 14px;
-  border: none; border-radius: var(--radius-pill);
+  display: flex; align-items: center; justify-content: center;
+  width: var(--topbar-h, 36px); height: var(--topbar-h, 36px);
+  flex-shrink: 0;
+  padding: 0;
+  border: none; border-radius: 50%;
   color: #fff;
   font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
-  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  cursor: pointer;
   position: relative; overflow: hidden;
   background: linear-gradient(120deg, #4f46e5 0%, #06b6d4 35%, #8b5cf6 70%, #4f46e5 100%);
   background-size: 220% 220%;
@@ -165,37 +169,52 @@
 .session-disarm:active { transform: translateY(0) scale(0.96); }
 .session-disarm svg { color: #fff; }
 
-/* ─── Topbar row : [session-bar | topbar-tools] on a single line ── */
+/* ─── Topbar row : 3-column grid
+     col 1 (left)   — new-conv + master + disarm  (session-bar)
+     col 2 (center) — search loupe (expandable)
+     col 3 (right)  — sort + font + cog (+ optional logs)             */
 .topbar-row {
   --topbar-h: 36px;
-  display: flex; align-items: center; gap: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
-.topbar-row .session-bar {
-  flex: 1; min-width: 0;
-  align-items: center;
-}
-
-/* ─── Topbar tools (search / sort / font / settings) ─────────── */
-.topbar-tools {
+.topbar-col {
   display: flex; align-items: center; gap: 6px;
-  flex-shrink: 0;
   height: var(--topbar-h);
+  min-width: 0;
 }
+.topbar-col--center { justify-content: center; }
+.topbar-col--right  { justify-content: flex-end; }
 
-/* All circular icon controls share the same square footprint */
+/* When the search input expands inside the centre column, let it grow */
+.topbar-col--center .topbar-search-input { flex: 1; min-width: 0; }
+
+/* Legacy alias kept for the session-bar children — they sit in col 1 */
+.topbar-row .session-bar { align-items: center; }
+.topbar-tools { flex-shrink: 0; }
+
+/* All circular controls share the same square footprint */
 .topbar-row .session-disarm,
+.topbar-row .session-main,
+.topbar-row .session-new-conv,
 .topbar-row .topbar-icon-btn,
 .topbar-row .topbar-split {
   width:  var(--topbar-h);
   height: var(--topbar-h);
+  flex-shrink: 0;
 }
-/* Master & new-conv pill buttons match the same height */
-.topbar-row .session-main,
-.topbar-row .session-new-conv {
-  height: var(--topbar-h);
-  padding-top: 0; padding-bottom: 0;
+
+/* Light pulse on the disarm ✕ — a subtle "you can quit here" hint that
+   stays discreet (1.4s slow breath, 8% scale max). Auto-disabled by the
+   global prefers-reduced-motion rule in base.css. */
+@keyframes biaif-disarm-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,69,58,0.0), 0 0 10px rgba(255,69,58,0.30); transform: scale(1); }
+  50%      { box-shadow: 0 0 0 4px rgba(255,69,58,0.18), 0 0 16px rgba(255,69,58,0.55); transform: scale(1.04); }
 }
+.session-disarm { animation: biaif-disarm-pulse 1.6s ease-in-out infinite; }
 
 /* Expandable search input */
 .topbar-search-input {
