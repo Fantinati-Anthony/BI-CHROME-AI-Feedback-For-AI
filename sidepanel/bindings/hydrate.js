@@ -44,6 +44,10 @@
     if (cbAutoSub) cbAutoSub.checked = !!STATE.autoSubmitAfterInject;
     var cbStaysArmed = document.getElementById('save-stays-armed');
     if (cbStaysArmed) cbStaysArmed.checked = STATE.saveStaysArmed !== false;
+    // Shortcut mode radio: pre-check the saved value (default 'smart').
+    var smode = STATE.shortcutMode || 'smart';
+    var smRadio = document.getElementById('shortcut-mode-' + smode);
+    if (smRadio) smRadio.checked = true;
     var cbConsole = document.getElementById('show-console-btn');
     var logsBtn   = document.querySelector('.topbar-logs-btn');
     if (cbConsole) cbConsole.checked = !!STATE.showConsoleBtn;

@@ -90,19 +90,19 @@
 .seg-meta-tags {
   display: flex; flex-wrap: wrap; gap: 3px;
   padding: 2px 0 3px;
-  border-bottom: 1px solid rgba(255,255,255,.04);
+  border-bottom: 1px solid var(--border-card);
   margin-bottom: 3px;
 }
 .seg-filter-badge {
   display: inline-flex; align-items: center; gap: 3px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.10);
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-card);
   border-radius: 4px; padding: 2px 5px;
   font-size: 9px; color: var(--text-muted);
   cursor: pointer; transition: background .1s, border-color .1s, color .1s;
   white-space: nowrap;
 }
-.seg-filter-badge:hover { background: rgba(255,255,255,.10); color: var(--text); border-color: rgba(255,255,255,.25); }
+.seg-filter-badge:hover { background: var(--bg-card-hover); color: var(--text-main); border-color: var(--text-muted); }
 .seg-filter-badge.is-active { border-color: #6c47ff; color: #b39dff; background: color-mix(in srgb, #6c47ff 15%, transparent); }
 .seg-filter-badge--repo  { border-color: rgba(28,200,138,.3);  color: #3ecf8e; }
 .seg-filter-badge--repo:hover  { border-color: #3ecf8e; }
@@ -136,7 +136,7 @@
 .seg-tag-add {
   display: inline-flex; align-items: center;
   background: transparent;
-  border: 1px dashed rgba(255,255,255,.18);
+  border: 1px dashed var(--border-card);
   color: var(--text-muted);
   border-radius: 4px; padding: 2px 6px;
   font: inherit; font-size: 9px; cursor: pointer;
@@ -157,7 +157,7 @@
 
 /* Demande history card */
 .biaif-segment {
-  background: linear-gradient(180deg, rgba(20,20,25,1) 0%, rgba(13,13,15,1) 100%);
+  background: var(--bg-card);
   border: 1px solid var(--border-card); border-radius: 10px;
   padding: 5px;
   transition: border-color 0.15s ease;
@@ -486,10 +486,7 @@
   box-shadow:
     0 0 0 1px var(--accent-blue),
     0 0 20px rgba(14, 165, 183, 0.18);
-  background: linear-gradient(180deg,
-    rgba(14, 165, 183, 0.08) 0%,
-    rgba(20, 20, 25, 1) 30%,
-    rgba(13, 13, 15, 1) 100%);
+  background: linear-gradient(180deg, var(--accent-blue-50) 0%, var(--bg-card) 30%);
 }
 .seg-del {
   background: transparent; border: none; color: var(--text-muted);

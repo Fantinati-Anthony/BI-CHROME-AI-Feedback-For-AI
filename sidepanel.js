@@ -70,6 +70,7 @@
     segFontSize:            13,
     segTextLines:           5,
     saveStaysArmed:         true,
+    shortcutMode:           'smart', // 'hold' | 'toggle' | 'smart'
     autoOpenOnKnownActive:  false,
     autoOpenOnKnownDone:    false,
     autoOpenOnAiPage:       false,
@@ -96,7 +97,7 @@
               'searchQuery','pendingConversationUrl','pendingRepoId','lastShot',
               'lastShotMode','conversationFilter','repoFilter','domainFilter','pageFilter','tagFilter'],
     data:    ['currentDemande','demandes','templates'],
-    settings:['lang','uiLang','micDeviceId','sortOrder','segFontSize','segTextLines','saveStaysArmed',
+    settings:['lang','uiLang','micDeviceId','sortOrder','segFontSize','segTextLines','saveStaysArmed','shortcutMode',
               'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage',
               'hideAiTextarea','autoSubmitAfterInject','archiveExpanded',
               'showConsoleBtn','topbarPosition','theme','privacyScrub','syncEnabled','visibleButtons'],

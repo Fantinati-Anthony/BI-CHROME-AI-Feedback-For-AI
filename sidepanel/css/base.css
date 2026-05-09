@@ -145,9 +145,13 @@ html, body {
    REST  (not armed): history + "Nouvelle conv." only
    ARMED (create/edit): editor zone only (history hidden)               */
 
-/* Demande zone + outils masqués tant que la session n'est pas démarrée */
+/* Demande zone + outils : visibility now governed by .biaif-compose-drawer
+   transform (translateX 100% → 0 on .is-armed/.is-editing-segment). The
+   .is-locked class is kept as a marker but no longer hides via display:none
+   — that caused the inner buttons (mic/picker/capture) to vanish during
+   the drawer slide-in/out phase. */
 .demande-zone.is-locked,
-.biaif-quick-tools.is-locked { display: none; }
+.biaif-quick-tools.is-locked { /* no display rule — drawer handles it */ }
 
 /* Hide the main save button at rest (only "Nouvelle conv." stays) */
 .biaif-root:not(.is-armed) .session-main  { display: none; }

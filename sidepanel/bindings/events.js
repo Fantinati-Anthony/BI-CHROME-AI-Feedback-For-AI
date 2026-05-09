@@ -559,6 +559,14 @@
       STATE.saveStaysArmed = cbStaysArmed.checked;
       window.BIAIFStorage.persist(STATE);
     });
+    // Shortcut mode radio (smart / toggle / hold) — keyed by name="shortcut-mode"
+    document.querySelectorAll('input[name="shortcut-mode"]').forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        if (!radio.checked) return;
+        STATE.shortcutMode = radio.value;
+        window.BIAIFStorage.persist(STATE);
+      });
+    });
   }
 
   function _bindUiLangButtons() {
