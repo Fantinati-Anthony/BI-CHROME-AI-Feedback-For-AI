@@ -226,7 +226,8 @@
     var dem = STATE.demandes[idx];
     if (!dem) return;
 
-    var port   = (window.BIAIF && window.BIAIF.VSCODE_BRIDGE_PORT) || 51473;
+    var basePort = (window.BIAIF && window.BIAIF.VSCODE_BRIDGE_PORT) || 51473;
+    var portCount = (window.BIAIF && window.BIAIF.VSCODE_BRIDGE_PORTS_COUNT) || 10;
     var text   = buildPromptForDemande(idx);
     var images = (dem.refs || []).filter(function (r) { return r.type === 'screenshot' && r.dataUrl; }).map(function (r) { return r.dataUrl; });
     var total  = (text ? 1 : 0) + images.length;
@@ -234,28 +235,113 @@
     if (!total) { _toast(_t('toast.nothing_to_send', 'Rien à envoyer pour cette demande.'), 'info'); return; }
 
     _toast(_t('toast.bridge_connecting', 'Connexion au bridge ' + label + '…', { label: label }), 'info');
-    _updateProgress(0, total, 'Ping bridge…');
+    _updateProgress(0, total, 'Recherche des VS Code ouverts…');
+
+    var targetBridge = null;
 
     try {
-      var pingCtrl  = new AbortController();
-      var pingTimer = setTimeout(function () { pingCtrl.abort(); }, 3000);
-      try {
-        var pingResp = await fetch('http://127.0.0.1:' + port + '/ping', { signal: pingCtrl.signal });
-        clearTimeout(pingTimer);
-        if (!pingResp.ok) throw new Error('bridge HTTP ' + pingResp.status);
-      } catch (pingErr) {
-        clearTimeout(pingTimer);
+      var aliveBridges = [];
+      var pingPromises = [];
+      for (var i = 0; i < portCount; i++) {
+        (function(p) {
+          pingPromises.push((async function() {
+            var c = new AbortController();
+            var t = setTimeout(function() { c.abort(); }, 400);
+            try {
+              var r = await fetch('http://127.0.0.1:' + p + '/ping', { signal: c.signal });
+              clearTimeout(t);
+              if (r.ok) {
+                var data = await r.json();
+                if (data && data.port) aliveBridges.push(data);
+              }
+            } catch (e) {
+              clearTimeout(t);
+            }
+          })());
+        })(basePort + i);
+      }
+      await Promise.all(pingPromises);
+
+      if (aliveBridges.length === 0) {
         _hideProgress();
         _toast(
-          _t('toast.bridge_offline', "Bridge VS Code introuvable (port " + port + "). Installez l'extension BIAIF dans VS Code.", { port: port }),
-          'error', 8000,
+          _t('toast.bridge_offline', "Bridge VS Code introuvable. Installez l'extension BIAIF dans VS Code."),
+          'error', 8000
         );
         return;
       }
 
+      if (aliveBridges.length === 1) {
+        targetBridge = aliveBridges[0];
+      } else {
+        _hideProgress();
+        // Ask user to pick via a customized dialog matching our charte graphique
+        targetBridge = await new Promise(function(resolve) {
+          var esc = function(str) { return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+
+          var overlay = document.createElement('div');
+          overlay.className = 'tm-overlay'; // Re-use template modal styles for consistency
+
+          var panel = document.createElement('div');
+          panel.className = 'tm-panel';
+          panel.style.maxWidth = '360px'; // Compact picker
+
+          // Header
+          var header = document.createElement('div');
+          header.className = 'tm-header';
+          header.innerHTML = '<svg class="tm-header-icon" width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' +
+                             '<span class="tm-header-title">' + esc(_t('tit.pick_vscode', 'Plusieurs VS Code détectés')) + '</span>';
+
+          // Body
+          var body = document.createElement('div');
+          body.style.padding = '16px';
+          body.style.display = 'flex';
+          body.style.flexDirection = 'column';
+          body.style.gap = '8px';
+
+          var desc = document.createElement('p');
+          desc.style.margin = '0 0 8px 0';
+          desc.style.fontSize = '13px';
+          desc.style.color = 'var(--text-main)';
+          desc.textContent = _t('txt.pick_vscode', 'Choisissez la fenêtre cible :');
+          body.appendChild(desc);
+
+          aliveBridges.forEach(function(b) {
+            var btn = document.createElement('button');
+            // Re-use standard button styling for options
+            btn.className = 'biaif-btn biaif-btn--primary';
+            btn.style.justifyContent = 'flex-start'; // Align strictly to left
+            btn.style.padding = '10px 12px';
+            btn.innerHTML = '<strong>' + esc(b.workspaceName || 'Untitled') + '</strong> <span style="opacity:0.7;font-size:11px;margin-left:auto;">(Port ' + b.port + ')</span>';
+            btn.onclick = function() {
+              resolve(b);
+              overlay.remove();
+            };
+            body.appendChild(btn);
+          });
+
+          var cancelBtn = document.createElement('button');
+          cancelBtn.className = 'biaif-btn';
+          cancelBtn.style.marginTop = '8px';
+          cancelBtn.textContent = esc(_t('btn.cancel', 'Annuler'));
+          cancelBtn.onclick = function() {
+            resolve(null);
+            overlay.remove();
+          };
+          body.appendChild(cancelBtn);
+
+          panel.appendChild(header);
+          panel.appendChild(body);
+          overlay.appendChild(panel);
+          document.body.appendChild(overlay);
+        });
+      }
+
+      if (!targetBridge) return; // cancelled by user
+
       _updateProgress(0, total, 'Envoi vers ' + label + '…');
 
-      var resp = await fetch('http://127.0.0.1:' + port + '/inject', {
+      var resp = await fetch('http://127.0.0.1:' + targetBridge.port + '/inject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target: target, text: text, images: images }),

@@ -90,7 +90,8 @@ function startBridge(context) {
 
     if (req.method === 'GET' && req.url === '/ping') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, version: '0.5.0', port }));
+      const workspaceName = vscode.workspace.name || 'Untitled';
+      res.end(JSON.stringify({ ok: true, version: '0.5.0', port: server.address().port, workspaceName }));
       return;
     }
 
@@ -137,16 +138,27 @@ function startBridge(context) {
     res.writeHead(404); res.end();
   });
 
+  let currentPort = port;
+  const maxPort = port + 9;
+
   server.on('error', (e) => {
-    server = null;
-    const msg = e.code === 'EADDRINUSE'
-      ? 'BIAIF Bridge : port ' + port + ' déjà utilisé. Changez `biaif.bridgePort`.'
-      : 'BIAIF Bridge erreur : ' + e.message;
-    vscode.window.showWarningMessage(msg);
-    _updateStatusBar(false);
+    if (e.code === 'EADDRINUSE') {
+      if (currentPort < maxPort) {
+        currentPort++;
+        server.listen(currentPort, '127.0.0.1');
+      } else {
+        server = null;
+        vscode.window.showWarningMessage('BIAIF Bridge : Aucun port disponible entre ' + port + ' et ' + maxPort + '.');
+        _updateStatusBar(false);
+      }
+    } else {
+      server = null;
+      vscode.window.showWarningMessage('BIAIF Bridge erreur : ' + e.message);
+      _updateStatusBar(false);
+    }
   });
 
-  server.listen(port, '127.0.0.1', () => { _updateStatusBar(true, port); });
+  server.listen(currentPort, '127.0.0.1', () => { _updateStatusBar(true, currentPort); });
   if (context) context.subscriptions.push({ dispose: stopBridge });
 }
 
@@ -419,9 +431,10 @@ function _updateStatusBar(active, port) {
     statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 90);
     statusBar.command = 'biaif.toggleBridge';
   }
+  const workspaceName = vscode.workspace.name || 'Untitled';
   statusBar.text    = active ? '$(plug) BIAIF'          : '$(circle-slash) BIAIF';
   statusBar.tooltip = active
-    ? 'BIAIF Bridge actif — port ' + port + '\nCliquer pour désactiver'
+    ? 'BIAIF Bridge actif — port ' + port + ' (' + workspaceName + ')\nCliquer pour désactiver'
     : 'BIAIF Bridge inactif\nCliquer pour activer';
   statusBar.color   = active ? '#4ec9b0' : undefined;
   statusBar.show();

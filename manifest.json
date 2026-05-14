@@ -8,7 +8,7 @@
   "permissions": ["activeTab", "storage", "clipboardWrite", "sidePanel", "contextMenus"],
   "host_permissions": ["<all_urls>"],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://127.0.0.1:51473 http://localhost:51473; img-src 'self' data: blob:"
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://127.0.0.1:51473 http://127.0.0.1:51474 http://127.0.0.1:51475 http://127.0.0.1:51476 http://127.0.0.1:51477 http://127.0.0.1:51478 http://127.0.0.1:51479 http://127.0.0.1:51480 http://127.0.0.1:51481 http://127.0.0.1:51482 http://localhost:51473 http://localhost:51474 http://localhost:51475 http://localhost:51476 http://localhost:51477 http://localhost:51478 http://localhost:51479 http://localhost:51480 http://localhost:51481 http://localhost:51482; img-src 'self' data: blob:"
   },
   "background": {
     "service_worker": "background.js"

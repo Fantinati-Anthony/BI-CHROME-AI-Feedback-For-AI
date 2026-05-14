@@ -59,5 +59,6 @@
   });
 
   root.BIAIF.VSCODE_BRIDGE_PORT = 51473;
+  root.BIAIF.VSCODE_BRIDGE_PORTS_COUNT = 10;
 
 })(typeof window !== 'undefined' ? window : self);
