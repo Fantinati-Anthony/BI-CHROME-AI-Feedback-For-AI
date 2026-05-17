@@ -1,5 +1,5 @@
 /**
- * BIAIF Export
+ * MyFb Export
  * Markdown prompt generation, clipboard copy, and file download.
  */
 (function (window) {
@@ -157,7 +157,7 @@
   // URLs and labels are sourced from shared/ai-adapters.js (host-keyed). Falls
   // back to the original hard-coded values if an adapter is missing webUrl.
   function _adapterByHost(host) {
-    var list = (window.BIAIF && window.BIAIF.AI_ADAPTERS) || [];
+    var list = (window.MyFb && window.MyFb.AI_ADAPTERS) || [];
     for (var i = 0; i < list.length; i++) if (list[i].host === host) return list[i];
     return null;
   }
@@ -179,7 +179,7 @@
   async function downloadBundle() {
     if (!STATE.demandes.length) { _toast(_t('toast.nothing_to_download', 'Rien à télécharger.'), 'info'); return; }
     var text = buildPrompt({ inlineImages: false });
-    _downloadFile('biaif-prompt.md', new Blob([text], { type: 'text/markdown' }));
+    _downloadFile('myfb-prompt.md', new Blob([text], { type: 'text/markdown' }));
     var imgCount = 0;
     for (var di = 0; di < STATE.demandes.length; di++) {
       var refs = STATE.demandes[di].refs || [];
@@ -196,13 +196,13 @@
   async function downloadDemande(idx) {
     var dem = STATE.demandes[idx];
     if (!dem) return;
-    _downloadFile('biaif-demande-' + (idx + 1) + '.md', new Blob([buildPromptForDemande(idx)], { type: 'text/markdown' }));
+    _downloadFile('myfb-demande-' + (idx + 1) + '.md', new Blob([buildPromptForDemande(idx)], { type: 'text/markdown' }));
     var imgCount = 0;
     var refs = dem.refs || [];
     for (var ri = 0; ri < refs.length; ri++) {
       var r = refs[ri];
       if (r.type !== 'screenshot' || !r.dataUrl) continue;
-      _downloadFile('biaif-demande-' + (idx + 1) + '-ref' + (ri + 1) + '.png', await _dataUrlToBlob(r.dataUrl));
+      _downloadFile('myfb-demande-' + (idx + 1) + '-ref' + (ri + 1) + '.png', await _dataUrlToBlob(r.dataUrl));
       imgCount++;
     }
     _toast(imgCount
@@ -226,8 +226,8 @@
     var dem = STATE.demandes[idx];
     if (!dem) return;
 
-    var basePort = (window.BIAIF && window.BIAIF.VSCODE_BRIDGE_PORT) || 51473;
-    var portCount = (window.BIAIF && window.BIAIF.VSCODE_BRIDGE_PORTS_COUNT) || 10;
+    var basePort = (window.MyFb && window.MyFb.VSCODE_BRIDGE_PORT) || 51473;
+    var portCount = (window.MyFb && window.MyFb.VSCODE_BRIDGE_PORTS_COUNT) || 10;
     var text   = buildPromptForDemande(idx);
     var images = (dem.refs || []).filter(function (r) { return r.type === 'screenshot' && r.dataUrl; }).map(function (r) { return r.dataUrl; });
     var total  = (text ? 1 : 0) + images.length;
@@ -265,7 +265,7 @@
       if (aliveBridges.length === 0) {
         _hideProgress();
         _toast(
-          _t('toast.bridge_offline', "Bridge VS Code introuvable. Installez l'extension BIAIF dans VS Code."),
+          _t('toast.bridge_offline', "Bridge VS Code introuvable. Installez l'extension MyFb dans VS Code."),
           'error', 8000
         );
         return;
@@ -309,7 +309,7 @@
           aliveBridges.forEach(function(b) {
             var btn = document.createElement('button');
             // Re-use standard button styling for options
-            btn.className = 'biaif-btn biaif-btn--primary';
+            btn.className = 'myfb-btn myfb-btn--primary';
             btn.style.justifyContent = 'flex-start'; // Align strictly to left
             btn.style.padding = '10px 12px';
             btn.innerHTML = '<strong>' + esc(b.workspaceName || 'Untitled') + '</strong> <span style="opacity:0.7;font-size:11px;margin-left:auto;">(Port ' + b.port + ')</span>';
@@ -321,7 +321,7 @@
           });
 
           var cancelBtn = document.createElement('button');
-          cancelBtn.className = 'biaif-btn';
+          cancelBtn.className = 'myfb-btn';
           cancelBtn.style.marginTop = '8px';
           cancelBtn.textContent = esc(_t('btn.cancel', 'Annuler'));
           cancelBtn.onclick = function() {
@@ -390,7 +390,7 @@
     try {
       var resp = await new Promise(function (resolve, reject) {
         chrome.runtime.sendMessage({
-          type:        window.BIAIF.MSG.INJECT_TO_EDITOR,
+          type:        window.MyFb.MSG.INJECT_TO_EDITOR,
           text:        text,
           images:      images,
           targetUrl:   dem.conversationUrl || null,
@@ -462,16 +462,16 @@
     dem.status      = 'submitted';
     dem.submittedAt = Date.now();
     dem.submittedTo = submittedTo;
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
-    if (window.BIAIFRenderer) window.BIAIFRenderer.renderSegments();
+    if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
+    if (window.MyFbRenderer) window.MyFbRenderer.renderSegments();
   }
 
   function _toast(msg, kind, dur) {
-    if (window.BIAIFToast) window.BIAIFToast.show(msg, kind, dur);
+    if (window.MyFbToast) window.MyFbToast.show(msg, kind, dur);
   }
   function _t(key, fallback, vars) {
-    if (window.BIAIFi18n && window.BIAIFi18n.t) {
-      var v = window.BIAIFi18n.t(key, vars);
+    if (window.MyFbI18n && window.MyFbI18n.t) {
+      var v = window.MyFbI18n.t(key, vars);
       if (v && v !== key) return v;
     }
     return fallback || key;
@@ -494,11 +494,11 @@
       return [i + 1, dt, d.status || '', text, tags, d.repoId || '', d.conversationUrl || '', d.pageUrl || '', refs];
     });
     var csv = [header].concat(rows).map(function (row) { return row.map(_csvEscape).join(','); }).join('\r\n');
-    _downloadFile('biaif-export-' + Date.now() + '.csv', new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+    _downloadFile('myfb-export-' + Date.now() + '.csv', new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
     _toast(_t('toast.csv_exported', dems.length + ' demande(s) exportées en CSV.', { n: dems.length }), 'success', 2500);
   }
 
-  window.BIAIFExport = {
+  window.MyFbExport = {
     init: init,
     buildPrompt: buildPrompt,
     buildPromptForDemande: buildPromptForDemande,

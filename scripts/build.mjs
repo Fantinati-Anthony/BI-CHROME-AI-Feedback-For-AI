@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * BIAIF dist bundler.
+ * MyFb dist bundler.
  *
  * The addon ships as IIFE modules referenced by individual `<script>`
  * tags in `sidepanel.html`. For distribution (Web Store) we concat them
  * into single bundles and let esbuild minify the output. The IIFE
- * pattern already attaches everything to `window.BIAIF*`, so order +
+ * pattern already attaches everything to `window.MyFb*`, so order +
  * minification is enough — no source changes required.
  *
  *   npm run build         # one-shot

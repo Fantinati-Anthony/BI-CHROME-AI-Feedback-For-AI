@@ -1,5 +1,5 @@
 /**
- * BIAIF Textarea Injector
+ * MyFb Textarea Injector
  *
  * Injects a pair of always-visible buttons next to every <textarea> and
  * [contenteditable] found on the page (including dynamically added ones).
@@ -15,14 +15,14 @@
 (function () {
   'use strict';
 
-  if (window.__BIAIF_TEXTAREA_INJECTOR__) return;
-  window.__BIAIF_TEXTAREA_INJECTOR__ = true;
+  if (window.__MYFB_TEXTAREA_INJECTOR__) return;
+  window.__MYFB_TEXTAREA_INJECTOR__ = true;
 
   /* ── constants ─────────────────────────────────────────────────────────── */
 
-  var STYLE_ID = '__biaif_style__';
+  var STYLE_ID = '__myfb_style__';
   var CSS = [
-    '.__biaif_pair__ {',
+    '.__myfb_pair__ {',
     '  position:fixed;',
     '  z-index:2147483647;',
     '  display:flex;',
@@ -30,8 +30,8 @@
     '  pointer-events:auto;',
     '  transition: opacity .2s;',
     '}',
-    '.__biaif_pair__.is-hidden { opacity:0; pointer-events:none; }',
-    '.__biaif_btn__ {',
+    '.__myfb_pair__.is-hidden { opacity:0; pointer-events:none; }',
+    '.__myfb_btn__ {',
     '  width:26px; height:26px;',
     '  border-radius:50%;',
     '  border:none;',
@@ -44,11 +44,11 @@
     '  transition: transform .15s, opacity .15s;',
     '  font-family:sans-serif;',
     '}',
-    '.__biaif_btn__:hover { transform:scale(1.12); }',
-    '.__biaif_btn__--filter { background:#6c47ff; }',
-    '.__biaif_btn__--new    { background:#1a9e6f; }',
-    '.__biaif_btn__ svg { display:block; }',
-    '.__biaif_tip__ {',
+    '.__myfb_btn__:hover { transform:scale(1.12); }',
+    '.__myfb_btn__--filter { background:#6c47ff; }',
+    '.__myfb_btn__--new    { background:#1a9e6f; }',
+    '.__myfb_btn__ svg { display:block; }',
+    '.__myfb_tip__ {',
     '  position:absolute;',
     '  bottom:calc(100% + 5px);',
     '  left:50%;',
@@ -63,7 +63,7 @@
     '  opacity:0;',
     '  transition:opacity .1s;',
     '}',
-    '.__biaif_btn__:hover .__biaif_tip__ { opacity:1; }',
+    '.__myfb_btn__:hover .__myfb_tip__ { opacity:1; }',
   ].join('\n');
 
   /* ── style injection ────────────────────────────────────────────────────── */
@@ -78,12 +78,12 @@
 
   /* ── hide-textarea feature ──────────────────────────────────────────────── */
 
-  var HIDE_STYLE_ID = '__biaif_hide_ta__';
+  var HIDE_STYLE_ID = '__myfb_hide_ta__';
   var _adapter = null;
 
   (function _initAdapter() {
     var h = location.hostname;
-    var adapters = (window.BIAIF && window.BIAIF.AI_ADAPTERS) || [];
+    var adapters = (window.MyFb && window.MyFb.AI_ADAPTERS) || [];
     for (var i = 0; i < adapters.length; i++) {
       if (h === adapters[i].host || h.endsWith('.' + adapters[i].host)) {
         _adapter = adapters[i];
@@ -100,7 +100,7 @@
     }
     if (!_adapter || !_adapter.inputHide || !_adapter.inputHide.length) return;
     // Use only the first matching selector (the container) for hiding the full input area.
-    // visibility:hidden keeps layout dimensions intact so BIAIF button positioning still works.
+    // visibility:hidden keeps layout dimensions intact so MyFb button positioning still works.
     var lines = _adapter.inputHide.map(function (sel) {
       return sel + ' { visibility: hidden !important; }';
     });
@@ -115,7 +115,7 @@
   // Load initial setting from storage
   if (_adapter) {
     try {
-      var _storageKey = (window.BIAIF && window.BIAIF.STORAGE_KEY) || 'biaif:v04:state';
+      var _storageKey = (window.MyFb && window.MyFb.STORAGE_KEY) || 'myfb:v1:state';
       chrome.storage.local.get([_storageKey], function (result) {
         var saved = result && result[_storageKey];
         if (saved && saved.hideAiTextarea) _applyHideTextarea(true);
@@ -126,7 +126,7 @@
   // Listen for runtime messages to toggle
   try {
     chrome.runtime.onMessage.addListener(function (msg) {
-      if (!msg || msg.type !== 'biaif:hide-ai-textarea') return;
+      if (!msg || msg.type !== 'myfb:hide-ai-textarea') return;
       _applyHideTextarea(!!msg.hide);
     });
   } catch (_) {}
@@ -180,10 +180,10 @@
   function _makeBtn(cls, svg, tip, onClick) {
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = '__biaif_btn__ __biaif_btn__--' + cls;
+    btn.className = '__myfb_btn__ __myfb_btn__--' + cls;
     btn.setAttribute('aria-label', tip);
     var tipEl = document.createElement('span');
-    tipEl.className = '__biaif_tip__';
+    tipEl.className = '__myfb_tip__';
     tipEl.textContent = tip;
     btn.innerHTML = svg;
     btn.appendChild(tipEl);
@@ -206,7 +206,7 @@
     var conversationUrl = location.href;
 
     var pair = document.createElement('div');
-    pair.className = '__biaif_pair__ is-hidden';
+    pair.className = '__myfb_pair__ is-hidden';
 
     var tipFilter = 'PromptDrop – Filtrer cette conversation';
     var tipNew    = 'PromptDrop – Nouveau segment lié à cette conversation';
@@ -258,17 +258,17 @@
   /* ── GitHub repo detection ──────────────────────────────────────────────── */
 
   function _extractGithubRepo(url) {
-    return (window.BIAIF && window.BIAIF.utils)
-      ? window.BIAIF.utils.extractGithubRepo(url)
+    return (window.MyFb && window.MyFb.utils)
+      ? window.MyFb.utils.extractGithubRepo(url)
       : null;
   }
 
   /* ── message helper ─────────────────────────────────────────────────────── */
 
   function _msgType(key) {
-    return (window.BIAIF && window.BIAIF.MSG && window.BIAIF.MSG[key])
-      ? window.BIAIF.MSG[key]
-      : 'biaif:' + key.toLowerCase().replace(/_/g, '-');
+    return (window.MyFb && window.MyFb.MSG && window.MyFb.MSG[key])
+      ? window.MyFb.MSG[key]
+      : 'myfb:' + key.toLowerCase().replace(/_/g, '-');
   }
 
   function _send(msg) {

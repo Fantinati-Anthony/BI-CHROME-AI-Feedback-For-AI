@@ -1,8 +1,45 @@
 # Changelog
 
-All notable changes to BI Chrome AI Feedback are documented here.
+All notable changes to My-Feedbacks are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] — Unreleased (v1 foundation)
+
+### Changed (BREAKING — fresh launch, no migration)
+- **Rebrand** : `BIAIF` → `MyFb` (code), `BI Chrome AI Feedback` →
+  `My-Feedbacks` (user-facing). New domain target: my-feedbacks.com.
+- **Storage** : clé bumped à `myfb:v1:state`. Pas de migration depuis les
+  anciennes clés (`biaif:vXX:state`) — c'est un fresh launch.
+- **VS Code bridge** : renommé `my-feedbacks-vscode-bridge` (port 51473
+  inchangé pour ne pas casser les setups locaux en cours de test).
+- **CI** : `package-lock.json` est désormais committé (corrige l'échec
+  setup-node `cache: 'npm'` qui bloquait toutes les PRs).
+
+### Added — event sourcing foundation
+- **`shared/core/events/catalog.js`** — catalogue de 28 types d'events,
+  schema versioning, validation, ordering déterministe (lamportTs + id).
+- **`shared/core/events/lamport.js`** — horloge logique Lamport pour la
+  sync future entre peers sans coordination centrale.
+- **`shared/core/events/store.js`** — event store IndexedDB raw (zéro
+  dépendance), append-only, idempotent sur duplicate ids, KV meta pour
+  l'horloge et les cursors de sync.
+- **`shared/core/events/reducer.js`** — reducer pur qui dérive l'état
+  complet (workspaces, demandes, devices, links) depuis le log d'events.
+  Forward-compatible (skip les events de schema future).
+- **`shared/core/transports/interface.js`** — contrat unifié (init/push/
+  pull/subscribe/status/dispose) pour les 4 tiers de sync.
+- **`shared/core/transports/solo.js`** — implémentation no-op pour le tier
+  1 (utilisateur solo, zéro sync).
+
+### Tests
+- 46 nouveaux tests (`tests/core/`) : catalog, lamport, store, reducer,
+  transport-solo. Couvre l'idempotence sync, l'ordering, la
+  forward-compat, et le KV meta.
+
+### Notes
+- Le core est livré mais **pas encore câblé** dans l'UI side panel — la
+  migration progressive vers l'event store se fait en v1.1.
 
 ## [Unreleased]
 
@@ -10,7 +47,7 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 - **Major refactor — `sidepanel.css` split** (1581 L → 34 L entry +
   7 themed files under `sidepanel/css/`):
   - `base.css`     (165 L) — design tokens (`:root` vars), reset,
-                              scrollbar, `.biaif-root` state classes
+                              scrollbar, `.myfb-root` state classes
                               (armed / editing / empty), hero animations
   - `session.css`  (129 L) — session bar + quick-tools row
   - `editor.css`   (108 L) — current-demande Mad-Libs editor
@@ -71,8 +108,8 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - **`shared/logger.js`** — levelled logger (`debug`/`info`/`warn`/`error`)
-  gated by `localStorage.BIAIF_LOG_LEVEL` or
-  `chrome.storage.local.biaif_log_level`. Wired into the service worker, the
+  gated by `localStorage.My-Feedbacks_LOG_LEVEL` or
+  `chrome.storage.local.myfb_log_level`. Wired into the service worker, the
   side panel, and every content script. Replaces ad-hoc `console.warn`
   scattered across the codebase.
 - **README rewrite** — comprehensive feature reference, settings table,
@@ -94,7 +131,7 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 - Conversation grouping: segments sharing a `conversationUrl` are grouped into
   a single card with collapsible done sub-segments.
 - `hideAiTextarea` setting — hides Claude.ai's native input, leaving only the
-  BIAIF buttons. Requires `autoSubmitAfterInject`.
+  My-Feedbacks buttons. Requires `autoSubmitAfterInject`.
 - `autoOpenOnAiPage` setting — opens the side panel on any known AI host.
 - `autoSubmitAfterInject` — automatically clicks the send button after
   injection (8 retries / 200 ms, Enter fallback).

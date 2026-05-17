@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "BI Chrome AI Feedback",
-  "version": "0.5.0",
-  "description": "Capture des feedbacks visuels (sélecteur d'élément CSS) + vocaux (speech-to-text) pour les transmettre à une IA (Claude Code).",
+  "name": "My-Feedbacks",
+  "version": "1.0.0",
+  "description": "Local-first feedback bridge between developers and their clients. Capture visuel, vocal, erreurs JS — exporté vers Claude, ChatGPT, Cursor, VS Code Copilot, Aider.",
   "author": "Anthony Fantinati",
   "minimum_chrome_version": "114",
   "permissions": ["activeTab", "storage", "clipboardWrite", "sidePanel", "contextMenus"],
@@ -14,7 +14,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "BI AI Feedback (Alt+Shift+F)"
+    "default_title": "My-Feedbacks (Alt+Shift+F)"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
@@ -96,7 +96,7 @@
   "commands": {
     "toggle-sidebar": {
       "suggested_key": { "default": "Alt+Shift+F" },
-      "description": "Ouvrir le panneau latéral BIAIF"
+      "description": "Ouvrir le panneau latéral My-Feedbacks"
     },
     "toggle-picker": {
       "suggested_key": { "default": "Alt+Shift+E" },

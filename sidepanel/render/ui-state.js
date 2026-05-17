@@ -1,20 +1,20 @@
 /**
- * BIAIF Render — UI state sync
+ * MyFb Render — UI state sync
  *
  * Small DOM updates that don't fit into a renderer for a specific structure:
  *   - Master button label (Démarrer / Suivant / Terminer)
- *   - Armed / editing CSS classes on .biaif-root
+ *   - Armed / editing CSS classes on .myfb-root
  *   - Console-errors badge counter
  *   - Sort A→Z / Z→A toggle label
  *   - Segment text font-size (CSS custom property)
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
-  var ctx   = window.BIAIFRender.ctx;
-  var CFG   = (window.BIAIF && window.BIAIF.config) || {};
+  window.MyFbRender = window.MyFbRender || {};
+  var ctx   = window.MyFbRender.ctx;
+  var CFG   = (window.MyFb && window.MyFb.config) || {};
   var UI    = CFG.ui || {};
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
   function updateMasterBtnLabel() {
@@ -33,12 +33,12 @@
     // i18n string via aria-label + title for screen readers + tooltip.
     REFS.masterBtn.setAttribute('aria-label', label);
     REFS.masterBtn.title = label;
-    if (window.BIAIFRender.tokenCounter) window.BIAIFRender.tokenCounter.update();
+    if (window.MyFbRender.tokenCounter) window.MyFbRender.tokenCounter.update();
   }
 
   function updateArmedUi() {
     var STATE = ctx.STATE;
-    var root  = document.querySelector('.biaif-root');
+    var root  = document.querySelector('.myfb-root');
     var editing = typeof STATE.editingDemandeIdx === 'number';
     var hasContent = !!((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length);
     var empty   = !STATE.armed && !editing && !STATE.demandes.length && !hasContent;
@@ -50,7 +50,7 @@
     var locked = !STATE.armed && !editing;
     var dz = document.querySelector('.demande-zone');
     if (dz) dz.classList.toggle('is-locked', locked);
-    var qt = document.querySelector('.biaif-quick-tools');
+    var qt = document.querySelector('.myfb-quick-tools');
     if (qt) qt.classList.toggle('is-locked', locked);
   }
 
@@ -75,7 +75,7 @@
 
   function applySegFontSize() {
     var STATE = ctx.STATE;
-    var wrap = document.querySelector('.biaif-segments-wrap');
+    var wrap = document.querySelector('.myfb-segments-wrap');
     if (wrap) wrap.style.setProperty('--seg-text-size', (STATE.segFontSize || UI.DEFAULT_SEG_FONT_PX || 13) + 'px');
     var fontDown = document.querySelector('[data-act="seg-font-down"]');
     var fontUp   = document.querySelector('[data-act="seg-font-up"]');
@@ -87,7 +87,7 @@
 
   function applySegTextLines() {
     var STATE = ctx.STATE;
-    var wrap  = document.querySelector('.biaif-segments-wrap');
+    var wrap  = document.querySelector('.myfb-segments-wrap');
     var n     = Math.max(1, Math.min(20, STATE.segTextLines || 5));
     if (wrap) wrap.style.setProperty('--seg-card-lines', String(n));
     var dn = document.querySelector('[data-act="seg-lines-down"]');
@@ -102,8 +102,8 @@
     if (n === (STATE.segTextLines || 5)) return;
     STATE.segTextLines = n;
     applySegTextLines();
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
-    if (window.BIAIFRenderer) window.BIAIFRenderer.renderSegments();
+    if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
+    if (window.MyFbRenderer) window.MyFbRenderer.renderSegments();
   }
 
   function bumpSegFontSize(delta) {
@@ -114,7 +114,7 @@
     if (next === STATE.segFontSize) return;
     STATE.segFontSize = next;
     applySegFontSize();
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
   }
 
   function updateEditorContext(editingIdx, url) {
@@ -142,7 +142,7 @@
     }
   }
 
-  window.BIAIFRender.uiState = {
+  window.MyFbRender.uiState = {
     updateMasterBtnLabel:  updateMasterBtnLabel,
     updateArmedUi:         updateArmedUi,
     updateErrorsBadges:    updateErrorsBadges,

@@ -109,8 +109,8 @@ toast.show("Demande #N → VS-Code Terminal")
 
 ## Storage versioning
 
-`chrome.storage.local[BIAIF.STORAGE_KEY]` holds a single object with
-the whole state. The key includes a version (`biaif:v04:state`).
+`chrome.storage.local[My-Feedbacks.STORAGE_KEY]` holds a single object with
+the whole state. The key includes a version (`myfb:v1:state`).
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -164,7 +164,7 @@ shape transformation in `_migrateLegacy()` if needed.
 | `screenshot.js`        | document_idle | isolated | Viewport / full-page / element capture |
 | `screenshot-editor.js` | document_idle | isolated | Annotation overlay (Shadow DOM) |
 | `inject.js`            | document_idle | isolated | Inject text/images into Claude.ai |
-| `textarea-injector.js` | document_idle | isolated | Floating BIAIF buttons next to textareas |
+| `textarea-injector.js` | document_idle | isolated | Floating My-Feedbacks buttons next to textareas |
 | `ai-watcher.js`        | document_idle | isolated | AI generating/done detection (matched hosts only) |
 | `main.js`              | document_idle | isolated | Hotkey listener fallback + orchestration |
 
@@ -204,7 +204,7 @@ Every module is a self-attaching IIFE:
   'use strict';
   function foo() { /* ... */ }
   var api = { foo };
-  root.BIAIFThing = api;
+  root.My-FeedbacksThing = api;
   // Soft ESM — exposes the same surface to Node/Vitest, no-op in browsers
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -217,12 +217,12 @@ transpilation step. Files with pure logic (`shared/scrub.js`,
 `sidepanel/templates.js`) all follow this convention.
 
 For type-checking, opt into TypeScript's JSDoc mode by adding `// @ts-check`
-at the top of the file. Ambient types live in `types/biaif.d.ts` and are
+at the top of the file. Ambient types live in `types/myfb.d.ts` and are
 picked up via `jsconfig.json`.
 
 ## Conventions
 
-- **Globals**: every module exposes one `window.BIAIF<Name>` object.
+- **Globals**: every module exposes one `window.My-Feedbacks<Name>` object.
   No bare globals.
 - **No DOM in SW**: `background.js` cannot import any module that
   touches `document` / `window`. `shared/utils.js` is written to be

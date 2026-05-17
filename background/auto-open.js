@@ -1,5 +1,5 @@
 /**
- * BIAIF Service Worker — sidepanel auto-open
+ * MyFb Service Worker — sidepanel auto-open
  *
  * Watches chrome.tabs.onActivated and onUpdated; opens the sidepanel
  * when the user lands on a tab that:
@@ -14,8 +14,8 @@
 async function checkAutoOpenForTab(tabId, tabUrl) {
   if (!tabUrl || tabUrl.startsWith('chrome') || tabUrl.startsWith('about:') || tabUrl.startsWith('moz-extension:')) return;
   try {
-    const result = await chrome.storage.local.get(self.BIAIF.STORAGE_KEY);
-    const saved = result[self.BIAIF.STORAGE_KEY];
+    const result = await chrome.storage.local.get(self.MyFb.STORAGE_KEY);
+    const saved = result[self.MyFb.STORAGE_KEY];
     if (!saved) return;
     const onActive  = !!saved.autoOpenOnKnownActive;
     const onDone    = !!saved.autoOpenOnKnownDone;
@@ -24,7 +24,7 @@ async function checkAutoOpenForTab(tabId, tabUrl) {
     if (onAiPage) {
       try {
         const tabHostname = new URL(tabUrl).hostname;
-        const isAiPage = (self.BIAIF.AI_ADAPTERS || []).some((a) =>
+        const isAiPage = (self.MyFb.AI_ADAPTERS || []).some((a) =>
           tabHostname === a.host || tabHostname.endsWith('.' + a.host)
         );
         if (isAiPage) { await chrome.sidePanel.open({ tabId }); return; }

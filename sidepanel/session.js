@@ -1,5 +1,5 @@
 /**
- * BIAIF Session
+ * MyFb Session
  * Session lifecycle, demande finalization, edit mode, shot runner, merge.
  */
 (function (window) {
@@ -26,7 +26,7 @@
       var resp = await _sendBg({ type: _MSG('PICKER_ENABLE') });
       if (resp && resp.error) _toast(_t('toast.picker_fail', 'Picker KO : ' + _decodeErr(resp.error), { err: _decodeErr(resp.error) }), 'error');
     }
-    if (!STATE.micActive) await window.BIAIFSpeech.startMic();
+    if (!STATE.micActive) await window.MyFbSpeech.startMic();
     _toast(_t('toast.session_started', 'Session démarrée.'), 'success');
   }
 
@@ -39,7 +39,7 @@
     if (REFS.stopBtn) REFS.stopBtn.hidden = true;
     _stopTimer();
     if (STATE.pickerActive) _sendBg({ type: _MSG('PICKER_DISABLE') });
-    if (STATE.micActive)    window.BIAIFSpeech.stopMic();
+    if (STATE.micActive)    window.MyFbSpeech.stopMic();
     syncCurrentDemandeFromEditor();
     if ((STATE.currentDemande.text || '').trim() || STATE.currentDemande.refs.length) {
       finalizeDemande(true);
@@ -57,7 +57,7 @@
       var updatedIdx = STATE.editingDemandeIdx;
       exitEditMode({ silent: true });
       _disarm();
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
       if (!silent) _toast(_t('toast.demande_updated', 'Demande #' + (updatedIdx + 1) + ' mise à jour.', { n: updatedIdx + 1 }), 'success');
       return;
     }
@@ -97,18 +97,18 @@
     if (STATE.saveStaysArmed !== false) {
       // Stay armed and ready for the next segment (default).
       // ✕ disarm is the explicit "go back to history" action.
-      window.BIAIFRenderer.renderDemandeEditor();
-      window.BIAIFRenderer.renderDemandeRefsStrip();
-      window.BIAIFRenderer.renderSegments();
-      window.BIAIFRenderer.updateArmedUi();
-      window.BIAIFRenderer.updateMasterBtnLabel();
+      window.MyFbRenderer.renderDemandeEditor();
+      window.MyFbRenderer.renderDemandeRefsStrip();
+      window.MyFbRenderer.renderSegments();
+      window.MyFbRenderer.updateArmedUi();
+      window.MyFbRenderer.updateMasterBtnLabel();
     } else {
       // Go back to history view.
       _disarm();
-      window.BIAIFRenderer.renderDemandeRefsStrip();
-      window.BIAIFRenderer.renderSegments();
+      window.MyFbRenderer.renderDemandeRefsStrip();
+      window.MyFbRenderer.renderSegments();
     }
-    window.BIAIFStorage.persist(STATE);
+    window.MyFbStorage.persist(STATE);
     if (!silent) _toast(_t('toast.demande_finalized', 'Demande #' + savedNum + ' finalisée.', { n: savedNum }), 'success');
   }
 
@@ -127,7 +127,7 @@
     if (STATE.editingDemandeIdx !== null) exitEditMode({ silent: true });
     var dem = STATE.demandes[idx];
     if (!dem) return;
-    window.BIAIFSpeech.clearInterimGhost();
+    window.MyFbSpeech.clearInterimGhost();
 
     // Backup the new-demande draft so we can restore it when exiting edit mode
     STATE._draftBackup = {
@@ -145,14 +145,14 @@
     STATE.armed = true;
     if (REFS && REFS.masterBtn) REFS.masterBtn.classList.add('armed');
 
-    if (!STATE.micActive) window.BIAIFSpeech.startMic();
+    if (!STATE.micActive) window.MyFbSpeech.startMic();
     if (!STATE.pickerActive) _sendBg({ type: _MSG('PICKER_ENABLE') });
 
-    window.BIAIFRenderer.renderDemandeEditor();
-    window.BIAIFRenderer.renderSegments();
-    window.BIAIFRenderer.updateArmedUi();
-    window.BIAIFRenderer.updateMasterBtnLabel();
-    window.BIAIFRenderer.updateEditorContext(idx, dem.url || null);
+    window.MyFbRenderer.renderDemandeEditor();
+    window.MyFbRenderer.renderSegments();
+    window.MyFbRenderer.updateArmedUi();
+    window.MyFbRenderer.updateMasterBtnLabel();
+    window.MyFbRenderer.updateEditorContext(idx, dem.url || null);
 
     setTimeout(function () {
       if (REFS.demandeEditor) REFS.demandeEditor.focus();
@@ -173,7 +173,7 @@
   function exitEditMode(opts) {
     if (STATE.editingDemandeIdx === null) return;
     if (!opts || !opts.silent) _saveEditToDemande();
-    window.BIAIFSpeech.clearInterimGhost();
+    window.MyFbSpeech.clearInterimGhost();
 
     // Restore the new-demande draft
     STATE.currentDemande = STATE._draftBackup || { text: '', refs: [], pageUrl: null };
@@ -183,11 +183,11 @@
 
     if (!STATE.armed && STATE.pickerActive) _sendBg({ type: _MSG('PICKER_DISABLE') });
 
-    window.BIAIFRenderer.renderDemandeEditor();
-    window.BIAIFRenderer.renderSegments();
-    window.BIAIFRenderer.updateArmedUi();
-    window.BIAIFRenderer.updateMasterBtnLabel();
-    window.BIAIFRenderer.updateEditorContext(null, null);
+    window.MyFbRenderer.renderDemandeEditor();
+    window.MyFbRenderer.renderSegments();
+    window.MyFbRenderer.updateArmedUi();
+    window.MyFbRenderer.updateMasterBtnLabel();
+    window.MyFbRenderer.updateEditorContext(null, null);
 
     if (!opts || !opts.silent) _toast(_t('toast.edit_mode_exited', 'Demande mise à jour.'), 'success');
   }
@@ -203,7 +203,7 @@
 
   async function addRefToTarget(ref) {
     // SCRUB: clean PII/secrets in text fields before storing (defense-in-depth)
-    if (window.BIAIFScrub && window.BIAIFScrub.isEnabled(STATE)) window.BIAIFScrub.scrubRef(ref);
+    if (window.MyFbScrub && window.MyFbScrub.isEnabled(STATE)) window.MyFbScrub.scrubRef(ref);
     // Stamp the active tab's URL and GitHub repo onto every ref
     try {
       var tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -219,15 +219,15 @@
     // whether creating new or editing an existing segment.
     STATE.currentDemande.refs.push(ref);
     var absIdx = STATE.currentDemande.refs.length - 1;
-    window.BIAIFRenderer.appendChipToEditor(absIdx, ref);
+    window.MyFbRenderer.appendChipToEditor(absIdx, ref);
     if (!STATE.editingDemandeIdx) rememberPageUrl();
-    window.BIAIFRenderer.updateMasterBtnLabel();
+    window.MyFbRenderer.updateMasterBtnLabel();
     return true;
   }
 
   function _extractGithubRepo(url) {
-    return (window.BIAIF && window.BIAIF.utils)
-      ? window.BIAIF.utils.extractGithubRepo(url)
+    return (window.MyFb && window.MyFb.utils)
+      ? window.MyFb.utils.extractGithubRepo(url)
       : null;
   }
 
@@ -238,7 +238,7 @@
       REFS.demandeEditor.focus();
       insertTextAtSelection(REFS.demandeEditor, text);
       syncCurrentDemandeFromEditor();
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
     }
   }
 
@@ -255,15 +255,15 @@
     }
     // Compress before storing so we don't blow chrome.storage.local quota.
     var compressedUrl = resp.dataUrl;
-    if (window.BIAIFImaging) {
-      try { compressedUrl = await window.BIAIFImaging.compressDataUrl(resp.dataUrl); } catch (_) {}
+    if (window.MyFbImaging) {
+      try { compressedUrl = await window.MyFbImaging.compressDataUrl(resp.dataUrl); } catch (_) {}
     }
     STATE.lastShot     = compressedUrl;
     STATE.lastShotMode = mode;
     // Move the heavy bytes to IndexedDB; keep dataUrl in memory for live render.
     var blobId = null;
-    if (window.BIAIFBlobStore) {
-      try { blobId = await window.BIAIFBlobStore.put(compressedUrl); } catch (_) {}
+    if (window.MyFbBlobStore) {
+      try { blobId = await window.MyFbBlobStore.put(compressedUrl); } catch (_) {}
     }
     var ref  = { type: 'screenshot', mode: mode, dataUrl: compressedUrl, blobId: blobId, ts: Date.now() };
     var tIdx = activeTargetIdx();
@@ -289,8 +289,8 @@
       else if (srcIdx < STATE.editingDemandeIdx && dstIdx >= STATE.editingDemandeIdx) STATE.editingDemandeIdx--;
       else if (srcIdx > STATE.editingDemandeIdx && dstIdx <= STATE.editingDemandeIdx) STATE.editingDemandeIdx++;
     }
-    window.BIAIFRenderer.renderSegments();
-    window.BIAIFStorage.persist(STATE);
+    window.MyFbRenderer.renderSegments();
+    window.MyFbStorage.persist(STATE);
     _toast(_t('toast.reordered', 'Demande déplacée en position #' + (dstIdx + 1) + '.', { n: dstIdx + 1 }), 'success', 1800);
   }
 
@@ -307,8 +307,8 @@
       if (STATE.dictationTarget === srcIdx) STATE.dictationTarget = srcIdx < dstIdx ? dstIdx - 1 : dstIdx;
       else if (STATE.dictationTarget > srcIdx) STATE.dictationTarget--;
     }
-    window.BIAIFRenderer.renderSegments();
-    window.BIAIFStorage.persist(STATE);
+    window.MyFbRenderer.renderSegments();
+    window.MyFbStorage.persist(STATE);
     var newNum = ((srcIdx < dstIdx) ? dstIdx - 1 : dstIdx) + 1;
     _toast(_t('toast.merge_complete', 'Demandes fusionnées dans #' + newNum + '.', { n: newNum }), 'success');
   }
@@ -343,7 +343,7 @@
     }
     STATE.currentDemande.text = text;
     STATE.currentDemande.refs = newRefs;
-    window.BIAIFRenderer.updateMasterBtnLabel();
+    window.MyFbRenderer.updateMasterBtnLabel();
   }
 
   function syncDemandeFromTextEl(textEl, dem) {
@@ -410,9 +410,9 @@
         _toast(_t('toast.annotate_fail', 'Annotation KO : ' + aerr, { err: aerr }), 'error'); return;
       }
       ref.dataUrl = resp.dataUrl;
-      if (demKey === 'current') window.BIAIFRenderer.renderDemandeEditor();
-      else window.BIAIFRenderer.renderSegments();
-      window.BIAIFStorage.persist(STATE);
+      if (demKey === 'current') window.MyFbRenderer.renderDemandeEditor();
+      else window.MyFbRenderer.renderSegments();
+      window.MyFbStorage.persist(STATE);
       _toast(_t('toast.annotate_saved', 'Référence #' + (refIndex + 1) + ' : annotation enregistrée.', { n: refIndex + 1 }), 'success');
       return;
     }
@@ -453,10 +453,10 @@
   function _disarm() {
     STATE.armed = false;
     if (REFS && REFS.masterBtn) REFS.masterBtn.classList.remove('armed');
-    if (STATE.micActive    && window.BIAIFSpeech.stopMic) window.BIAIFSpeech.stopMic();
+    if (STATE.micActive    && window.MyFbSpeech.stopMic) window.MyFbSpeech.stopMic();
     if (STATE.pickerActive) _sendBg({ type: _MSG('PICKER_DISABLE') });
-    window.BIAIFRenderer.updateArmedUi();
-    window.BIAIFRenderer.updateMasterBtnLabel();
+    window.MyFbRenderer.updateArmedUi();
+    window.MyFbRenderer.updateMasterBtnLabel();
   }
 
   // Public disarm — saves edit if any, abandons new draft, goes back to history
@@ -469,26 +469,26 @@
       syncCurrentDemandeFromEditor();
     }
     _disarm();
-    window.BIAIFRenderer.renderSegments();
-    window.BIAIFStorage.persist(STATE);
+    window.MyFbRenderer.renderSegments();
+    window.MyFbStorage.persist(STATE);
     _toast(_t('toast.back_to_history', 'Retour à l\'historique.'), 'info', 1500);
   }
 
-  function _updateMasterBtn() { if (window.BIAIFRenderer) window.BIAIFRenderer.updateMasterBtnLabel(); }
-  function _updateArmedUi()   { if (window.BIAIFRenderer) window.BIAIFRenderer.updateArmedUi(); }
-  function _toast(m, k, d)    { if (window.BIAIFToast) window.BIAIFToast.show(m, k, d); }
+  function _updateMasterBtn() { if (window.MyFbRenderer) window.MyFbRenderer.updateMasterBtnLabel(); }
+  function _updateArmedUi()   { if (window.MyFbRenderer) window.MyFbRenderer.updateArmedUi(); }
+  function _toast(m, k, d)    { if (window.MyFbToast) window.MyFbToast.show(m, k, d); }
   function _t(key, fallback, vars) {
-    if (window.BIAIFi18n && window.BIAIFi18n.t) {
-      var v = window.BIAIFi18n.t(key, vars);
+    if (window.MyFbI18n && window.MyFbI18n.t) {
+      var v = window.MyFbI18n.t(key, vars);
       if (v && v !== key) return v;
     }
     return fallback || key;
   }
   function _sendBg(payload)   { return chrome.runtime.sendMessage(payload).catch(function () { return null; }); }
-  function _MSG(key)          { return window.BIAIF && window.BIAIF.MSG ? window.BIAIF.MSG[key] : 'biaif:' + key.toLowerCase().replace(/_/g, '-'); }
+  function _MSG(key)          { return window.MyFb && window.MyFb.MSG ? window.MyFb.MSG[key] : 'myfb:' + key.toLowerCase().replace(/_/g, '-'); }
   function _decodeErr(e) {
-    return (window.BIAIF && window.BIAIF.utils)
-      ? window.BIAIF.utils.decodeErr(e)
+    return (window.MyFb && window.MyFb.utils)
+      ? window.MyFb.utils.decodeErr(e)
       : (typeof e === 'string' ? e : (e && e.message || String(e)));
   }
 
@@ -513,7 +513,7 @@
     return '';
   }
 
-  window.BIAIFSession = {
+  window.MyFbSession = {
     init:                       init,
     startSession:               startSession,
     stopSession:                stopSession,

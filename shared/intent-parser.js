@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * BIAIF Intent Parser (shared)
+ * MyFb Intent Parser (shared)
  *
  * Repère, dans une transcription vocale, les verbes-déclencheurs qui
  * indiquent l'action voulue par l'utilisateur. Renvoie un tableau de
@@ -46,5 +46,5 @@
 
   function listIntents() { return Object.keys(INTENTS); }
 
-  root.BIAIFIntentParser = { detect, listIntents };
+  root.MyFbIntentParser = { detect, listIntents };
 })(typeof window !== 'undefined' ? window : self);

@@ -1,11 +1,11 @@
 /**
- * BIAIF Wizard — First-launch onboarding (6 steps, 2 interactive)
+ * MyFb Wizard — First-launch onboarding (6 steps, 2 interactive)
  * Storage key versioned so a future update can re-trigger the wizard.
  */
 (function (window) {
   'use strict';
 
-  var DONE_KEY   = 'biaif:wizard-v1';
+  var DONE_KEY   = 'myfb:wizard-v1';
   var _overlay   = null;
   var _curStep   = 0;
   var _STATE     = null;
@@ -44,7 +44,7 @@
   // ── Build overlay ──────────────────────────────────────────────
 
   function _t(key, fallback) {
-    return (window.BIAIFi18n ? window.BIAIFi18n.t(key) : null) || fallback || key;
+    return (window.MyFbI18n ? window.MyFbI18n.t(key) : null) || fallback || key;
   }
 
   function _show() {
@@ -52,10 +52,10 @@
     _curStep = 0;
 
     _overlay = document.createElement('div');
-    _overlay.className = 'biaif-wizard';
+    _overlay.className = 'myfb-wizard';
     _overlay.setAttribute('role', 'dialog');
     _overlay.setAttribute('aria-modal', 'true');
-    _overlay.setAttribute('aria-label', 'Guide de démarrage BIAIF');
+    _overlay.setAttribute('aria-label', 'Guide de démarrage MyFb');
 
     var dots = STEPS.map(function (_, i) {
       return '<button class="wiz-dot" data-s="' + i + '" aria-label="Étape ' + (i + 1) + ' sur ' + STEPS.length + '"></button>';
@@ -192,7 +192,7 @@
         '<div class="wiz-orb wiz-orb-blue" aria-hidden="true">' +
           _svg('<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>', 52) +
         '</div>' +
-        '<h1 class="wiz-h1">' + _t('wizard.welcome.title', 'Bienvenue dans') + ' <em>BIAIF</em></h1>' +
+        '<h1 class="wiz-h1">' + _t('wizard.welcome.title', 'Bienvenue dans') + ' <em>MyFb</em></h1>' +
         '<p class="wiz-sub">' + _t('wizard.welcome.sub', 'BI · Chrome · AI · Feedback') + '</p>' +
         '<p class="wiz-desc">' + _t('wizard.welcome.desc', "Capturez vos idées, bugs et retours directement depuis le navigateur et transmettez-les à votre IA — avec texte, captures d'écran et contexte HTML.") + '</p>' +
         '<div class="wiz-chips">' +
@@ -364,7 +364,7 @@
   function _stepPrivacy() {
     return ''
       + '<h2 class="wiz-title">🛡️ ' + _t('wizard.privacy.title', 'Confidentialité par défaut') + '</h2>'
-      + '<p class="wiz-text">' + _t('wizard.privacy.text', 'BIAIF masque automatiquement les données sensibles avant qu\'elles soient stockées : emails, IBAN, cartes bancaires (Luhn), JWT, tokens Bearer/sk-/ghp_.') + '</p>'
+      + '<p class="wiz-text">' + _t('wizard.privacy.text', 'MyFb masque automatiquement les données sensibles avant qu\'elles soient stockées : emails, IBAN, cartes bancaires (Luhn), JWT, tokens Bearer/sk-/ghp_.') + '</p>'
       + '<p class="wiz-text">' + _t('wizard.privacy.local', 'Tout reste local — aucune télémétrie, aucun envoi serveur. Voir le détail dans Réglages › Confidentialité.') + '</p>';
   }
 
@@ -458,6 +458,6 @@
     return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + path + '</svg>';
   }
 
-  window.BIAIFWizard = { init: init, open: open };
+  window.MyFbWizard = { init: init, open: open };
 
 })(window);

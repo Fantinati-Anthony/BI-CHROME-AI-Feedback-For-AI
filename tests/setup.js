@@ -21,7 +21,7 @@ globalThis.chrome = {
     id: 'test-extension-id',
     sendMessage: () => Promise.resolve(null),
     onMessage:   { addListener: () => {} },
-    getManifest: () => ({ version: '0.4.0' }),
+    getManifest: () => ({ version: '1.0.0' }),
     getURL: (p) => 'chrome-extension://test/' + p,
   },
   storage: {

@@ -1,11 +1,11 @@
 /*
- * BIAIF Side Panel — stylesheet entry point.
+ * MyFb Side Panel — stylesheet entry point.
  *
  * Split into themed files under sidepanel/css/. Each file owns one
  * concern; the public order matters because cascade rules apply
  * top-to-bottom.
  *
- *   base       — design tokens (:root vars), reset, scrollbar, .biaif-root
+ *   base       — design tokens (:root vars), reset, scrollbar, .myfb-root
  *                state classes (armed / editing / empty), hero animations
  *   session    — session bar (Démarrer / Suivant / Stop) + quick-tools
  *                row (mic / picker / capture)

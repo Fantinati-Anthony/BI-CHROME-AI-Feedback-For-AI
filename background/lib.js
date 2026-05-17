@@ -1,5 +1,5 @@
 /**
- * BIAIF Service Worker — shared library
+ * MyFb Service Worker — shared library
  *
  * Imported via importScripts() into the global SW scope. Declares the
  * cross-module constants (MSG, sleep, sendToActiveTabContent,
@@ -9,7 +9,7 @@
 
 /* global self */
 
-const MSG = self.BIAIF.MSG;
+const MSG = self.MyFb.MSG;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function openSidePanelForActive() {
@@ -17,7 +17,7 @@ async function openSidePanelForActive() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab && tab.id) await chrome.sidePanel.open({ tabId: tab.id });
   } catch (e) {
-    console.warn('[BIAIF] sidePanel.open failed', e?.message || e);
+    console.warn('[MyFb] sidePanel.open failed', e?.message || e);
   }
 }
 
@@ -27,7 +27,7 @@ async function sendToActiveTabContent(payload) {
     if (!tab || !tab.id) return { error: 'no active tab' };
     return await chrome.tabs.sendMessage(tab.id, payload);
   } catch (e) {
-    console.warn('[BIAIF] sendToActiveTabContent failed', e?.message || e);
+    console.warn('[MyFb] sendToActiveTabContent failed', e?.message || e);
     return { error: e?.message || String(e) };
   }
 }

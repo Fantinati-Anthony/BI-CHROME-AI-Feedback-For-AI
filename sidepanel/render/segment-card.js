@@ -1,5 +1,5 @@
 /**
- * BIAIF Render — Segment card
+ * MyFb Render — Segment card
  *
  * Builds one editable demande card. Owns the long inline-HTML string for
  * a card's header / actions, the meta-tags row (filter badges), the
@@ -8,23 +8,23 @@
  * keyboard merge via Alt+↑/↓).
  *
  * Public API:
- *   build(dem, origIndex)  → HTMLElement <article.biaif-segment>
+ *   build(dem, origIndex)  → HTMLElement <article.myfb-segment>
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
-  var ctx   = window.BIAIFRender.ctx;
-  var DOM   = (window.BIAIF && window.BIAIF.dom)   || {};
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  window.MyFbRender = window.MyFbRender || {};
+  var ctx   = window.MyFbRender.ctx;
+  var DOM   = (window.MyFb && window.MyFb.dom)   || {};
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   var esc   = DOM.esc || function (s) { return String(s == null ? '' : s); };
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
   // Single source of truth: shared/ai-adapters.js. Build local lookup maps lazily.
-  function _allButtons() { return (window.BIAIF && window.BIAIF.ALL_BUTTONS) || []; }
-  function _aiTargets()  { return (window.BIAIF && window.BIAIF.AI_TARGETS)  || []; }
+  function _allButtons() { return (window.MyFb && window.MyFb.ALL_BUTTONS) || []; }
+  function _aiTargets()  { return (window.MyFb && window.MyFb.AI_TARGETS)  || []; }
 
   function _onlineButton(origIndex, target) {
-    var ICONS = window.BIAIFRender.icons;
+    var ICONS = window.MyFbRender.icons;
     var label = esc(_t(target.i18nKey, target.label));
     var aria  = esc(_t('aria.open_in_new_tab', 'Ouvrir ' + target.label + ' dans un nouvel onglet et copier le prompt', { name: target.label }));
     return (
@@ -40,7 +40,7 @@
   }
 
   function _buildPageTag(url) {
-    var ICONS = window.BIAIFRender.icons;
+    var ICONS = window.MyFbRender.icons;
     var icon = ICONS.link(11);
     if (!url) return '<div class="seg-urlbar">' + icon +
       '<span class="seg-url seg-url-empty">URL inconnue</span></div>';
@@ -52,7 +52,7 @@
 
   function _buildMetaTags(dem) {
     var STATE = ctx.STATE;
-    var ICONS = window.BIAIFRender.icons;
+    var ICONS = window.MyFbRender.icons;
     var parts = [];
 
     if (dem.repoId) {
@@ -128,7 +128,7 @@
   // Per-card token estimate badge — uses the same heuristic + colour
   // thresholds as the live editor counter (sidepanel/render/token-counter.js).
   function _tokenBadgeHtml(dem) {
-    var TC = window.BIAIFRender.tokenCounter;
+    var TC = window.MyFbRender.tokenCounter;
     if (!TC || !TC._estimate || !TC._kindFor) return '';
     var stripped = String(dem.text || '').replace(/\{\{ref:\d+\}\}/g, '');
     var n   = TC._estimate(stripped);
@@ -141,7 +141,7 @@
   }
 
   function _editBtnHtml(origIndex, isEditing) {
-    var ICONS = window.BIAIFRender.icons;
+    var ICONS = window.MyFbRender.icons;
     if (isEditing) {
       return '<button class="seg-edit-btn is-active" data-act="seg-edit" data-i="' + origIndex +
         '" aria-label="Terminer l\'édition" title="Terminer l\'édition">' +
@@ -167,15 +167,15 @@
 
   function build(dem, origIndex) {
     var STATE = ctx.STATE;
-    var ICONS = window.BIAIFRender.icons;
-    var Chips = window.BIAIFRender.chips;
+    var ICONS = window.MyFbRender.icons;
+    var Chips = window.MyFbRender.chips;
 
     var num       = origIndex + 1;
     var card      = document.createElement('article');
-    card.className = 'biaif-segment';
+    card.className = 'myfb-segment';
     var dt        = new Date(dem.ts || Date.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     var refsCount = (dem.refs || []).length;
-    var tn = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
+    var tn = (window.MyFb && window.MyFb.utils && window.MyFb.utils.tn) || _t;
     var refsLabel = tn('segments.ref', refsCount,
       refsCount + ' réf' + (refsCount > 1 ? 's' : ''), { n: refsCount });
     var isEditing = STATE.editingDemandeIdx === origIndex;
@@ -248,7 +248,7 @@
     var sq = ctx.STATE.searchQuery || '';
     if (sq) _highlightSearch(textEl, sq);
 
-    // Click + drag handlers live on the .biaif-segments wrapper as a
+    // Click + drag handlers live on the .myfb-segments wrapper as a
     // single delegated set — see segments.js → ensureDelegatedHandlers().
     // We just mark the drag handle as draggable + tabbable here.
     var dragHandle = card.querySelector('.seg-drag-handle');
@@ -275,7 +275,7 @@
         if (!p) return;
         if (p.toLowerCase() === q) {
           var mark = document.createElement('mark');
-          mark.className = 'biaif-hl';
+          mark.className = 'myfb-hl';
           mark.textContent = p;
           frag.appendChild(mark);
         } else {
@@ -286,7 +286,7 @@
     });
   }
 
-  window.BIAIFRender.segmentCard = {
+  window.MyFbRender.segmentCard = {
     build:      build,
     pageTag:    _buildPageTag,
     metaTags:   _buildMetaTags,

@@ -1,5 +1,5 @@
 /**
- * BIAIF Service Worker — editor injection retry loop
+ * MyFb Service Worker — editor injection retry loop
  *
  * Sends `msg` to the target tab repeatedly until one of three things
  * happens:

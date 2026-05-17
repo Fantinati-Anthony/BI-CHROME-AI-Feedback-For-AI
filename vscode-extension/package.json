@@ -1,41 +1,41 @@
 {
-  "name": "biaif-vscode-bridge",
-  "displayName": "BIAIF Bridge",
-  "description": "Reçoit les prompts et captures de l'extension Chrome BIAIF et les injecte dans Claude Code / GitHub Copilot Chat. Linux : nécessite xdotool pour la simulation de touche (sudo apt install xdotool).",
-  "version": "0.5.0",
-  "publisher": "biaif",
+  "name": "my-feedbacks-vscode-bridge",
+  "displayName": "My-Feedbacks Bridge",
+  "description": "Reçoit les prompts et captures de l'extension Chrome My-Feedbacks et les injecte dans Claude Code / GitHub Copilot Chat. Linux : nécessite xdotool pour la simulation de touche (sudo apt install xdotool).",
+  "version": "1.0.0",
+  "publisher": "my-feedbacks",
   "engines": { "vscode": "^1.80.0" },
   "categories": ["Other"],
-  "keywords": ["biaif", "claude", "ai", "bridge"],
+  "keywords": ["my-feedbacks", "feedback", "claude", "ai", "bridge"],
   "activationEvents": ["onStartupFinished"],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "biaif.toggleBridge",
-        "title": "BIAIF : Activer / désactiver le bridge Chrome",
-        "category": "BIAIF"
+        "command": "myfb.toggleBridge",
+        "title": "My-Feedbacks : Activer / désactiver le bridge Chrome",
+        "category": "My-Feedbacks"
       },
       {
-        "command": "biaif.showLastImages",
-        "title": "BIAIF : Afficher les dernières captures reçues",
-        "category": "BIAIF"
+        "command": "myfb.showLastImages",
+        "title": "My-Feedbacks : Afficher les dernières captures reçues",
+        "category": "My-Feedbacks"
       }
     ],
     "configuration": {
-      "title": "BIAIF Bridge",
+      "title": "My-Feedbacks Bridge",
       "properties": {
-        "biaif.bridgePort": {
+        "myfb.bridgePort": {
           "type": "number",
           "default": 51473,
-          "description": "Port local du bridge BIAIF (doit correspondre au port configuré dans l'extension Chrome)."
+          "description": "Port local du bridge My-Feedbacks (doit correspondre au port configuré dans l'extension Chrome)."
         },
-        "biaif.autoStart": {
+        "myfb.autoStart": {
           "type": "boolean",
           "default": true,
           "description": "Démarrer automatiquement le bridge au lancement de VS Code."
         },
-        "biaif.tempDir": {
+        "myfb.tempDir": {
           "type": "string",
           "default": "",
           "description": "Dossier pour les captures temporaires. Vide = dossier temp du système."

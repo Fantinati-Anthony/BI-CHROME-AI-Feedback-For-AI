@@ -1,5 +1,5 @@
 /**
- * BIAIF CSS Selector Generator
+ * MyFb CSS Selector Generator
  *
  * Construit un sélecteur CSS unique et stable pour un élément donné,
  * en privilégiant : id > data-* > classes pertinentes > tag + nth-of-type.
@@ -20,7 +20,7 @@
 
   function isMeaningfulClass(cls) {
     if (!cls || typeof cls !== 'string') return false;
-    if (cls.startsWith('biaif-')) return false;
+    if (cls.startsWith('myfb-')) return false;
     // Ignorer classes utilitaires "noisy" générées (ex: tailwind aléatoires, css-modules hash)
     if (/^css-[a-z0-9]{5,}$/i.test(cls)) return false;
     if (/^[a-z]+-[0-9a-f]{6,}$/i.test(cls)) return false;
@@ -135,5 +135,5 @@
     };
   }
 
-  window.BIAIFSelector = { getUniqueSelector, describeElement };
+  window.MyFbSelector = { getUniqueSelector, describeElement };
 })(window);

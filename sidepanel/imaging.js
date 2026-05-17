@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * BIAIF Imaging
+ * MyFb Imaging
  *
  * Client-side image compression to keep screenshots within the
  * chrome.storage.local 10 MB quota. Called by session.js before a
@@ -71,6 +71,6 @@
   }
 
   var api = { compressDataUrl: compressDataUrl, bytes: _bytes };
-  window.BIAIFImaging = api;
+  window.MyFbImaging = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

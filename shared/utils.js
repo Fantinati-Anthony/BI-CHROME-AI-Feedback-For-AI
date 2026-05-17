@@ -1,12 +1,12 @@
 /**
- * BIAIF Shared Utils
+ * MyFb Shared Utils
  * Cross-context helpers (sidepanel, content scripts, service worker).
  * Replaces duplicate _extractGithubRepo / _decodeErr / _t / _MSG previously
  * inlined in each module.
  */
 (function (root) {
   'use strict';
-  root.BIAIF = root.BIAIF || {};
+  root.MyFb = root.MyFb || {};
 
   var GH_SKIP = [
     'orgs', 'settings', 'marketplace', 'explore', 'trending',
@@ -26,8 +26,8 @@
   }
 
   function t(key, fallback, vars) {
-    if (root.BIAIFi18n && root.BIAIFi18n.t) {
-      var v = root.BIAIFi18n.t(key, vars);
+    if (root.MyFbI18n && root.MyFbI18n.t) {
+      var v = root.MyFbI18n.t(key, vars);
       if (v && v !== key) return v;
     }
     return fallback || key;
@@ -36,8 +36,8 @@
   // Plural-aware lookup. Resolves baseKey + '_' + category via
   // Intl.PluralRules, with fallback to legacy *_singular / *_plural.
   function tn(baseKey, n, fallback, vars) {
-    if (root.BIAIFi18n && root.BIAIFi18n.tn) {
-      var v = root.BIAIFi18n.tn(baseKey, n, vars);
+    if (root.MyFbI18n && root.MyFbI18n.tn) {
+      var v = root.MyFbI18n.tn(baseKey, n, vars);
       if (v && v !== baseKey) return v;
     }
     return fallback || baseKey;
@@ -53,13 +53,13 @@
   }
 
   function msgKey(key) {
-    if (root.BIAIF && root.BIAIF.MSG && root.BIAIF.MSG[key]) return root.BIAIF.MSG[key];
-    return 'biaif:' + key.toLowerCase().replace(/_/g, '-');
+    if (root.MyFb && root.MyFb.MSG && root.MyFb.MSG[key]) return root.MyFb.MSG[key];
+    return 'myfb:' + key.toLowerCase().replace(/_/g, '-');
   }
 
   // Match a hostname against the list of known AI hosts in AI_ADAPTERS.
   function findAiAdapter(hostname) {
-    var adapters = (root.BIAIF && root.BIAIF.AI_ADAPTERS) || [];
+    var adapters = (root.MyFb && root.MyFb.AI_ADAPTERS) || [];
     for (var i = 0; i < adapters.length; i++) {
       var a = adapters[i];
       if (hostname === a.host || hostname.endsWith('.' + a.host)) return a;
@@ -67,9 +67,9 @@
     return null;
   }
 
-  // Toast wrapper — safe even if BIAIFToast isn't loaded yet (content scripts).
+  // Toast wrapper — safe even if MyFbToast isn't loaded yet (content scripts).
   function toast(msg, kind, duration) {
-    if (root.BIAIFToast && root.BIAIFToast.show) root.BIAIFToast.show(msg, kind, duration);
+    if (root.MyFbToast && root.MyFbToast.show) root.MyFbToast.show(msg, kind, duration);
   }
 
   // Best-effort runtime.sendMessage wrapper — swallows the lastError noise
@@ -92,7 +92,7 @@
     toast:             toast,
     sendBg:            sendBg,
   };
-  root.BIAIF.utils = api;
+  root.MyFb.utils = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
 })(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis));

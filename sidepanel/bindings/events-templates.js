@@ -1,25 +1,25 @@
 /**
- * BIAIF Bindings — Templates modal.
+ * MyFb Bindings — Templates modal.
  *
  * Replaces the old small popover with a full-screen modal that has two
  * sections:
  *   1. Saved        — templates stored in chrome.storage (existing behaviour)
  *   2. Dossier      — file tree from a locally-mounted folder via the File
- *                     System Access API (BIAIFFileTemplates, Option A)
+ *                     System Access API (MyFbFileTemplates, Option A)
  *
  * A "Importer" button at the bottom handles Option B (manual .md/.txt import).
  *
- * Public entry point: BIAIFBindings.bindTemplatesPopover(autoArm)
+ * Public entry point: MyFbBindings.bindTemplatesPopover(autoArm)
  *                     (name kept for back-compat; called by events.js).
  */
 (function (window) {
   'use strict';
 
-  window.BIAIFBindings = window.BIAIFBindings || {};
-  var ctx = window.BIAIFBindings.ctx;
+  window.MyFbBindings = window.MyFbBindings || {};
+  var ctx = window.MyFbBindings.ctx;
 
   function _t(k, fb) {
-    var U = window.BIAIF && window.BIAIF.utils;
+    var U = window.MyFb && window.MyFb.utils;
     return (U && U.t) ? U.t(k, fb) : (fb || k);
   }
 
@@ -63,7 +63,7 @@
   function _renderSaved(container, body) {
     container.innerHTML = '';
 
-    var items = (window.BIAIFTemplates && window.BIAIFTemplates.list()) || [];
+    var items = (window.MyFbTemplates && window.MyFbTemplates.list()) || [];
 
     if (!items.length) {
       var empty = _el('p', 'tm-empty', _t('templates.empty_short', 'Aucun modèle enregistré'));
@@ -91,7 +91,7 @@
         '<line x1="6" y1="6" x2="18" y2="18"/></svg>';
       del.addEventListener('click', function (e) {
         e.stopPropagation();
-        window.BIAIFTemplates.remove(t.id);
+        window.MyFbTemplates.remove(t.id);
         _renderSaved(container, body);
       });
 
@@ -104,10 +104,10 @@
 
   function _insertSaved(id) {
     if (typeof _autoArm === 'function') _autoArm();
-    window.BIAIFTemplates.insertIntoEditor(id);
+    window.MyFbTemplates.insertIntoEditor(id);
     _close();
-    if (window.BIAIFToast) {
-      window.BIAIFToast.show(_t('toast.template_inserted', 'Modèle inséré.'), 'success', 1800);
+    if (window.MyFbToast) {
+      window.MyFbToast.show(_t('toast.template_inserted', 'Modèle inséré.'), 'success', 1800);
     }
   }
 
@@ -177,26 +177,26 @@
 
   function _insertFile(fileHandle, fileName) {
     if (!fileHandle) return;
-    var FT = window.BIAIFFileTemplates;
+    var FT = window.MyFbFileTemplates;
     if (!FT) return;
     FT.readFile(fileHandle).then(function (body) {
       if (body == null) {
-        if (window.BIAIFToast) window.BIAIFToast.show(_t('toast.file_read_error', 'Impossible de lire le fichier.'), 'error');
+        if (window.MyFbToast) window.MyFbToast.show(_t('toast.file_read_error', 'Impossible de lire le fichier.'), 'error');
         return;
       }
       if (typeof _autoArm === 'function') _autoArm();
-      var VP = window.BIAIFVarPrompt;
+      var VP = window.MyFbVarPrompt;
       var vars = VP ? VP.collect(body) : [];
       var _doInsert = function (resolvedBody) {
-        if (window.BIAIFSession && window.BIAIFSession.addTextToTarget) {
-          window.BIAIFSession.addTextToTarget(resolvedBody);
+        if (window.MyFbSession && window.MyFbSession.addTextToTarget) {
+          window.MyFbSession.addTextToTarget(resolvedBody);
         }
         _close();
-        if (window.BIAIFToast) {
-          window.BIAIFToast.show(_t('toast.template_inserted', 'Modèle inséré.'), 'success', 1800);
+        if (window.MyFbToast) {
+          window.MyFbToast.show(_t('toast.template_inserted', 'Modèle inséré.'), 'success', 1800);
         }
       };
-      var interp = window.BIAIFTemplates && window.BIAIFTemplates.interpolate;
+      var interp = window.MyFbTemplates && window.MyFbTemplates.interpolate;
       if (!vars.length) {
         _doInsert(interp ? interp(body) : body);
         return;
@@ -215,7 +215,7 @@
 
   function _renderFolder(container) {
     container.innerHTML = '';
-    var FT = window.BIAIFFileTemplates;
+    var FT = window.MyFbFileTemplates;
     if (!FT || !FT.hasFolder()) {
       _renderFolderEmpty(container);
       return;
@@ -250,7 +250,7 @@
   }
 
   function _renderFolderPermissionLost(container) {
-    var FT = window.BIAIFFileTemplates;
+    var FT = window.MyFbFileTemplates;
     var wrap = _el('div', 'tm-pick-folder');
     var icon = document.createElement('div');
     icon.className = 'tm-pick-folder-icon';
@@ -348,13 +348,13 @@
       'stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/>' +
       '<line x1="5" y1="12" x2="19" y2="12"/></svg>');
     saveCurrentBtn.addEventListener('click', function () {
-      var entry = window.BIAIFTemplates && window.BIAIFTemplates.saveCurrentAsTemplate();
+      var entry = window.MyFbTemplates && window.MyFbTemplates.saveCurrentAsTemplate();
       if (!entry) {
-        if (window.BIAIFToast) window.BIAIFToast.show(_t('toast.template_empty', 'Rien à enregistrer — saisissez du texte.'), 'info');
+        if (window.MyFbToast) window.MyFbToast.show(_t('toast.template_empty', 'Rien à enregistrer — saisissez du texte.'), 'info');
         return;
       }
       _renderSaved(savedList, bodySave);
-      if (window.BIAIFToast) window.BIAIFToast.show(_t('toast.template_saved', 'Modèle enregistré.'), 'success');
+      if (window.MyFbToast) window.MyFbToast.show(_t('toast.template_saved', 'Modèle enregistré.'), 'success');
     });
 
     var importBtn = _btn('tm-action-btn',
@@ -367,12 +367,12 @@
       fi.value = '';
       fi.onchange = function () {
         if (!fi.files || !fi.files.length) return;
-        var FT = window.BIAIFFileTemplates;
+        var FT = window.MyFbFileTemplates;
         if (!FT) return;
         FT.importFiles(fi.files).then(function (n) {
           _renderSaved(savedList, bodySave);
-          if (window.BIAIFToast) {
-            window.BIAIFToast.show(
+          if (window.MyFbToast) {
+            window.MyFbToast.show(
               n + ' ' + _t('toast.templates_imported', 'modèle(s) importé(s).'), 'success', 2500);
           }
         });
@@ -385,7 +385,7 @@
     bodySave.appendChild(savedActions);
 
     /* Folder body content */
-    var FT = window.BIAIFFileTemplates;
+    var FT = window.MyFbFileTemplates;
 
     /* Folder header bar (path + change button) */
     var dirBar  = _el('div', 'tm-dir-bar');
@@ -495,7 +495,7 @@
     _triggerBtn = btn;
 
     // Init file-templates async
-    if (window.BIAIFFileTemplates) window.BIAIFFileTemplates.init();
+    if (window.MyFbFileTemplates) window.MyFbFileTemplates.init();
 
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -505,5 +505,5 @@
     });
   }
 
-  window.BIAIFBindings.bindTemplatesPopover = bindTemplatesPopover;
+  window.MyFbBindings.bindTemplatesPopover = bindTemplatesPopover;
 })(window);

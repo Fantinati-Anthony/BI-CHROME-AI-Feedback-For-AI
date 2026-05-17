@@ -127,8 +127,8 @@
 .sp-btn-sm:hover { color: var(--text-main); background: var(--bg-card-hover); }
 
 /* Mic meter */
-.biaif-mic-meter { height: 4px; background: var(--border-card); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
-.biaif-mic-meter-bar { height: 100%; width: 0%; background: var(--success); transition: width 0.1s; }
+.myfb-mic-meter { height: 4px; background: var(--border-card); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+.myfb-mic-meter-bar { height: 100%; width: 0%; background: var(--success); transition: width 0.1s; }
 
 /* Toggle rows */
 .sp-toggle-row {

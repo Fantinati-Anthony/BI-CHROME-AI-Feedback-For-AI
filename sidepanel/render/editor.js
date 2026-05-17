@@ -1,14 +1,14 @@
 /**
- * BIAIF Render — Demande editor
+ * MyFb Render — Demande editor
  *
  * Rendering for the live "currentDemande" editor (the contenteditable above
  * the segments list) and its references strip (the small chip preview row).
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
-  var ctx   = window.BIAIFRender.ctx;
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  window.MyFbRender = window.MyFbRender || {};
+  var ctx   = window.MyFbRender.ctx;
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
   function render() {
@@ -18,7 +18,7 @@
     var text = ctx.STATE.currentDemande.text, refs = ctx.STATE.currentDemande.refs;
     if (!text) { renderRefsStrip(); _attachTextBlocks(ed); return; }
     var re = /\{\{ref:(\d+)\}\}/g, last = 0, m;
-    var Chips = window.BIAIFRender.chips;
+    var Chips = window.MyFbRender.chips;
     while ((m = re.exec(text)) !== null) {
       if (m.index > last) ed.appendChild(document.createTextNode(text.slice(last, m.index)));
       var ref = refs[Number(m[1])];
@@ -33,19 +33,19 @@
   // Wire the margin-drag-handle reorder helper on the live demande editor.
   // Idempotent — safe to call after every render().
   function _attachTextBlocks(ed) {
-    var TB = window.BIAIFRender.textBlocks;
+    var TB = window.MyFbRender.textBlocks;
     if (!TB) return;
     TB.attach(ed, function () {
-      if (window.BIAIFSession) window.BIAIFSession.syncCurrentDemandeFromEditor();
+      if (window.MyFbSession) window.MyFbSession.syncCurrentDemandeFromEditor();
       renderRefsStrip();
-      if (window.BIAIFStorage) window.BIAIFStorage.persist(ctx.STATE);
+      if (window.MyFbStorage) window.MyFbStorage.persist(ctx.STATE);
     });
   }
 
   function renderRefsStrip() {
     if (ctx.REFS.demandeRefsCount) {
       var n = ctx.STATE.currentDemande.refs.length;
-      var tn = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
+      var tn = (window.MyFb && window.MyFb.utils && window.MyFb.utils.tn) || _t;
       ctx.REFS.demandeRefsCount.textContent = tn(
         'segments.ref', n,
         n + ' réf' + (n > 1 ? 's' : ''),
@@ -86,7 +86,7 @@
   function appendChip(absIdx, ref) {
     var ed = ctx.REFS.demandeEditor;
     if (!ed) return;
-    var Chips = window.BIAIFRender.chips;
+    var Chips = window.MyFbRender.chips;
     var last = ed.lastChild;
     if (last && last.nodeType === Node.TEXT_NODE && !/\s$/.test(last.textContent))
       last.textContent += ' ';
@@ -94,12 +94,12 @@
       ed.appendChild(document.createTextNode(' '));
     ed.appendChild(Chips.make(absIdx, ref, { demKey: 'current' }));
     ed.appendChild(document.createTextNode(' '));
-    if (window.BIAIFSession) window.BIAIFSession.syncCurrentDemandeFromEditor();
+    if (window.MyFbSession) window.MyFbSession.syncCurrentDemandeFromEditor();
     renderRefsStrip();
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(ctx.STATE);
+    if (window.MyFbStorage) window.MyFbStorage.persist(ctx.STATE);
   }
 
-  window.BIAIFRender.editor = {
+  window.MyFbRender.editor = {
     render:         render,
     renderRefsStrip: renderRefsStrip,
     appendChip:     appendChip,

@@ -1,8 +1,8 @@
 /**
- * BIAIF Error Bridge (isolated world)
+ * MyFb Error Bridge (isolated world)
  *
  * Pendant du page-error-monitor.js. Écoute les CustomEvent
- * "__biaif_page_error__" dispatchés depuis le MAIN world et forwarde
+ * "__myfb_page_error__" dispatchés depuis le MAIN world et forwarde
  * chaque erreur unique au side panel via chrome.runtime.sendMessage.
  *
  * Filtre :
@@ -15,14 +15,14 @@
  */
 
 (function () {
-  if (window.__BIAIF_ERROR_BRIDGE__) return;
-  window.__BIAIF_ERROR_BRIDGE__ = true;
+  if (window.__MYFB_ERROR_BRIDGE__) return;
+  window.__MYFB_ERROR_BRIDGE__ = true;
 
   const seen = new Set();
   const errors = [];                     // payloads complets (pour replay)
   const ERROR_KINDS = new Set(['console.error', 'error', 'unhandledrejection']);
 
-  window.addEventListener(window.BIAIF.MSG.PAGE_ERROR_EVENT, (e) => {
+  window.addEventListener(window.MyFb.MSG.PAGE_ERROR_EVENT, (e) => {
     const d = (e && e.detail) || {};
     if (!ERROR_KINDS.has(d.kind)) return;
     const key = (d.kind || '') + '|' + (d.msg || '') + '|' + (d.file || '') + ':' + (d.line || 0);
@@ -41,7 +41,7 @@
     };
     errors.push(payload);
     try {
-      const p = chrome.runtime.sendMessage({ type: window.BIAIF.MSG.CONSOLE_ERROR, error: payload });
+      const p = chrome.runtime.sendMessage({ type: window.MyFb.MSG.CONSOLE_ERROR, error: payload });
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (_) { /* SW idle, ignore */ }
   });
@@ -49,7 +49,7 @@
   // Replay : la side panel demande la liste complète des erreurs de la
   // page courante (ex. au changement d'onglet ou après ouverture).
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (!msg || msg.type !== window.BIAIF.MSG.GET_ERRORS) return;
+    if (!msg || msg.type !== window.MyFb.MSG.GET_ERRORS) return;
     if (sender.id && sender.id !== chrome.runtime.id) return;
     sendResponse({ errors: errors.slice() });
     return false;

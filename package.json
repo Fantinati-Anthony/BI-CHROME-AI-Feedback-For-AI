@@ -1,8 +1,14 @@
 {
-  "name": "biaif",
-  "version": "0.4.0",
+  "name": "my-feedbacks",
+  "version": "1.0.0",
   "private": true,
-  "description": "BIAIF — BI Chrome AI Feedback For AI (Chrome MV3 extension).",
+  "description": "My-Feedbacks — Local-first feedback bridge between developers and their clients (Chrome MV3 extension).",
+  "homepage": "https://my-feedbacks.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fantinati-Anthony/my-feedbacks-extension"
+  },
+  "license": "MIT",
   "scripts": {
     "test":          "vitest run",
     "test:watch":    "vitest",

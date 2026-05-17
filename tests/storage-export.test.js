@@ -14,8 +14,8 @@ beforeAll(() => {
   loadAddonScript('shared/utils.js');
   loadAddonScript('shared/ai-adapters.js');
   // Toast + Undo are referenced by persist() — provide stubs
-  window.BIAIFToast = { show: () => {} };
-  window.BIAIFUndo  = { push: () => {}, pop: () => null, clear: () => {}, canUndo: () => false, size: () => 0 };
+  window.MyFbToast = { show: () => {} };
+  window.MyFbUndo  = { push: () => {}, pop: () => null, clear: () => {}, canUndo: () => false, size: () => 0 };
   loadAddonScript('sidepanel/storage.js');
 });
 
@@ -36,7 +36,7 @@ function makeState(overrides = {}) {
   }, overrides);
 }
 
-describe('BIAIFStorage exportToFile / importBundle', () => {
+describe('MyFbStorage exportToFile / importBundle', () => {
   it('exportToFile triggers a download (anchor click) with a JSON blob', () => {
     const state = makeState();
     // Capture the blob that would be downloaded
@@ -56,8 +56,8 @@ describe('BIAIFStorage exportToFile / importBundle', () => {
     const realClick = HTMLAnchorElement.prototype.click;
     HTMLAnchorElement.prototype.click = function () {};
 
-    const bundle = window.BIAIFStorage.exportToFile(state);
-    expect(bundle._biaif).toBe('export');
+    const bundle = window.MyFbStorage.exportToFile(state);
+    expect(bundle._myfb).toBe('export');
     expect(bundle.data.demandes).toHaveLength(2);
 
     URL.createObjectURL = realCreate;
@@ -72,7 +72,7 @@ describe('BIAIFStorage exportToFile / importBundle', () => {
     const realCreate = URL.createObjectURL;
     URL.createObjectURL = () => 'blob:mock';
 
-    const bundle = window.BIAIFStorage.exportToFile(state, { stripDataUrls: true });
+    const bundle = window.MyFbStorage.exportToFile(state, { stripDataUrls: true });
     const ref = bundle.data.demandes[1].refs[0];
     expect(ref.dataUrl).toBe(null);
     expect(ref._stripped).toBe(true);
@@ -84,7 +84,7 @@ describe('BIAIFStorage exportToFile / importBundle', () => {
   it('importBundle replaces demandes + applies settings', () => {
     const state = makeState();
     const bundle = {
-      _biaif: 'export', _version: 4,
+      _myfb: 'export', _version: 4,
       data: {
         demandes:  [{ id: 'imp', text: 'imported', refs: [] }],
         templates: [],
@@ -92,7 +92,7 @@ describe('BIAIFStorage exportToFile / importBundle', () => {
         theme:     'dark',
       },
     };
-    const r = window.BIAIFStorage.importBundle(state, bundle, { mode: 'replace' });
+    const r = window.MyFbStorage.importBundle(state, bundle, { mode: 'replace' });
     expect(r.ok).toBe(true);
     expect(r.imported).toBe(1);
     expect(state.demandes).toHaveLength(1);
@@ -103,18 +103,18 @@ describe('BIAIFStorage exportToFile / importBundle', () => {
   it('importBundle "merge" appends instead of replacing', () => {
     const state = makeState();
     const bundle = {
-      _biaif: 'export', _version: 4,
+      _myfb: 'export', _version: 4,
       data: { demandes: [{ id: 'extra', text: 'added', refs: [] }] },
     };
-    const r = window.BIAIFStorage.importBundle(state, bundle, { mode: 'merge' });
+    const r = window.MyFbStorage.importBundle(state, bundle, { mode: 'merge' });
     expect(r.ok).toBe(true);
     expect(state.demandes).toHaveLength(3);
   });
 
   it('importBundle rejects malformed input', () => {
-    const r1 = window.BIAIFStorage.importBundle({}, null);
-    const r2 = window.BIAIFStorage.importBundle({}, { hello: 'world' });
-    const r3 = window.BIAIFStorage.importBundle({}, { _biaif: 'export' /* no data */ });
+    const r1 = window.MyFbStorage.importBundle({}, null);
+    const r2 = window.MyFbStorage.importBundle({}, { hello: 'world' });
+    const r3 = window.MyFbStorage.importBundle({}, { _myfb: 'export' /* no data */ });
     expect(r1.ok).toBe(false);
     expect(r2.ok).toBe(false);
     expect(r3.ok).toBe(false);

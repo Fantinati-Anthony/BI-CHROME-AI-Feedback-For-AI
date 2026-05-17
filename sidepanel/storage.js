@@ -1,10 +1,10 @@
 /**
- * BIAIF Storage
+ * MyFb Storage
  *
  * Handles hydration, persistence, and versioned migration.
  *
  * Version model:
- *   - The storage KEY itself includes a version (`biaif:v04:state`).
+ *   - The storage KEY itself includes a version (`myfb:v1:state`).
  *   - The persisted payload also carries a `_v` field with the integer
  *     version of the schema. New persists always stamp the current
  *     version. Old payloads without `_v` are treated as v1.
@@ -20,8 +20,8 @@
 (function (window) {
   'use strict';
 
-  var KEY        = (window.BIAIF && window.BIAIF.STORAGE_KEY)        || 'biaif:v04:state';
-  var LEGACY     = (window.BIAIF && window.BIAIF.STORAGE_LEGACY_KEYS) || ['biaif:v03:state'];
+  var KEY        = (window.MyFb && window.MyFb.STORAGE_KEY)        || 'myfb:v1:state';
+  var LEGACY     = (window.MyFb && window.MyFb.STORAGE_LEGACY_KEYS) || ['myfb:v03:state'];
   var MAX_BYTES  = 8 * 1024 * 1024; // warn at 8 MB (limit is 10 MB)
 
   // ── Schema version ───────────────────────────────────────────────────────
@@ -48,12 +48,12 @@
       try {
         p = step.run(p) || p;
         currentV = step.to;
-        if (window.BIAIF && window.BIAIF.log) {
-          window.BIAIF.log.info('[storage] migrated v' + step.from + ' → v' + step.to);
+        if (window.MyFb && window.MyFb.log) {
+          window.MyFb.log.info('[storage] migrated v' + step.from + ' → v' + step.to);
         }
       } catch (e) {
         // Migration failed — keep the data as-is to avoid corruption.
-        console.warn('[BIAIF Storage] migration v' + step.from + ' → v' + step.to + ' failed:', e && e.message);
+        console.warn('[MyFb Storage] migration v' + step.from + ' → v' + step.to + ' failed:', e && e.message);
         break;
       }
     }
@@ -103,30 +103,30 @@
       if (typeof saved.syncEnabled  === 'boolean') STATE.syncEnabled  = saved.syncEnabled;
 
     } catch (e) {
-      console.warn('[BIAIF Storage] hydrate failed', e && e.message);
+      console.warn('[MyFb Storage] hydrate failed', e && e.message);
     }
     // Hand control back to the caller IMMEDIATELY so the panel renders
     // (with skeleton placeholders for screenshots). Rehydrate IndexedDB
     // blobs in the background and re-render when they're ready.
     if (onDone) onDone();
-    if (window.BIAIFBlobStore) {
+    if (window.MyFbBlobStore) {
       try {
         var allRefs = (STATE.demandes || []).reduce(function (acc, d) {
           return acc.concat(d.refs || []);
         }, (STATE.currentDemande && STATE.currentDemande.refs) || []);
         var hadBlobIds = allRefs.some(function (r) { return r && r.blobId && !r.dataUrl; });
         if (hadBlobIds) {
-          window.BIAIFBlobStore.rehydrateRefs(allRefs).then(function () {
+          window.MyFbBlobStore.rehydrateRefs(allRefs).then(function () {
             // Re-render to swap skeletons for the actual thumbnails.
-            if (window.BIAIFRenderer) {
-              if (window.BIAIFRenderer.renderSegments)         window.BIAIFRenderer.renderSegments();
-              if (window.BIAIFRenderer.renderDemandeRefsStrip) window.BIAIFRenderer.renderDemandeRefsStrip();
+            if (window.MyFbRenderer) {
+              if (window.MyFbRenderer.renderSegments)         window.MyFbRenderer.renderSegments();
+              if (window.MyFbRenderer.renderDemandeRefsStrip) window.MyFbRenderer.renderDemandeRefsStrip();
             }
           }).catch(function () {});
         }
         // GC blobs that no longer have a referencing ref in STATE.
         var alive = allRefs.map(function (r) { return r && r.blobId; }).filter(Boolean);
-        window.BIAIFBlobStore.gc(alive).catch(function () {});
+        window.MyFbBlobStore.gc(alive).catch(function () {});
       } catch (_) {}
     }
   }
@@ -136,8 +136,8 @@
   // -----------------------------------------------------------------------
   function persist(STATE, opts) {
     // Push undo snapshot before saving (skipped during undo replay).
-    if (window.BIAIFUndo && (!opts || !opts.skipUndo)) {
-      window.BIAIFUndo.push({
+    if (window.MyFbUndo && (!opts || !opts.skipUndo)) {
+      window.MyFbUndo.push({
         demandes:       JSON.parse(JSON.stringify(STATE.demandes)),
         currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)),
       });
@@ -154,7 +154,7 @@
       // Fallback: strip screenshot dataUrls to save space
       var slim = _stripDataUrls(payload);
       chrome.storage.local.set({ [KEY]: slim }).catch(function () {
-        console.warn('[BIAIF Storage] persist failed even after stripping images');
+        console.warn('[MyFb Storage] persist failed even after stripping images');
       });
     });
 
@@ -165,7 +165,7 @@
       chrome.storage.sync.set({ [SYNC_KEY]: syncPayload })
         .then(function () { _setSyncDot('ok'); })
         .catch(function (err) {
-          console.warn('[BIAIF Storage] sync failed:', err && err.message);
+          console.warn('[MyFb Storage] sync failed:', err && err.message);
           _setSyncDot('error');
         });
     } else if (!STATE.syncEnabled) {
@@ -185,7 +185,7 @@
     if (dot) dot.dataset.status = status;
   }
 
-  var SYNC_KEY = 'biaif:sync';
+  var SYNC_KEY = 'myfb:sync';
   var SYNC_KEYS_WHITELIST = [
     'lang','uiLang','sortOrder','segFontSize','visibleButtons',
     'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage',
@@ -308,7 +308,7 @@
   function _migrateLegacy(obj) {
     for (var i = 0; i < LEGACY.length; i++) {
       if (obj[LEGACY[i]]) {
-        console.log('[BIAIF Storage] migrating from', LEGACY[i], '→', KEY);
+        console.log('[MyFb Storage] migrating from', LEGACY[i], '→', KEY);
         return obj[LEGACY[i]];
       }
     }
@@ -319,13 +319,13 @@
     try {
       var usage = await chrome.storage.local.getBytesInUse(null);
       if (usage > MAX_BYTES) {
-        console.warn('[BIAIF Storage] quota warning: ' + Math.round(usage / 1024) + ' KB used');
-        if (window.BIAIFToast) {
+        console.warn('[MyFb Storage] quota warning: ' + Math.round(usage / 1024) + ' KB used');
+        if (window.MyFbToast) {
           var mb = Math.round(usage / 1024 / 1024 * 10) / 10;
-          var msg = (window.BIAIFi18n && window.BIAIFi18n.t)
-            ? window.BIAIFi18n.t('toast.storage_warning', { mb: mb })
+          var msg = (window.MyFbI18n && window.MyFbI18n.t)
+            ? window.MyFbI18n.t('toast.storage_warning', { mb: mb })
             : 'Stockage presque plein (' + mb + ' MB).';
-          window.BIAIFToast.show(msg, 'error', 8000);
+          window.MyFbToast.show(msg, 'error', 8000);
         }
       }
     } catch (_) {}
@@ -340,17 +340,17 @@
     // Deep-clone so scrubbing/stripping doesn't mutate the live STATE
     payload = JSON.parse(JSON.stringify(payload));
     var bundle  = {
-      _biaif:    'export',
+      _myfb:    'export',
       _version:  CURRENT_VERSION,
       _exportTs: Date.now(),
       _stripDataUrls: !!opts.stripDataUrls,
-      _scrubbed: !!(window.BIAIFScrub && window.BIAIFScrub.isEnabled(STATE)),
+      _scrubbed: !!(window.MyFbScrub && window.MyFbScrub.isEnabled(STATE)),
       data:      payload,
     };
     // SCRUB: redact PII/secrets if enabled (default ON)
     if (bundle._scrubbed && bundle.data.demandes) {
-      bundle.data.demandes.forEach(window.BIAIFScrub.scrubDemande);
-      if (bundle.data.currentDemande) window.BIAIFScrub.scrubDemande(bundle.data.currentDemande);
+      bundle.data.demandes.forEach(window.MyFbScrub.scrubDemande);
+      if (bundle.data.currentDemande) window.MyFbScrub.scrubDemande(bundle.data.currentDemande);
     }
     if (opts.stripDataUrls && bundle.data.demandes) {
       bundle.data.demandes = bundle.data.demandes.map(function (d) {
@@ -364,7 +364,7 @@
     var url  = URL.createObjectURL(blob);
     var ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     var a    = document.createElement('a');
-    a.href = url; a.download = 'biaif-export-' + ts + '.json';
+    a.href = url; a.download = 'myfb-export-' + ts + '.json';
     document.body.appendChild(a); a.click();
     setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
     return bundle;
@@ -412,7 +412,7 @@
   }
   function _validateBundle(bundle) {
     if (!bundle || typeof bundle !== 'object') return { ok: false, error: 'not-an-object' };
-    if (bundle._biaif !== 'export')              return { ok: false, error: 'wrong-magic' };
+    if (bundle._myfb !== 'export')              return { ok: false, error: 'wrong-magic' };
     if (typeof bundle._version !== 'number')     return { ok: false, error: 'bad-version' };
     if (!bundle.data || typeof bundle.data !== 'object') return { ok: false, error: 'no-data' };
     var d = bundle.data;
@@ -458,7 +458,7 @@
     return { ok: true, imported: (data.demandes || []).length };
   }
 
-  window.BIAIFStorage = {
+  window.MyFbStorage = {
     hydrate:      hydrate,
     persist:      persist,
     exportToFile: exportToFile,
