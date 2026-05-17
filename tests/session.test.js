@@ -163,7 +163,11 @@ describe('finalizeDemande (new segment)', () => {
   });
 
   it('disarms after a save (back-to-history flow)', () => {
+    // The default behavior on save is to stay armed for the next segment;
+    // the "back-to-history" flow is opt-in via saveStaysArmed === false.
     state.armed = true;
+    state.saveStaysArmed = false;
+    state.currentDemande.text = 'some text';
     window.MyFbSession.finalizeDemande(true);
     expect(state.armed).toBe(false);
   });

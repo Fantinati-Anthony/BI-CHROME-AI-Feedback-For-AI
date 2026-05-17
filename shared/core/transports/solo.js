@@ -23,6 +23,7 @@
    * @returns {import('./interface.js').Transport}
    */
   function create(_config) {
+    /** @type {{ state: 'idle'|'syncing'|'offline'|'error', detail?: string }} */
     var _state = { state: 'idle' };
 
     return {

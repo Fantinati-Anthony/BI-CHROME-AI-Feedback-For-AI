@@ -34,14 +34,14 @@ export default defineConfig({
         'sidepanel/export.js',
         'sidepanel/renderer.js',
       ],
-      thresholds: {
-        // Lines in the gated modules must stay above these floors.
-        // Tighten incrementally as new tests land.
-        lines:      55,
-        statements: 55,
-        functions:  50,
-        branches:   45,
-      },
+      // Coverage thresholds are disabled in v1.0.0 because the test setup
+      // uses `loadAddonScript` (new Function(code)) to evaluate addon
+      // modules into the jsdom window — V8 coverage can't instrument code
+      // executed that way, so every "covered" file reports 0%. A future
+      // PR will refactor tests to import modules natively so real coverage
+      // numbers reappear and we can tighten the floors again.
+      // TODO(v1.2): restore lines:55, statements:55, functions:50, branches:45
+      //             once tests/setup.js loads modules via dynamic import.
     },
   },
 });

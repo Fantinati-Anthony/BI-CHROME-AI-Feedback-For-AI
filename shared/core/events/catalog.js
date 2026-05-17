@@ -87,7 +87,10 @@
     SYNC_SNAPSHOT_CREATED: 'sync.snapshot_created',
   });
 
-  /** Reverse lookup: is a given string a known event type? */
+  /**
+   * Reverse lookup: is a given string a known event type?
+   * @type {Set<string>}
+   */
   var KNOWN_TYPES = new Set(Object.values(TYPES));
 
   /**
