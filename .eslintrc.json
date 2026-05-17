@@ -35,8 +35,27 @@
     "prefer-const": "warn",
     "no-var": "off"
   },
+  "overrides": [
+    {
+      "files": ["tests/**/*.js", "scripts/**/*.mjs", "vitest.config.js"],
+      "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module"
+      },
+      "env": {
+        "node": true,
+        "es2022": true
+      },
+      "globals": {
+        "loadAddonScript": "readonly"
+      }
+    }
+  ],
   "ignorePatterns": [
+    "node_modules/**",
     "vscode-extension/node_modules/**",
+    "coverage/**",
+    "dist/**",
     "**/*.min.js"
   ]
 }
