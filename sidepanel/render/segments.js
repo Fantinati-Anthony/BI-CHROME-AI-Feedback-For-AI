@@ -169,9 +169,13 @@
         var STATE = ctx.STATE;
         if (STATE.editingDemandeIdx === idx && window.BIAIFSession) window.BIAIFSession.exitEditMode({ silent: true });
         if (typeof STATE.editingDemandeIdx === 'number' && STATE.editingDemandeIdx > idx) STATE.editingDemandeIdx--;
+        if (window.BIAIFUndo) window.BIAIFUndo.push({
+          demandes:       JSON.parse(JSON.stringify(STATE.demandes)),
+          currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)),
+        });
         STATE.demandes.splice(idx, 1);
         render();
-        if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+        if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE, { skipUndo: true });
         if (window.BIAIFToast && window.BIAIFToast.showAction) {
           window.BIAIFToast.showAction(
             _t('toast.demande_deleted', 'Demande #' + (idx + 1) + ' supprimée.', { n: idx + 1 }),
