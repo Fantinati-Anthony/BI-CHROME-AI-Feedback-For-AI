@@ -591,6 +591,27 @@
 .ref-chip--screenshot .ref-chip-toggle { color: var(--accent-purple); }
 .ref-chip.expanded .ref-chip-toggle { transform: rotate(180deg); }
 
+.ref-chip-quick-annotate {
+  background: transparent;
+  border: 0;
+  color: var(--accent-purple);
+  cursor: pointer;
+  padding: 0 3px;
+  margin-left: 2px;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: background 0.15s, transform 0.1s;
+}
+.ref-chip-quick-annotate:hover {
+  background: rgba(139, 92, 246, 0.18);
+  transform: scale(1.15);
+}
+.ref-chip-quick-annotate:focus-visible {
+  outline: 2px solid var(--accent-purple);
+  outline-offset: 1px;
+}
+
 .ref-details {
   display: none;
   flex-direction: column; gap: 6px;

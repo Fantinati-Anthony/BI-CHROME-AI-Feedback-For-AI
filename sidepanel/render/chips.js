@@ -47,6 +47,19 @@
     header.className = 'ref-chip-header';
     header.innerHTML = icon + '<span class="ref-chip-label">' + labelKind + ' #' + num + '</span>' + domainBadge + '<span class="ref-chip-toggle" aria-hidden="true">▾</span>';
 
+    // One-click annotate shortcut on screenshot chips (no expand needed).
+    if (isShot) {
+      var quick = document.createElement('button');
+      quick.type = 'button';
+      quick.className = 'ref-chip-quick-annotate';
+      quick.dataset.editType = 'screenshot';
+      quick.title = _t('chip.annotate', 'Annoter la capture');
+      quick.setAttribute('aria-label', _t('chip.annotate', 'Annoter la capture'));
+      quick.textContent = '✏';
+      var toggleEl = header.querySelector('.ref-chip-toggle');
+      if (toggleEl) header.insertBefore(quick, toggleEl); else header.appendChild(quick);
+    }
+
     var details = document.createElement('span');
     details.className = 'ref-details';
 
@@ -167,7 +180,7 @@
     document.addEventListener('click', function (e) {
       var chip = e.target.closest && e.target.closest('.ref-chip');
       if (chip) {
-        if (e.target.closest('.ref-details-btn') || e.target.closest('.ref-details')) return;
+        if (e.target.closest('.ref-details-btn') || e.target.closest('.ref-details') || e.target.closest('.ref-chip-quick-annotate')) return;
         e.stopPropagation();
         var wasExpanded = chip.classList.contains('expanded');
         document.querySelectorAll('.ref-chip.expanded').forEach(function (c) {

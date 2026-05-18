@@ -646,7 +646,7 @@
 
   function _bindRefChipEdit() {
     document.addEventListener('click', function (e) {
-      var btn = e.target.closest('.ref-details-btn');
+      var btn = e.target.closest('.ref-details-btn, .ref-chip-quick-annotate');
       if (!btn) return;
       e.stopPropagation(); e.preventDefault();
       var chip = btn.closest('.ref-chip');
