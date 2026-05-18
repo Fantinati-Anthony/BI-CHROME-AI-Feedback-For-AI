@@ -56,12 +56,16 @@
 
   function updateErrorsBadges() {
     var n = ctx.STATE.consoleErrors.length;
-    var tip = document.querySelector('[data-act="open-errors"] .tool-badge');
-    if (tip) tip.textContent = String(n);
     var btn = document.querySelector('[data-act="open-errors"]');
     if (btn) {
+      btn.hidden = n === 0;
       btn.classList.toggle('has-errors', n > 0);
       btn.setAttribute('aria-label', _t('aria.errors_count', 'Erreurs console (' + n + ')', { n: n }));
+    }
+    var tip = document.querySelector('[data-act="open-errors"] .tool-badge');
+    if (tip) {
+      tip.textContent = String(n);
+      tip.setAttribute('data-count', String(n));
     }
   }
 
