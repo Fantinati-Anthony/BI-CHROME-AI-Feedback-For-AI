@@ -233,5 +233,20 @@
     if (window.MyFbPairingUi) {
       window.MyFbPairingUi.init();
     }
+
+    // v2.0: Legacy ↔ event store bridges. Forward bridge wraps
+    // MyFbStorage.persist; reverse bridge subscribes to the active
+    // transport. Both swallow errors so the legacy code path keeps
+    // working even if the runtime never boots.
+    if (window.MyFbLegacyEventBridge) {
+      window.MyFbLegacyEventBridge.attach();
+    }
+    if (window.MyFb && window.MyFb.runtimeBoot && window.MyFb.runtimeBoot.boot) {
+      window.MyFb.runtimeBoot.boot().then(function () {
+        if (window.MyFbStateSync && window.MyFbStateSync.attach) {
+          window.MyFbStateSync.attach();
+        }
+      }).catch(function () {});
+    }
   });
 })();
