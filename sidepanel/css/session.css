@@ -177,7 +177,7 @@
      col 2 (center) — new-conv + master + disarm  (session-bar, was col 1)
      col 3 (right)  — sort + font (on cog hover) + cog (+ optional logs)    */
 .topbar-row {
-  --topbar-h: 36px;
+  --topbar-h: 30px;
   position: relative;
   z-index: 801; /* above .myfb-compose-drawer (800) so button pulses /
                    shadows that extend below the topbar aren't clipped

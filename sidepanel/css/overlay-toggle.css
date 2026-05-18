@@ -1,13 +1,12 @@
 /* My-Feedbacks Overlay Toggle (topbar-extras 3rd button) */
 
 .topbar-overlays-btn {
-  position: relative;
   height: 24px;
   min-width: 24px;
   padding: 0 6px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  border-radius: 50%;
   color: #94a3b8;
   cursor: pointer;
   display: inline-flex;
@@ -25,23 +24,6 @@
   color: #2bd4d9;
   border-color: #2bd4d9;
   box-shadow: 0 0 0 1px rgba(43, 212, 217, 0.25);
-}
-.topbar-overlays-btn .overlay-count {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: #2bd4d9;
-  color: #0f172a;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 14px;
-  text-align: center;
-  border: 1px solid #0f172a;
-  pointer-events: none;
 }
 
 /* Flash animation when a segment card is focused from a page badge */

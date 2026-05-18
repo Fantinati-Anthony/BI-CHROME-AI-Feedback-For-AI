@@ -71,7 +71,6 @@
       if (!tab || !tab.url) return;
       var entries = _collectEntriesForUrl(STATE.demandes, tab.url);
       _lastBroadcastTabId = tab.id;
-      _updateCount(entries.length);
       try {
         chrome.tabs.sendMessage(tab.id, {
           type: MSG.OVERLAYS_RENDER || 'myfb:overlays-render',
@@ -84,7 +83,6 @@
   function clearActiveTab() {
     _activeTab().then(function (tab) {
       if (!tab) return;
-      _updateCount(0);
       try {
         chrome.tabs.sendMessage(tab.id, {
           type: MSG.OVERLAYS_CLEAR || 'myfb:overlays-clear',
@@ -157,23 +155,6 @@
     btns.forEach(function (btn) {
       btn.classList.toggle('is-on', _visible);
       btn.setAttribute('aria-pressed', _visible ? 'true' : 'false');
-    });
-  }
-
-  function _updateCount(n) {
-    var btns = document.querySelectorAll('[data-act=toggle-overlays]');
-    btns.forEach(function (btn) {
-      var label = btn.querySelector('.overlay-count');
-      if (n > 0 && _visible) {
-        if (!label) {
-          label = document.createElement('span');
-          label.className = 'overlay-count';
-          btn.appendChild(label);
-        }
-        label.textContent = String(n);
-      } else if (label) {
-        label.remove();
-      }
     });
   }
 
