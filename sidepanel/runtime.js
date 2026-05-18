@@ -63,6 +63,12 @@
           engine.start().catch(function () {});
         } catch (_) { /* solo transport may not need the engine; ignore */ }
       }
+      // Pairing handler — auto-accepts link.requested events whose
+      // fingerprint matches our UUID.
+      var pairingHandlerMod = window.MyFb.core && window.MyFb.core.pairingHandler;
+      if (pairingHandlerMod && ctx.uuid) {
+        try { pairingHandlerMod.attach(ctx); } catch (_) {}
+      }
       // First-launch onboarding gate.
       if (window.MyFbOnboarding && window.MyFbOnboarding.shouldOpen(ctx.profile)) {
         // Defer to next frame so the panel has rendered first.
