@@ -234,12 +234,12 @@
       '<div class="myfb-onb-role-grid">' +
         '<button type="button" class="myfb-onb-role" data-role="admin">' +
           '<span class="myfb-onb-role-icon" aria-hidden="true">🛠</span>' +
-          '<span class="myfb-onb-role-label">' + t('onb.role.admin_label', 'Dev / Agence / Vibecoder') + '</span>' +
-          '<span class="myfb-onb-role-hint">'  + t('onb.role.admin_hint',  'Je code, j\'envoie mes feedbacks à mon IA') + '</span>' +
+          '<span class="myfb-onb-role-label">' + t('onb.role.admin_label', 'Admin') + '</span>' +
+          '<span class="myfb-onb-role-hint">'  + t('onb.role.admin_hint',  'Je code, j\'envoie mes feedbacks à mon IA et je récupère les feedbacks d\'utilisateurs') + '</span>' +
         '</button>' +
         '<button type="button" class="myfb-onb-role" data-role="client">' +
           '<span class="myfb-onb-role-icon" aria-hidden="true">💬</span>' +
-          '<span class="myfb-onb-role-label">' + t('onb.role.client_label', 'Client') + '</span>' +
+          '<span class="myfb-onb-role-label">' + t('onb.role.client_label', 'User') + '</span>' +
           '<span class="myfb-onb-role-hint">'  + t('onb.role.client_hint',  'Je remonte des bugs / besoins à mon dev') + '</span>' +
         '</button>' +
       '</div>';
