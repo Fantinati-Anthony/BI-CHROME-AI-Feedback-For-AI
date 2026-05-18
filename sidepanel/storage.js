@@ -99,6 +99,7 @@
       if (saved.topbarPosition === 'top' || saved.topbarPosition === 'bottom') STATE.topbarPosition = saved.topbarPosition;
       if (saved.theme === 'dark' || saved.theme === 'light' || saved.theme === 'auto') STATE.theme = saved.theme;
       if (Array.isArray(saved.templates)) STATE.templates = saved.templates;
+      if (Array.isArray(saved.dbProfiles)) STATE.dbProfiles = saved.dbProfiles;
       if (typeof saved.privacyScrub === 'boolean') STATE.privacyScrub = saved.privacyScrub;
       if (typeof saved.syncEnabled  === 'boolean') STATE.syncEnabled  = saved.syncEnabled;
 
@@ -265,6 +266,7 @@
       topbarPosition:        STATE.topbarPosition,
       theme:                 STATE.theme,
       templates:             STATE.templates,
+      dbProfiles:            STATE.dbProfiles,
       privacyScrub:          STATE.privacyScrub,
       syncEnabled:           STATE.syncEnabled,
     };

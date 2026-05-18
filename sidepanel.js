@@ -61,6 +61,7 @@
     currentDemande:         { text: '', refs: [], pageUrl: null },
     demandes:               [],
     templates:              [],
+    dbProfiles:             [],
 
     // 3) SETTINGS — user preferences (persisted)
     lang:                   'fr-FR',
@@ -96,7 +97,7 @@
               'dictationTarget','modalTarget','consoleErrors','editingDemandeIdx',
               'searchQuery','pendingConversationUrl','pendingRepoId','lastShot',
               'lastShotMode','conversationFilter','repoFilter','domainFilter','pageFilter','tagFilter'],
-    data:    ['currentDemande','demandes','templates'],
+    data:    ['currentDemande','demandes','templates','dbProfiles'],
     settings:['lang','uiLang','micDeviceId','sortOrder','segFontSize','segTextLines','saveStaysArmed','shortcutMode',
               'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage',
               'hideAiTextarea','autoSubmitAfterInject','archiveExpanded',
@@ -185,5 +186,10 @@
     // Initial tab-state probe (independent of hydration).
     window.BIAIFBindings.tabs.checkActiveTabReady();
     window.BIAIFBindings.helpers.refreshErrorsFromActiveTab();
+
+    // DB profiles UI — wires the "Bases de données" settings section.
+    if (window.BIAIFDbProfilesUi) {
+      window.BIAIFDbProfilesUi.init(STATE);
+    }
   });
 })();

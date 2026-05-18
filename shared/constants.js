@@ -48,6 +48,8 @@
     INJECT_TO_EDITOR:  'biaif:inject-to-editor',
     // Inject into VS Code via local bridge
     INJECT_TO_VSCODE:  'biaif:inject-to-vscode',
+    // DB Bridge — extension → SW → user's site/server companion endpoint
+    DB_BRIDGE_CALL:    'biaif:db-bridge-call',
     // Content script → SW → sidepanel: open panel filtered to a conversation
     OPEN_WITH_FILTER:      'biaif:open-with-filter',
     // Content script → SW → sidepanel: start new session linked to a conversation

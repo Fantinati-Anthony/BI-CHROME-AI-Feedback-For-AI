@@ -1,0 +1,73 @@
+/* ============================================================
+   DB Profiles — settings panel section
+   ============================================================ */
+
+#db-profiles-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.dbp-empty {
+  color: var(--text-muted); font-size: 12px; margin: 4px 0 0;
+  padding: 8px; border: 1px dashed var(--border-card); border-radius: 6px;
+}
+
+.dbp-card {
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
+}
+.dbp-card-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dbp-label { font-size: 13px; color: var(--text-main); font-weight: 600; flex: 1; }
+
+.dbp-mode {
+  font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 999px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.dbp-mode--paste  { background: rgba(148,163,184,0.18); color: var(--text-muted); }
+.dbp-mode--bridge { background: rgba(56,189,248,0.18);  color: var(--accent-blue); }
+
+.dbp-card-meta { font-size: 11px; color: var(--text-muted); }
+.dbp-card-stat { font-size: 10px; color: var(--text-muted); }
+
+.dbp-card-actions { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+
+.dbp-btn {
+  background: var(--bg-app); border: 1px solid var(--border-card); border-radius: 6px;
+  color: var(--text-main); font-family: inherit; font-size: 11px; font-weight: 600;
+  padding: 4px 8px; cursor: pointer; transition: all 0.15s;
+}
+.dbp-btn:hover { border-color: var(--accent-blue); }
+.dbp-btn--primary {
+  background: var(--accent-blue); color: #000; border-color: var(--accent-blue);
+}
+.dbp-btn--primary:hover { opacity: 0.85; }
+.dbp-btn--danger:hover  { border-color: var(--danger); color: var(--danger); }
+
+/* ── Form ─────────────────────────────────────────────── */
+
+#db-profile-form-holder {
+  display: none;
+  margin-top: 10px; padding: 10px;
+  background: var(--bg-app); border: 1px solid var(--border-card); border-radius: 8px;
+}
+#db-profile-form { display: flex; flex-direction: column; gap: 8px; }
+.dbp-field { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--text-muted); flex: 1; }
+.dbp-field > span { font-weight: 600; }
+.dbp-field input, .dbp-field select, .dbp-field textarea {
+  background: var(--bg-card); color: var(--text-main);
+  border: 1px solid var(--border-card); border-radius: 5px;
+  padding: 5px 7px; font: inherit; font-size: 12px; width: 100%; box-sizing: border-box;
+}
+.dbp-field textarea { resize: vertical; min-height: 60px; font-family: 'Inter', monospace; }
+.dbp-field-row { display: flex; gap: 8px; }
+.dbp-field--narrow { max-width: 80px; flex: 0 0 80px; }
+.dbp-field--checkbox { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; color: var(--text-main); }
+.dbp-field--checkbox input { width: auto; }
+
+.dbp-bridge-fields {
+  padding: 8px; background: rgba(56,189,248,0.06); border-radius: 6px;
+  border-left: 3px solid var(--accent-blue); display: flex; flex-direction: column; gap: 6px;
+}
+.dbp-hint {
+  font-size: 10px; color: var(--text-muted); margin: 0;
+  line-height: 1.4; font-style: italic;
+}
+.dbp-form-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 4px; }
+
+#db-profiles-add { margin-top: 4px; align-self: flex-start; }

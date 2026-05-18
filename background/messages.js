@@ -145,4 +145,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       );
     return true;
   }
+
+  // Sidepanel → SW → user's bridge endpoint (DB info).
+  // Sidepanel CSP forbids arbitrary connect-src; SW has no such limit.
+  // Body is pre-signed (HMAC) by the caller — SW just forwards bytes.
+  if (msg.type === MSG.DB_BRIDGE_CALL) {
+    (async () => {
+      try {
+        if (typeof msg.url !== 'string' || !/^https?:\/\//.test(msg.url)) {
+          sendResponse({ error: 'invalid bridge url' }); return;
+        }
+        if (!msg.body || typeof msg.body !== 'object') {
+          sendResponse({ error: 'missing body' }); return;
+        }
+        const r = await fetch(msg.url, {
+          method:  'POST',
+          mode:    'cors',
+          cache:   'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(msg.body),
+        });
+        const text = await r.text();
+        let parsed = null;
+        try { parsed = JSON.parse(text); } catch (_) { /* leave as null */ }
+        sendResponse({ status: r.status, ok: r.ok, body: parsed, raw: parsed ? undefined : text.slice(0, 500) });
+      } catch (e) {
+        sendResponse({ error: e?.message || String(e) });
+      }
+    })();
+    return true;
+  }
 });
