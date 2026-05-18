@@ -148,6 +148,7 @@ declare global {
     MyFbRefOverlay?: { [k: string]: any };
     MyFbTriage?:   { [k: string]: any };
     MyFbBreadcrumbs?: { [k: string]: any };
+    MyFbAiUi?: { [k: string]: any };
     MyFbIntentParser?: { [k: string]: any };
     MyFbLog?:      (level: string, ...args: any[]) => void;
   }

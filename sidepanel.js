@@ -197,5 +197,11 @@
     if (window.MyFbOverlayController) {
       window.MyFbOverlayController.init();
     }
+
+    // v1.8: AI UI — Settings → IA section + per-card ✨ button.
+    if (window.MyFbAiUi) {
+      window.MyFbAiUi.initSettingsPanel();
+      window.MyFbAiUi.initCardDecorator();
+    }
   });
 })();

@@ -335,6 +335,37 @@
           </div>
         </details>
 
+        <!-- ── 5b) IA (clé API + modèle) ── -->
+        <details class="sp-section">
+          <summary class="sp-section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/><path d="M19 14l.8 2.4L22 17l-2.2.6L19 20l-.8-2.4L16 17l2.2-.6L19 14z"/></svg>
+            <span class="sp-section-title-text" data-i18n="settings.ai.title">IA (Claude)</span>
+            <svg class="sp-section-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="sp-section-body">
+            <div class="myfb-ai-section">
+              <h4 data-i18n="settings.ai.section_title">Configuration de l'assistant IA</h4>
+              <p class="sp-section-desc" data-i18n="settings.ai.desc">Collez votre clé API Anthropic pour activer « Résumer » et « Suggérer un triage » sur vos demandes. Stockée localement, jamais transmise ailleurs.</p>
+              <label>
+                <span data-i18n="settings.ai.key_label">Clé API Anthropic</span>
+                <input type="password" data-myfb-ai-key autocomplete="off" spellcheck="false" placeholder="sk-ant-..." />
+              </label>
+              <label>
+                <span data-i18n="settings.ai.model_label">Modèle</span>
+                <select data-myfb-ai-model>
+                  <option value="claude-opus-4-7">Claude Opus 4.7 — meilleure qualité</option>
+                  <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — équilibré</option>
+                  <option value="claude-haiku-4-5-20251001" selected>Claude Haiku 4.5 — rapide + bon marché</option>
+                </select>
+              </label>
+              <div class="myfb-ai-row">
+                <button type="button" data-act="test-ai" data-i18n="settings.ai.test_btn">Tester la connexion</button>
+                <span class="myfb-ai-status-badge" data-i18n="settings.ai.not_configured">Non configurée</span>
+              </div>
+            </div>
+          </div>
+        </details>
+
         <!-- ── 6) Outils & développeur ── -->
         <details class="sp-section">
           <summary class="sp-section-title">
@@ -776,6 +807,7 @@
   <script src="sidepanel/runtime.js"></script>
   <script src="sidepanel/overlay-controller.js"></script>
   <script src="sidepanel/triage-api.js"></script>
+  <script src="sidepanel/ai-ui.js"></script>
   <script src="sidepanel/toast.js"></script>
   <script src="sidepanel/undo.js"></script>
   <script src="sidepanel/imaging.js"></script>
