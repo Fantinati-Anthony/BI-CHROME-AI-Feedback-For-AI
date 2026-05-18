@@ -218,5 +218,10 @@
     if (window.MyFbTriageUi) {
       window.MyFbTriageUi.init();
     }
+
+    // v1.13: Filter bar above the segments list.
+    if (window.MyFbTriageFilter) {
+      window.MyFbTriageFilter.init();
+    }
   });
 })();
