@@ -1,5 +1,5 @@
 /**
- * BIAIFFileTemplates — File System Access API + manual import.
+ * MyFbFileTemplates — File System Access API + manual import.
  *
  * Option A: User picks a root folder via showDirectoryPicker(). The
  *           FileSystemDirectoryHandle is persisted in IndexedDB so the
@@ -9,17 +9,17 @@
  *           Obsidian vault, etc. Scans recursively for .md and .txt files.
  *
  * Option B: User imports individual .md / .txt files via <input type=file>.
- *           Files are added to BIAIFTemplates (chrome.storage) immediately.
+ *           Files are added to MyFbTemplates (chrome.storage) immediately.
  *
  * Public API:
- *   BIAIFFileTemplates.init()              → Promise<void>  load stored handle
- *   BIAIFFileTemplates.pickFolder()        → Promise<string|null>  folder name
- *   BIAIFFileTemplates.clearFolder()       → Promise<void>
- *   BIAIFFileTemplates.scan(force?)        → Promise<Node[]|null>
- *   BIAIFFileTemplates.readFile(handle)    → Promise<string|null>
- *   BIAIFFileTemplates.importFiles(files)  → Promise<number>  count added
- *   BIAIFFileTemplates.hasFolder()         → boolean
- *   BIAIFFileTemplates.getRootName()       → string
+ *   MyFbFileTemplates.init()              → Promise<void>  load stored handle
+ *   MyFbFileTemplates.pickFolder()        → Promise<string|null>  folder name
+ *   MyFbFileTemplates.clearFolder()       → Promise<void>
+ *   MyFbFileTemplates.scan(force?)        → Promise<Node[]|null>
+ *   MyFbFileTemplates.readFile(handle)    → Promise<string|null>
+ *   MyFbFileTemplates.importFiles(files)  → Promise<number>  count added
+ *   MyFbFileTemplates.hasFolder()         → boolean
+ *   MyFbFileTemplates.getRootName()       → string
  *
  * Node shape (tree):
  *   { name, path, type:'file'|'folder', handle?, children? }
@@ -27,7 +27,7 @@
 (function (window) {
   'use strict';
 
-  var DB_NAME   = 'biaif-file-tpl';
+  var DB_NAME   = 'myfb-file-tpl';
   var DB_VER    = 1;
   var STORE     = 'handles';
 
@@ -97,7 +97,7 @@
         }
       }
     } catch (e) {
-      console.warn('[BIAIF FileTemplates] scanDir error', e);
+      console.warn('[MyFb FileTemplates] scanDir error', e);
     }
     // Folders first, then alpha within each group
     nodes.sort(function (a, b) {
@@ -126,14 +126,14 @@
 
   async function pickFolder() {
     try {
-      var h = await window.showDirectoryPicker({ mode: 'read', id: 'biaif-tpl' });
+      var h = await window.showDirectoryPicker({ mode: 'read', id: 'myfb-tpl' });
       _rootHandle = h;
       _rootName   = h.name;
       _tree       = null;
       await _putHandle(h);
       return h.name;
     } catch (e) {
-      if (e.name !== 'AbortError') console.warn('[BIAIF FileTemplates] pickFolder error', e);
+      if (e.name !== 'AbortError') console.warn('[MyFb FileTemplates] pickFolder error', e);
       return null;
     }
   }
@@ -157,7 +157,7 @@
       _tree = await _scanDir(_rootHandle, '');
       return _tree;
     } catch (e) {
-      console.warn('[BIAIF FileTemplates] scan error', e);
+      console.warn('[MyFb FileTemplates] scan error', e);
       return null;
     }
   }
@@ -167,12 +167,12 @@
       var file = await fileHandle.getFile();
       return await file.text();
     } catch (e) {
-      console.warn('[BIAIF FileTemplates] readFile error', e);
+      console.warn('[MyFb FileTemplates] readFile error', e);
       return null;
     }
   }
 
-  // Import from a FileList (input[type=file]) — persists to BIAIFTemplates
+  // Import from a FileList (input[type=file]) — persists to MyFbTemplates
   function importFiles(files) {
     var promises = [];
     var added    = 0;
@@ -183,8 +183,8 @@
           var reader = new FileReader();
           reader.onload = function (e) {
             var name = f.name.replace(/\.(md|txt)$/i, '');
-            if (window.BIAIFTemplates && window.BIAIFTemplates.add) {
-              window.BIAIFTemplates.add({ name: name, body: e.target.result });
+            if (window.MyFbTemplates && window.MyFbTemplates.add) {
+              window.MyFbTemplates.add({ name: name, body: e.target.result });
               added++;
             }
             resolve();
@@ -200,7 +200,7 @@
   function hasFolder()   { return !!_rootHandle; }
   function getRootName() { return _rootName; }
 
-  window.BIAIFFileTemplates = {
+  window.MyFbFileTemplates = {
     init: init,
     pickFolder: pickFolder,
     clearFolder: clearFolder,

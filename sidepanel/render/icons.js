@@ -1,17 +1,17 @@
 // @ts-check
 /**
- * BIAIF Render Icons
+ * MyFb Render Icons
  *
  * Inline SVG strings used across the side panel. Centralised so we don't
  * scatter 40-line SVG markup through render modules. Each icon factory
  * accepts a size override (default 12) and is otherwise self-contained.
  *
  * All callers either use these as innerHTML (safe — no user data) or pass
- * them through BIAIF.dom.svg() to obtain a real SVGElement.
+ * them through MyFb.dom.svg() to obtain a real SVGElement.
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
+  window.MyFbRender = window.MyFbRender || {};
 
   function _svg(size, body) {
     return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size +
@@ -45,7 +45,7 @@
                '<line x1="12" x2="12.01" y1="16" y2="16"/>',
   };
 
-  window.BIAIFRender.icons = {
+  window.MyFbRender.icons = {
     chat:      function (size) { return _svg(size || 12, P.chat); },
     chevronDn: function (size) { return _svg(size || 12, P.chevronDn); },
     link:      function (size) { return _svg(size || 11, P.link); },

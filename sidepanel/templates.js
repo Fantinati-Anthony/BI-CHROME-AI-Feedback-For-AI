@@ -1,11 +1,11 @@
 /**
- * BIAIF Templates — reusable prompt snippets.
+ * MyFb Templates — reusable prompt snippets.
  *
  * Stored in STATE.templates as [{ id, name, body, ts }]. Persisted via the
- * canonical BIAIFStorage.persist (templates are part of the bundle, so they
+ * canonical MyFbStorage.persist (templates are part of the bundle, so they
  * also flow through Export/Import).
  *
- * Public API on window.BIAIFTemplates:
+ * Public API on window.MyFbTemplates:
  *   list()                      → array of templates (newest first)
  *   add({ name, body })         → creates and returns the new template
  *   remove(id)                  → boolean
@@ -38,7 +38,7 @@
       ts:   Date.now(),
     };
     STATE.templates = (STATE.templates || []).concat([entry]);
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
     return entry;
   }
 
@@ -46,7 +46,7 @@
     var before = (STATE.templates || []).length;
     STATE.templates = (STATE.templates || []).filter(function (t) { return t.id !== id; });
     if (STATE.templates.length === before) return false;
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
     return true;
   }
 
@@ -54,7 +54,7 @@
     var t = (STATE.templates || []).find(function (x) { return x.id === id; });
     if (!t) return false;
     t.name = String(name || '').slice(0, 60) || t.name;
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
     return true;
   }
 
@@ -154,27 +154,27 @@
 
   function insertIntoEditor(id) {
     var t = (STATE.templates || []).find(function (x) { return x.id === id; });
-    if (!t || !window.BIAIFSession) return;
+    if (!t || !window.MyFbSession) return;
 
-    var VP = window.BIAIFVarPrompt;
+    var VP = window.MyFbVarPrompt;
     var vars = VP ? VP.collect(t.body) : [];
 
     if (!vars.length) {
       interpolate._promptCache = null;
-      window.BIAIFSession.addTextToTarget(interpolate(t.body));
+      window.MyFbSession.addTextToTarget(interpolate(t.body));
       return;
     }
 
     VP.prompt(vars, function (values) {
       interpolate._promptCache = values;
-      window.BIAIFSession.addTextToTarget(interpolate(t.body));
+      window.MyFbSession.addTextToTarget(interpolate(t.body));
       interpolate._promptCache = null;
     });
   }
 
   function saveCurrentAsTemplate(name) {
-    if (!window.BIAIFSession) return null;
-    window.BIAIFSession.syncCurrentDemandeFromEditor();
+    if (!window.MyFbSession) return null;
+    window.MyFbSession.syncCurrentDemandeFromEditor();
     var body = ((STATE.currentDemande && STATE.currentDemande.text) || '').trim();
     if (!body) return null;
     return add({ name: name, body: body });
@@ -184,7 +184,7 @@
     return String(s || '').split(/\r?\n/)[0].trim().slice(0, 50);
   }
 
-  window.BIAIFTemplates = {
+  window.MyFbTemplates = {
     init: init,
     list: list,
     add: add,

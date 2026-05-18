@@ -12,6 +12,16 @@ import { fileURLToPath } from 'node:url';
 // module that does `indexedDB.open(...)` at import time resolves.
 import 'fake-indexeddb/auto';
 
+// jsdom doesn't ship URL.createObjectURL / revokeObjectURL — the export
+// flow uses them to trigger downloads. Stub them as no-ops; tests that
+// need the actual blob URL value mock it directly.
+if (typeof URL.createObjectURL !== 'function') {
+  URL.createObjectURL = () => 'blob:mock';
+}
+if (typeof URL.revokeObjectURL !== 'function') {
+  URL.revokeObjectURL = () => {};
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT      = path.resolve(__dirname, '..');
 
@@ -21,7 +31,7 @@ globalThis.chrome = {
     id: 'test-extension-id',
     sendMessage: () => Promise.resolve(null),
     onMessage:   { addListener: () => {} },
-    getManifest: () => ({ version: '0.4.0' }),
+    getManifest: () => ({ version: '1.0.0' }),
     getURL: (p) => 'chrome-extension://test/' + p,
   },
   storage: {

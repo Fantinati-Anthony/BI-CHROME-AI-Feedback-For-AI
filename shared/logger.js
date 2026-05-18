@@ -1,25 +1,25 @@
 /**
- * BIAIF Logger
+ * MyFb Logger
  *
  * Levelled logger usable in service worker, side panel, and content scripts.
  * Default level is 'warn' so production stays quiet. Set
  *
- *   localStorage.BIAIF_LOG_LEVEL = 'debug'   // sidepanel / content world
+ *   localStorage.MyFb_LOG_LEVEL = 'debug'   // sidepanel / content world
  *
- * to enable verbose output. The SW reads `chrome.storage.local.biaif_log_level`
+ * to enable verbose output. The SW reads `chrome.storage.local.myfb_log_level`
  * (set the same value via DevTools to debug background flows).
  *
  * API:
- *   BIAIF.log.debug(...args)
- *   BIAIF.log.info(...args)
- *   BIAIF.log.warn(...args)
- *   BIAIF.log.error(...args)
- *   BIAIF.log.setLevel('debug' | 'info' | 'warn' | 'error' | 'silent')
- *   BIAIF.log.scope('feature') → { debug, info, warn, error } prefixed
+ *   MyFb.log.debug(...args)
+ *   MyFb.log.info(...args)
+ *   MyFb.log.warn(...args)
+ *   MyFb.log.error(...args)
+ *   MyFb.log.setLevel('debug' | 'info' | 'warn' | 'error' | 'silent')
+ *   MyFb.log.scope('feature') → { debug, info, warn, error } prefixed
  */
 (function (root) {
   'use strict';
-  root.BIAIF = root.BIAIF || {};
+  root.MyFb = root.MyFb || {};
 
   var LEVELS  = { debug: 10, info: 20, warn: 30, error: 40, silent: 100 };
   var current = LEVELS.warn;
@@ -27,16 +27,16 @@
   function _readInitialLevel() {
     // 1) localStorage (sidepanel / content)
     try {
-      if (typeof localStorage !== 'undefined' && localStorage.BIAIF_LOG_LEVEL) {
-        var lvl = String(localStorage.BIAIF_LOG_LEVEL).toLowerCase();
+      if (typeof localStorage !== 'undefined' && localStorage.MyFb_LOG_LEVEL) {
+        var lvl = String(localStorage.MyFb_LOG_LEVEL).toLowerCase();
         if (LEVELS[lvl] !== undefined) current = LEVELS[lvl];
       }
     } catch (_) {}
     // 2) chrome.storage (any context — async, non-blocking)
     try {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        chrome.storage.local.get(['biaif_log_level']).then(function (o) {
-          var v = o && o.biaif_log_level;
+        chrome.storage.local.get(['myfb_log_level']).then(function (o) {
+          var v = o && o.myfb_log_level;
           if (v && LEVELS[String(v).toLowerCase()] !== undefined) {
             current = LEVELS[String(v).toLowerCase()];
           }
@@ -49,8 +49,8 @@
   function _emit(method, level, args) {
     if (level < current) return;
     if (typeof console === 'undefined' || !console[method]) return;
-    // Prefix every line with [BIAIF] for easy filtering
-    try { console[method].apply(console, ['[BIAIF]'].concat(Array.prototype.slice.call(args))); }
+    // Prefix every line with [MyFb] for easy filtering
+    try { console[method].apply(console, ['[MyFb]'].concat(Array.prototype.slice.call(args))); }
     catch (_) {}
   }
 
@@ -69,7 +69,7 @@
     };
   }
 
-  root.BIAIF.log = {
+  root.MyFb.log = {
     debug: function () { _emit('debug', LEVELS.debug, arguments); },
     info:  function () { _emit('info',  LEVELS.info,  arguments); },
     warn:  function () { _emit('warn',  LEVELS.warn,  arguments); },

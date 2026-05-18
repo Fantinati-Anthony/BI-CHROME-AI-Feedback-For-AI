@@ -1,5 +1,5 @@
 /**
- * BIAIF Service Worker — capture queue
+ * MyFb Service Worker — capture queue
  *
  * Wraps chrome.tabs.captureVisibleTab with:
  *   - rate-limit honouring MIN_CAPTURE_INTERVAL_MS (Chrome's quota)
@@ -15,11 +15,11 @@
 
 /* eslint-disable no-undef */
 
-const CAPTURE_CFG = (self.BIAIF && self.BIAIF.config && self.BIAIF.config.capture) || {};
+const CAPTURE_CFG = (self.MyFb && self.MyFb.config && self.MyFb.config.capture) || {};
 const MIN_CAPTURE_INTERVAL_MS = CAPTURE_CFG.MIN_INTERVAL_MS    || 1500;
 const MAX_CAPTURE_ATTEMPTS    = CAPTURE_CFG.MAX_RETRY          || 3;
 const RETRY_BASE_DELAY_MS     = CAPTURE_CFG.RETRY_BASE_DELAY_MS || 2000;
-const LAST_CAPTURE_KEY = 'biaif:lastCaptureAt';
+const LAST_CAPTURE_KEY = 'myfb:lastCaptureAt';
 
 let capturePromise = Promise.resolve();
 let _captureChain  = Promise.resolve();

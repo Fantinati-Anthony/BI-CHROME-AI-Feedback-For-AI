@@ -9,12 +9,12 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 
 // Stub all DOM-touching collaborators that session.js calls.
 const noop = () => {};
-window.BIAIFStorage = { persist: noop };
-window.BIAIFToast   = { show: noop, showAction: noop };
-window.BIAIFSpeech  = { clearInterimGhost: noop, startMic: noop, stopMic: noop, getMicState: () => ({}) };
+window.MyFbStorage = { persist: noop };
+window.MyFbToast   = { show: noop, showAction: noop };
+window.MyFbSpeech  = { clearInterimGhost: noop, startMic: noop, stopMic: noop, getMicState: () => ({}) };
 
 // Renderer stub
-window.BIAIFRenderer = {
+window.MyFbRenderer = {
   renderDemandeEditor:    noop,
   renderDemandeRefsStrip: noop,
   renderSegments:         noop,
@@ -67,11 +67,11 @@ describe('mergeDemandes', () => {
       { id: 'b', ts: 2, text: 'second', refs: [{ type: 'el', selector: '.btn' }], url: 'u2' },
       { id: 'c', ts: 3, text: 'third', refs: [], url: 'u3' },
     ];
-    window.BIAIFSession.init(state, refs);
+    window.MyFbSession.init(state, refs);
   });
 
   it('drops src and concatenates text + refs into dst', () => {
-    window.BIAIFSession.mergeDemandes(0, 1);
+    window.MyFbSession.mergeDemandes(0, 1);
     expect(state.demandes).toHaveLength(2);
     // mergeDemandes(src=0, dst=1) → dst (was 'second' at idx 1) absorbs
     // src text. Order is dst.text first, then src.text appended.
@@ -85,7 +85,7 @@ describe('mergeDemandes', () => {
       { id: 'a', ts: 1, text: 'see {{ref:0}}', refs: [{ type: 't', selector: 'a' }] },
       { id: 'b', ts: 2, text: 'has {{ref:0}}', refs: [{ type: 't', selector: 'b' }] },
     ];
-    window.BIAIFSession.mergeDemandes(0, 1);
+    window.MyFbSession.mergeDemandes(0, 1);
     expect(state.demandes).toHaveLength(1);
     // Source merged in: its {{ref:0}} should be remapped to {{ref:1}}
     // because dst already had refs[0].
@@ -95,7 +95,7 @@ describe('mergeDemandes', () => {
 
   it('is a noop when src === dst', () => {
     const before = JSON.stringify(state.demandes);
-    window.BIAIFSession.mergeDemandes(1, 1);
+    window.MyFbSession.mergeDemandes(1, 1);
     expect(JSON.stringify(state.demandes)).toBe(before);
   });
 });
@@ -104,7 +104,7 @@ describe('reorderDemande', () => {
   let state;
   beforeEach(() => {
     state = makeState();
-    window.BIAIFSession.init(state, makeRefs());
+    window.MyFbSession.init(state, makeRefs());
     state.demandes = [
       { id: 'a', text: 'A', refs: [] },
       { id: 'b', text: 'B', refs: [] },
@@ -113,31 +113,31 @@ describe('reorderDemande', () => {
   });
 
   it('moves a segment forward (0 → end)', () => {
-    window.BIAIFSession.reorderDemande(0, 3);
+    window.MyFbSession.reorderDemande(0, 3);
     expect(state.demandes.map(d => d.id)).toEqual(['b', 'c', 'a']);
   });
 
   it('moves a segment backward (2 → 0)', () => {
-    window.BIAIFSession.reorderDemande(2, 0);
+    window.MyFbSession.reorderDemande(2, 0);
     expect(state.demandes.map(d => d.id)).toEqual(['c', 'a', 'b']);
   });
 
   it('is a noop when dst is the same logical position', () => {
     const before = state.demandes.map(d => d.id).join(',');
-    window.BIAIFSession.reorderDemande(0, 0);
-    window.BIAIFSession.reorderDemande(0, 1); // would put it where it already is
+    window.MyFbSession.reorderDemande(0, 0);
+    window.MyFbSession.reorderDemande(0, 1); // would put it where it already is
     expect(state.demandes.map(d => d.id).join(',')).toBe(before);
   });
 
   it('updates editingDemandeIdx when the edited segment is moved', () => {
     state.editingDemandeIdx = 0;
-    window.BIAIFSession.reorderDemande(0, 3);
+    window.MyFbSession.reorderDemande(0, 3);
     expect(state.editingDemandeIdx).toBe(2);
   });
 
   it('decrements editingDemandeIdx when a previous segment moves past it', () => {
     state.editingDemandeIdx = 1;
-    window.BIAIFSession.reorderDemande(0, 3);
+    window.MyFbSession.reorderDemande(0, 3);
     // 'a' moved from 0 to end → 'b' (was idx 1) is now idx 0
     expect(state.editingDemandeIdx).toBe(0);
   });
@@ -151,11 +151,11 @@ describe('finalizeDemande (new segment)', () => {
     refs.demandeEditor.textContent = 'Hello world';
     state.armed = true;
     state.currentDemande = { text: 'Hello world', refs: [], pageUrl: 'u' };
-    window.BIAIFSession.init(state, refs);
+    window.MyFbSession.init(state, refs);
   });
 
   it('appends to demandes and clears the current draft', () => {
-    window.BIAIFSession.finalizeDemande(true);
+    window.MyFbSession.finalizeDemande(true);
     expect(state.demandes).toHaveLength(1);
     expect(state.demandes[0].text).toBe('Hello world');
     expect(state.currentDemande.text).toBe('');
@@ -163,8 +163,12 @@ describe('finalizeDemande (new segment)', () => {
   });
 
   it('disarms after a save (back-to-history flow)', () => {
+    // The default behavior on save is to stay armed for the next segment;
+    // the "back-to-history" flow is opt-in via saveStaysArmed === false.
     state.armed = true;
-    window.BIAIFSession.finalizeDemande(true);
+    state.saveStaysArmed = false;
+    state.currentDemande.text = 'some text';
+    window.MyFbSession.finalizeDemande(true);
     expect(state.armed).toBe(false);
   });
 });
@@ -175,12 +179,12 @@ describe('enterEditMode / exitEditMode roundtrip', () => {
     state = makeState();
     refs  = makeRefs();
     state.demandes = [{ id: 'a', text: 'old text', refs: [{ type: 'x' }], url: 'u' }];
-    window.BIAIFSession.init(state, refs);
+    window.MyFbSession.init(state, refs);
   });
 
   it('backs up the current draft and loads the segment', () => {
     state.currentDemande = { text: 'draft', refs: [{ type: 'y' }], pageUrl: null };
-    window.BIAIFSession.enterEditMode(0);
+    window.MyFbSession.enterEditMode(0);
     expect(state.editingDemandeIdx).toBe(0);
     expect(state.currentDemande.text).toBe('old text');
     expect(state.armed).toBe(true);
@@ -188,8 +192,8 @@ describe('enterEditMode / exitEditMode roundtrip', () => {
 
   it('exitEditMode restores the previous draft', () => {
     state.currentDemande = { text: 'my work in progress', refs: [], pageUrl: null };
-    window.BIAIFSession.enterEditMode(0);
-    window.BIAIFSession.exitEditMode({ silent: true });
+    window.MyFbSession.enterEditMode(0);
+    window.MyFbSession.exitEditMode({ silent: true });
     expect(state.editingDemandeIdx).toBe(null);
     expect(state.currentDemande.text).toBe('my work in progress');
   });

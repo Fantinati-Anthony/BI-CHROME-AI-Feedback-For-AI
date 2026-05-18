@@ -1,5 +1,5 @@
 /**
- * BIAIF Render — Filter chips
+ * MyFb Render — Filter chips
  *
  * Builds (and removes) the "active filters" chips bar shown above the
  * segments list. Each chip represents a STATE filter slot
@@ -8,9 +8,9 @@
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
-  var ctx   = window.BIAIFRender.ctx;
-  var DOM   = (window.BIAIF && window.BIAIF.dom)   || {};
+  window.MyFbRender = window.MyFbRender || {};
+  var ctx   = window.MyFbRender.ctx;
+  var DOM   = (window.MyFb && window.MyFb.dom)   || {};
   var esc   = DOM.esc || function (s) { return String(s == null ? '' : s); };
 
   var FILTER_DEFS = [
@@ -52,7 +52,7 @@
     return bar;
   }
 
-  window.BIAIFRender.filterChips = {
+  window.MyFbRender.filterChips = {
     build: build,
     DEFS:  FILTER_DEFS,
   };

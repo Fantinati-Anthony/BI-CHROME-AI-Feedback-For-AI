@@ -1,5 +1,5 @@
 /**
- * BIAIF Element Selector (v0.2)
+ * MyFb Element Selector (v0.2)
  *
  * Picker au survol et capture au clic. Au lieu de dispatcher des
  * CustomEvent dans la page (l'ancienne sidebar était dans la page,
@@ -14,9 +14,9 @@
 (function (window, document) {
   'use strict';
 
-  const HOST_ID    = 'biaif-picker-host';
-  const OVERLAY_ID = 'biaif-picker-overlay';
-  const TAG_ID     = 'biaif-picker-tag';
+  const HOST_ID    = 'myfb-picker-host';
+  const OVERLAY_ID = 'myfb-picker-overlay';
+  const TAG_ID     = 'myfb-picker-tag';
   let _rafPending  = false;
 
   // chrome.runtime.sendMessage throws SYNCHRONOUSLY (not via the returned
@@ -90,8 +90,8 @@
       if (!el) return false;
       // Anything inside the picker host falls back to the host id check.
       if (el.id === HOST_ID || el.id === OVERLAY_ID || el.id === TAG_ID) return true;
-      if (el.id === 'biaif-screenshot-loader') return true;
-      if (el.id === 'biaif-shot-element-overlay' || el.id === 'biaif-shot-selection-overlay') return true;
+      if (el.id === 'myfb-screenshot-loader') return true;
+      if (el.id === 'myfb-shot-element-overlay' || el.id === 'myfb-shot-selection-overlay') return true;
       return false;
     },
 
@@ -117,7 +117,7 @@
         ElementSelector.overlay.style.width  = rect.width  + 'px';
         ElementSelector.overlay.style.height = rect.height + 'px';
 
-        const sel = window.BIAIFSelector.getUniqueSelector(target);
+        const sel = window.MyFbSelector.getUniqueSelector(target);
         ElementSelector.tag.textContent = sel;
         ElementSelector.tag.style.display = 'block';
         const tagTop = rect.top - 24 < 4 ? rect.bottom + 4 : rect.top - 24;
@@ -135,22 +135,22 @@
       e.stopPropagation();
       e.stopImmediatePropagation();
 
-      const descriptor = window.BIAIFSelector.describeElement(target);
+      const descriptor = window.MyFbSelector.describeElement(target);
       // Capture du screenshot croppé autour de l'élément (in-tab : on a le DOM).
       let screenshot = null;
       let metadata = null;
       try {
-        if (window.BIAIFScreenshot) {
-          screenshot = await window.BIAIFScreenshot.captureElement(target);
-          metadata   = window.BIAIFScreenshot.getMetadata();
+        if (window.MyFbScreenshot) {
+          screenshot = await window.MyFbScreenshot.captureElement(target);
+          metadata   = window.MyFbScreenshot.getMetadata();
         }
       } catch (err) {
-        console.warn('[BIAIF] capture KO :', err && err.message);
+        console.warn('[MyFb] capture KO :', err && err.message);
       }
 
       // descriptor._el (référence DOM) n'est pas sérialisable : on l'omet.
       _safeSend({
-        type: 'biaif:element-picked',
+        type: 'myfb:element-picked',
         descriptor,
         screenshot,
         metadata,
@@ -178,7 +178,7 @@
       document.addEventListener('click',     this.onClickCapture, true);
       document.addEventListener('keydown',   this.onKeyDown,      true);
 
-      _safeSend({ type: 'biaif:picker-state', active: true });
+      _safeSend({ type: 'myfb:picker-state', active: true });
     },
 
     disable() {
@@ -193,7 +193,7 @@
       document.removeEventListener('click',     this.onClickCapture, true);
       document.removeEventListener('keydown',   this.onKeyDown,      true);
 
-      _safeSend({ type: 'biaif:picker-state', active: false });
+      _safeSend({ type: 'myfb:picker-state', active: false });
     },
 
     toggle() {
@@ -201,5 +201,5 @@
     },
   };
 
-  window.BIAIFElementSelector = ElementSelector;
+  window.MyFbElementSelector = ElementSelector;
 })(window, document);

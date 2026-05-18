@@ -1,5 +1,5 @@
 /**
- * BIAIFVarPrompt — modal form for {{var:name}} template variables.
+ * MyFbVarPrompt — modal form for {{var:name}} template variables.
  *
  * Replaces the native window.prompt() calls in templates.js.
  * Collects all {{var:name?default}} patterns from a template body,
@@ -7,8 +7,8 @@
  * then calls onConfirm(values) with the filled-in map.
  *
  * Public API:
- *   BIAIFVarPrompt.collect(body)         → [{name, def}]
- *   BIAIFVarPrompt.prompt(vars, onConfirm, onCancel)
+ *   MyFbVarPrompt.collect(body)         → [{name, def}]
+ *   MyFbVarPrompt.prompt(vars, onConfirm, onCancel)
  */
 (function (window) {
   'use strict';
@@ -111,5 +111,5 @@
     function _close()   { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
   }
 
-  window.BIAIFVarPrompt = { collect: collect, prompt: prompt };
+  window.MyFbVarPrompt = { collect: collect, prompt: prompt };
 })(window);

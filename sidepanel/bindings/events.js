@@ -1,5 +1,5 @@
 /**
- * BIAIF Bindings — UI events
+ * MyFb Bindings — UI events
  *
  * All click / change / input listeners on the side panel UI. Grouped by
  * concern. Search by `_bindXxx` to jump.
@@ -30,11 +30,11 @@
  */
 (function (window) {
   'use strict';
-  window.BIAIFBindings = window.BIAIFBindings || {};
-  var ctx   = window.BIAIFBindings.ctx;
-  var H     = window.BIAIFBindings.helpers;
-  var CFG   = (window.BIAIF && window.BIAIF.config && window.BIAIF.config.ui) || {};
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  window.MyFbBindings = window.MyFbBindings || {};
+  var ctx   = window.MyFbBindings.ctx;
+  var H     = window.MyFbBindings.helpers;
+  var CFG   = (window.MyFb && window.MyFb.config && window.MyFb.config.ui) || {};
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
   // Arme la session silencieusement (sans démarrer mic/picker).
@@ -44,23 +44,23 @@
     if (STATE.armed) return;
     STATE.armed = true;
     if (REFS.masterBtn) REFS.masterBtn.classList.add('armed');
-    window.BIAIFRenderer.updateArmedUi();
-    window.BIAIFRenderer.updateMasterBtnLabel();
+    window.MyFbRenderer.updateArmedUi();
+    window.MyFbRenderer.updateMasterBtnLabel();
   }
 
   function _bindSessionButtons() {
     var REFS = ctx.REFS, STATE = ctx.STATE;
     if (REFS.masterBtn) REFS.masterBtn.addEventListener('click', function () {
       if (typeof STATE.editingDemandeIdx === 'number') {
-        window.BIAIFSession.exitEditMode();
+        window.MyFbSession.exitEditMode();
       } else {
-        window.BIAIFSession.finalizeDemande(false);
+        window.MyFbSession.finalizeDemande(false);
         H.updateLinkedSessionBanner();
       }
     });
     // Stop button kept for backward-compat (CSS hides it in new UX).
     if (REFS.stopBtn) REFS.stopBtn.addEventListener('click', function () {
-      window.BIAIFSession.stopSession();
+      window.MyFbSession.stopSession();
       STATE.pendingConversationUrl = null;
       H.updateLinkedSessionBanner();
     });
@@ -72,18 +72,18 @@
         // Always start with an empty editor (no leftover from previous session)
         STATE.currentDemande = { text: '', refs: [], pageUrl: null };
         if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
-        window.BIAIFRenderer.renderDemandeRefsStrip();
+        window.MyFbRenderer.renderDemandeRefsStrip();
         _autoArm();
         STATE.pendingConversationUrl = null;
         STATE.pendingRepoId = null;
         H.updateLinkedSessionBanner();
-        window.BIAIFStorage.persist(STATE);
+        window.MyFbStorage.persist(STATE);
       });
     });
     // "✕ Disarm" — saves any pending work and goes back to history view.
     var disarmBtn = document.querySelector('[data-act="disarm"]');
     if (disarmBtn) disarmBtn.addEventListener('click', function () {
-      window.BIAIFSession.disarm();
+      window.MyFbSession.disarm();
     });
   }
 
@@ -93,7 +93,7 @@
       _autoArm();
       var resp = await H.sendBg({ type: H.msgKey('PICKER_TOGGLE') });
       if (resp && resp.error) {
-        window.BIAIFToast.show(
+        window.MyFbToast.show(
           _t('toast.picker_fail', 'Picker KO : ' + H.decodeContentScriptError(resp.error),
             { err: H.decodeContentScriptError(resp.error) }),
           'error');
@@ -101,7 +101,7 @@
     });
     if (REFS.micBtn) REFS.micBtn.addEventListener('click', function () {
       _autoArm();
-      window.BIAIFSpeech.toggleMic();
+      window.MyFbSpeech.toggleMic();
     });
   }
 
@@ -120,13 +120,13 @@
         onConfirm:   function () { H.clearAll(); },
       });
     });
-    if (REFS.copyBtn)     REFS.copyBtn.addEventListener('click',     function () { window.BIAIFExport.copyPrompt(); });
-    if (REFS.downloadBtn) REFS.downloadBtn.addEventListener('click', function () { window.BIAIFExport.downloadBundle(); });
+    if (REFS.copyBtn)     REFS.copyBtn.addEventListener('click',     function () { window.MyFbExport.copyPrompt(); });
+    if (REFS.downloadBtn) REFS.downloadBtn.addEventListener('click', function () { window.MyFbExport.downloadBundle(); });
 
     // Empty-state "Voir le guide" — re-opens the onboarding wizard.
     var guideBtn = document.querySelector('[data-act="open-wizard"]');
     if (guideBtn) guideBtn.addEventListener('click', function () {
-      if (window.BIAIFWizard) window.BIAIFWizard.open(STATE, function () { window.BIAIFStorage.persist(STATE); });
+      if (window.MyFbWizard) window.MyFbWizard.open(STATE, function () { window.MyFbStorage.persist(STATE); });
     });
   }
 
@@ -135,9 +135,9 @@
     if (!REFS.langSelect) return;
     REFS.langSelect.addEventListener('change', function (e) {
       STATE.lang = e.target.value;
-      var MIC = window.BIAIFSpeech.getMicState();
+      var MIC = window.MyFbSpeech.getMicState();
       if (MIC && MIC.rec) MIC.rec.lang = STATE.lang;
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
     });
   }
 
@@ -147,7 +147,7 @@
       btn.addEventListener('click', function () {
         _autoArm();
         H.closeCaptureSubline();
-        window.BIAIFSession.runShotMode(btn.dataset.shot);
+        window.MyFbSession.runShotMode(btn.dataset.shot);
       });
     });
     var captureToggle = document.querySelector('[data-act="capture-toggle"]');
@@ -186,15 +186,15 @@
     var STATE = ctx.STATE;
     function setSort(order) {
       STATE.sortOrder = order;
-      window.BIAIFRenderer.updateSortToggleLabel();
-      window.BIAIFRenderer.renderSegments();
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbRenderer.updateSortToggleLabel();
+      window.MyFbRenderer.renderSegments();
+      window.MyFbStorage.persist(STATE);
     }
     var ascBtn  = document.querySelector('[data-act="sort-asc"]');
     var descBtn = document.querySelector('[data-act="sort-desc"]');
     if (ascBtn)  ascBtn.addEventListener('click',  function () { setSort('asc'); });
     if (descBtn) descBtn.addEventListener('click', function () { setSort('desc'); });
-    window.BIAIFRenderer.updateSortToggleLabel();
+    window.MyFbRenderer.updateSortToggleLabel();
   }
 
   // Toggle search input visibility (loupe button)
@@ -205,7 +205,7 @@
     // alias for backwards compat with anyone wiring against the old name.
     document.querySelectorAll('[data-act="filter-toggle"], [data-act="search-toggle"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (window.BIAIFFilterPanel) window.BIAIFFilterPanel.toggle();
+        if (window.MyFbFilterPanel) window.MyFbFilterPanel.toggle();
       });
     });
   }
@@ -217,15 +217,15 @@
       if (!btn) return;
       var a = btn.dataset.act;
       if (a === 'seg-font-up' || a === 'seg-font-down') {
-        window.BIAIFRenderer.bumpSegFontSize(a === 'seg-font-up' ? +1 : -1);
+        window.MyFbRenderer.bumpSegFontSize(a === 'seg-font-up' ? +1 : -1);
         H.updateSpFontVal();
       } else {
-        window.BIAIFRenderer.bumpSegTextLines(a === 'seg-lines-up' ? +1 : -1);
+        window.MyFbRenderer.bumpSegTextLines(a === 'seg-lines-up' ? +1 : -1);
         H.updateSpLinesVal();
       }
     });
-    window.BIAIFRenderer.applySegFontSize();
-    window.BIAIFRenderer.applySegTextLines();
+    window.MyFbRenderer.applySegFontSize();
+    window.MyFbRenderer.applySegTextLines();
   }
 
   function _bindHistorySearch() {
@@ -238,7 +238,7 @@
       if (timer) clearTimeout(timer);
       timer = setTimeout(function () {
         timer = null;
-        window.BIAIFRenderer.renderSegments();
+        window.MyFbRenderer.renderSegments();
       }, debounceMs);
     });
   }
@@ -275,9 +275,9 @@
       var resp = await H.sendBg({ type: H.msgKey('RELOAD_ACTIVE_TAB') });
       if (resp && resp.ok) {
         H.hideReloadModal();
-        window.BIAIFToast.show(_t('toast.tab_reload_retry', 'Onglet rechargé.'), 'success');
+        window.MyFbToast.show(_t('toast.tab_reload_retry', 'Onglet rechargé.'), 'success');
       } else {
-        window.BIAIFToast.show(
+        window.MyFbToast.show(
           _t('toast.tab_reload_fail', 'Rechargement KO : ' + (resp ? resp.error : 'no resp'),
             { err: (resp ? resp.error : 'no resp') }),
           'error');
@@ -289,13 +289,13 @@
   var _syncUnsubscribe = null;
   function _ensureSyncWatcher(STATE) {
     if (_syncUnsubscribe) return;
-    if (!window.BIAIFStorage.watchSync) return;
-    _syncUnsubscribe = window.BIAIFStorage.watchSync(STATE, function () {
+    if (!window.MyFbStorage.watchSync) return;
+    _syncUnsubscribe = window.MyFbStorage.watchSync(STATE, function () {
       // Live update from another device → re-render visible UI.
-      window.BIAIFRenderer.renderSegments();
-      window.BIAIFRenderer.updateMasterBtnLabel();
-      window.BIAIFRenderer.updateArmedUi();
-      window.BIAIFToast.show(_t('toast.sync_remote_update', 'Réglages synchronisés depuis un autre appareil.'), 'info', 2500);
+      window.MyFbRenderer.renderSegments();
+      window.MyFbRenderer.updateMasterBtnLabel();
+      window.MyFbRenderer.updateArmedUi();
+      window.MyFbToast.show(_t('toast.sync_remote_update', 'Réglages synchronisés depuis un autre appareil.'), 'info', 2500);
     });
   }
 
@@ -307,18 +307,18 @@
     if (STATE.syncEnabled) _ensureSyncWatcher(STATE);
     cb.addEventListener('change', async function () {
       STATE.syncEnabled = cb.checked;
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
       if (cb.checked) {
         _ensureSyncWatcher(STATE);
-        if (window.BIAIFStorage.pullFromSync) {
-          var pulled = await window.BIAIFStorage.pullFromSync(STATE);
+        if (window.MyFbStorage.pullFromSync) {
+          var pulled = await window.MyFbStorage.pullFromSync(STATE);
           if (pulled) {
-            window.BIAIFRenderer.renderSegments();
-            window.BIAIFRenderer.updateMasterBtnLabel();
-            window.BIAIFRenderer.updateArmedUi();
-            window.BIAIFToast.show(_t('toast.sync_pulled', 'Synchronisation réussie.'), 'success');
+            window.MyFbRenderer.renderSegments();
+            window.MyFbRenderer.updateMasterBtnLabel();
+            window.MyFbRenderer.updateArmedUi();
+            window.MyFbToast.show(_t('toast.sync_pulled', 'Synchronisation réussie.'), 'success');
           } else {
-            window.BIAIFToast.show(_t('toast.sync_enabled', 'Sync activée — vos réglages seront partagés.'), 'info');
+            window.MyFbToast.show(_t('toast.sync_enabled', 'Sync activée — vos réglages seront partagés.'), 'info');
           }
         }
       } else if (_syncUnsubscribe) {
@@ -336,14 +336,14 @@
     var exportMdBtn = document.querySelector('[data-act="export-md-all"]');
     var exportCsvBtn = document.querySelector('[data-act="export-csv"]');
     if (exportBtn) exportBtn.addEventListener('click', function () {
-      window.BIAIFStorage.exportToFile(STATE, { stripDataUrls: stripCb && stripCb.checked });
-      window.BIAIFToast.show(_t('toast.exported', 'Fichier exporté.'), 'success');
+      window.MyFbStorage.exportToFile(STATE, { stripDataUrls: stripCb && stripCb.checked });
+      window.MyFbToast.show(_t('toast.exported', 'Fichier exporté.'), 'success');
     });
     if (exportMdBtn) exportMdBtn.addEventListener('click', function () {
-      if (window.BIAIFExport) window.BIAIFExport.downloadBundle();
+      if (window.MyFbExport) window.MyFbExport.downloadBundle();
     });
     if (exportCsvBtn) exportCsvBtn.addEventListener('click', function () {
-      if (window.BIAIFExport) window.BIAIFExport.downloadCsv();
+      if (window.MyFbExport) window.MyFbExport.downloadCsv();
     });
     if (importBtn && importInput) {
       importBtn.addEventListener('click', function () { importInput.click(); });
@@ -355,28 +355,28 @@
           try {
             var bundle = JSON.parse(reader.result);
             // Snapshot current state so user can undo the import
-            if (window.BIAIFUndo) window.BIAIFUndo.push({
+            if (window.MyFbUndo) window.MyFbUndo.push({
               demandes:       JSON.parse(JSON.stringify(STATE.demandes)),
               currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)),
             });
-            var result = window.BIAIFStorage.importBundle(STATE, bundle, { mode: 'replace' });
+            var result = window.MyFbStorage.importBundle(STATE, bundle, { mode: 'replace' });
             if (!result.ok) {
-              window.BIAIFToast.show(_t('toast.import_invalid', 'Fichier JSON invalide.'), 'error');
+              window.MyFbToast.show(_t('toast.import_invalid', 'Fichier JSON invalide.'), 'error');
               return;
             }
-            window.BIAIFRenderer.renderDemandeEditor();
-            window.BIAIFRenderer.renderSegments();
-            window.BIAIFRenderer.updateArmedUi();
-            window.BIAIFRenderer.updateMasterBtnLabel();
-            window.BIAIFStorage.persist(STATE, { skipUndo: true });
-            window.BIAIFToast.showAction(
+            window.MyFbRenderer.renderDemandeEditor();
+            window.MyFbRenderer.renderSegments();
+            window.MyFbRenderer.updateArmedUi();
+            window.MyFbRenderer.updateMasterBtnLabel();
+            window.MyFbStorage.persist(STATE, { skipUndo: true });
+            window.MyFbToast.showAction(
               _t('toast.imported', 'Import OK — {n} demande(s) chargée(s).', { n: result.imported }),
               _t('toast.undo_action', 'Annuler'),
               H.performUndo,
               { kind: 'success', duration: 6000 }
             );
           } catch (err) {
-            window.BIAIFToast.show(_t('toast.import_invalid', 'Fichier JSON invalide.'), 'error');
+            window.MyFbToast.show(_t('toast.import_invalid', 'Fichier JSON invalide.'), 'error');
           }
         };
         reader.readAsText(file);
@@ -391,20 +391,20 @@
     if (!btn) return;
     btn.addEventListener('click', function () {
       if (REFS.settingsPopover) REFS.settingsPopover.classList.remove('is-open');
-      if (window.BIAIFWizard) window.BIAIFWizard.open(STATE, function () { window.BIAIFStorage.persist(STATE); });
+      if (window.MyFbWizard) window.MyFbWizard.open(STATE, function () { window.MyFbStorage.persist(STATE); });
     });
   }
 
   function _bindButtonVisibility() {
     var STATE = ctx.STATE;
-    var ALL = (window.BIAIF && window.BIAIF.ALL_BUTTONS) || [];
+    var ALL = (window.MyFb && window.MyFb.ALL_BUTTONS) || [];
     ALL.forEach(function (def) {
       var cb = document.getElementById('vis-' + def.key);
       if (!cb) return;
       cb.addEventListener('change', function () {
         STATE.visibleButtons[def.key] = cb.checked;
-        window.BIAIFRenderer.renderSegments();
-        window.BIAIFStorage.persist(STATE);
+        window.MyFbRenderer.renderSegments();
+        window.MyFbStorage.persist(STATE);
       });
     });
   }
@@ -418,7 +418,7 @@
         if (id === 'aop-active') STATE.autoOpenOnKnownActive = cb.checked;
         if (id === 'aop-done')   STATE.autoOpenOnKnownDone   = cb.checked;
         if (id === 'aop-ai')     STATE.autoOpenOnAiPage      = cb.checked;
-        window.BIAIFStorage.persist(STATE);
+        window.MyFbStorage.persist(STATE);
       });
     });
   }
@@ -439,7 +439,7 @@
       if (!btn) return;
       STATE.theme = btn.dataset.theme;
       apply(STATE.theme);
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
     });
     apply(STATE.theme || 'dark');
   }
@@ -447,12 +447,12 @@
   function _bindTopbarPosition() {
     var STATE = ctx.STATE;
     var cb   = document.getElementById('topbar-bottom');
-    var root = document.querySelector('.biaif-root');
+    var root = document.querySelector('.myfb-root');
     function apply() { if (root) root.classList.toggle('topbar-bottom', STATE.topbarPosition === 'bottom'); }
     if (cb) cb.addEventListener('change', function () {
       STATE.topbarPosition = cb.checked ? 'bottom' : 'top';
       apply();
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
     });
     apply();
   }
@@ -464,7 +464,7 @@
     cb.checked = STATE.privacyScrub !== false;
     cb.addEventListener('change', function () {
       STATE.privacyScrub = cb.checked;
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
     });
     var doc = document.querySelector('[data-act="open-privacy-doc"]');
     if (doc) doc.addEventListener('click', function () {
@@ -533,7 +533,7 @@
     if (cb) cb.addEventListener('change', function () {
       STATE.showConsoleBtn = cb.checked;
       apply();
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
     });
     apply();
   }
@@ -554,7 +554,7 @@
         STATE.hideAiTextarea = false;
         try {
           chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-            if (tabs && tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'biaif:hide-ai-textarea', hide: false }).catch(function () {});
+            if (tabs && tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'myfb:hide-ai-textarea', hide: false }).catch(function () {});
           });
         } catch (_) {}
       }
@@ -562,30 +562,30 @@
 
     if (cbHideTa) cbHideTa.addEventListener('change', function () {
       STATE.hideAiTextarea = cbHideTa.checked;
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
       try {
         chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-          if (tabs && tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'biaif:hide-ai-textarea', hide: cbHideTa.checked }).catch(function () {});
+          if (tabs && tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: 'myfb:hide-ai-textarea', hide: cbHideTa.checked }).catch(function () {});
         });
       } catch (_) {}
     });
     if (cbAutoSub) cbAutoSub.addEventListener('change', function () {
       STATE.autoSubmitAfterInject = cbAutoSub.checked;
       syncDep();
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
     });
     syncDep();
     var cbStaysArmed = document.getElementById('save-stays-armed');
     if (cbStaysArmed) cbStaysArmed.addEventListener('change', function () {
       STATE.saveStaysArmed = cbStaysArmed.checked;
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbStorage.persist(STATE);
     });
     // Shortcut mode radio (smart / toggle / hold) — keyed by name="shortcut-mode"
     document.querySelectorAll('input[name="shortcut-mode"]').forEach(function (radio) {
       radio.addEventListener('change', function () {
         if (!radio.checked) return;
         STATE.shortcutMode = radio.value;
-        window.BIAIFStorage.persist(STATE);
+        window.MyFbStorage.persist(STATE);
       });
     });
   }
@@ -599,12 +599,12 @@
       if (!btn) return;
       var lang = btn.dataset.lang;
       STATE.uiLang = lang;
-      window.BIAIFi18n.setLang(lang);
-      window.BIAIFRenderer.renderSegments();
-      window.BIAIFRenderer.renderDemandeRefsStrip();
-      window.BIAIFRenderer.updateMasterBtnLabel();
-      window.BIAIFRenderer.updateErrorsBadges();
-      window.BIAIFStorage.persist(STATE);
+      window.MyFbI18n.setLang(lang);
+      window.MyFbRenderer.renderSegments();
+      window.MyFbRenderer.renderDemandeRefsStrip();
+      window.MyFbRenderer.updateMasterBtnLabel();
+      window.MyFbRenderer.updateErrorsBadges();
+      window.MyFbStorage.persist(STATE);
     });
   }
 
@@ -612,16 +612,16 @@
     var REFS = ctx.REFS, STATE = ctx.STATE;
     if (REFS.micDeviceSelect) REFS.micDeviceSelect.addEventListener('change', function (e) {
       STATE.micDeviceId = e.target.value;
-      window.BIAIFStorage.persist(STATE);
-      if (window.BIAIFSpeech.getMicState().stream) window.BIAIFSpeech.startMicTest(STATE.micDeviceId);
+      window.MyFbStorage.persist(STATE);
+      if (window.MyFbSpeech.getMicState().stream) window.MyFbSpeech.startMicTest(STATE.micDeviceId);
     });
     if (REFS.micTestBtn) REFS.micTestBtn.addEventListener('click', function () {
-      var MIC = window.BIAIFSpeech.getMicState();
-      if (MIC && MIC.stream) window.BIAIFSpeech.stopMicTest();
-      else window.BIAIFSpeech.startMicTest(STATE.micDeviceId);
+      var MIC = window.MyFbSpeech.getMicState();
+      if (MIC && MIC.stream) window.MyFbSpeech.stopMicTest();
+      else window.MyFbSpeech.startMicTest(STATE.micDeviceId);
     });
     if (REFS.micRefreshBtn) REFS.micRefreshBtn.addEventListener('click', function () {
-      window.BIAIFSpeech.refreshMicDevices(true);
+      window.MyFbSpeech.refreshMicDevices(true);
     });
   }
 
@@ -632,14 +632,14 @@
       if (e.target !== REFS.demandeEditor) return;
       clearTimeout(timer);
       // Token-counter is cheap, update on every keystroke.
-      if (window.BIAIFRender && window.BIAIFRender.tokenCounter) {
-        window.BIAIFSession.syncCurrentDemandeFromEditor();
-        window.BIAIFRender.tokenCounter.update();
+      if (window.MyFbRender && window.MyFbRender.tokenCounter) {
+        window.MyFbSession.syncCurrentDemandeFromEditor();
+        window.MyFbRender.tokenCounter.update();
       }
       timer = setTimeout(function () {
-        window.BIAIFSession.syncCurrentDemandeFromEditor();
-        window.BIAIFRenderer.renderDemandeRefsStrip();
-        window.BIAIFStorage.persist(STATE);
+        window.MyFbSession.syncCurrentDemandeFromEditor();
+        window.MyFbRenderer.renderDemandeRefsStrip();
+        window.MyFbStorage.persist(STATE);
       }, 400);
     });
   }
@@ -654,20 +654,39 @@
       var refIdx    = Number(chip.dataset.ref);
       var demKeyRaw = chip.dataset.demKey;
       var demKey    = (demKeyRaw === 'current' || demKeyRaw === undefined) ? 'current' : Number(demKeyRaw);
-      window.BIAIFSession.editRef(demKey, refIdx, btn.dataset.editType);
+      window.MyFbSession.editRef(demKey, refIdx, btn.dataset.editType);
     });
   }
 
   function _bindFilterBadges() {
     var STATE = ctx.STATE;
     document.addEventListener('click', function (e) {
+      // Eye picto inside a domain badge : open the page in a new tab
+      // AND apply the matching filter (acts as if the badge was clicked).
+      var openBtn = e.target.closest && e.target.closest('.seg-filter-badge-open[data-open-url]');
+      if (openBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        var url = openBtn.getAttribute('data-open-url');
+        var fk  = openBtn.getAttribute('data-filter-key');
+        var fv  = openBtn.getAttribute('data-filter-val');
+        if (url) {
+          try { chrome.tabs.create({ url: url, active: true }); }
+          catch (_) { window.open(url, '_blank', 'noopener,noreferrer'); }
+        }
+        if (fk && fv !== null) {
+          STATE[fk] = fv;
+          window.MyFbRenderer.renderSegments();
+        }
+        return;
+      }
       var badge = e.target.closest('.seg-filter-badge[data-fk]');
       if (badge) {
         e.stopPropagation();
         var key = badge.dataset.fk, val = badge.dataset.fv;
         if (key && val !== undefined) {
           STATE[key] = val;
-          window.BIAIFRenderer.renderSegments();
+          window.MyFbRenderer.renderSegments();
         }
         return;
       }
@@ -679,7 +698,7 @@
           STATE[k] = '';
           if (k === 'conversationFilter') STATE.pendingConversationUrl = null;
           if (k === 'repoFilter')         STATE.pendingRepoId = null;
-          window.BIAIFRenderer.renderSegments();
+          window.MyFbRenderer.renderSegments();
         }
       }
     });
@@ -693,7 +712,7 @@
       var action = REFS.status.dataset.action;
       if (action === 'reload-active-tab') {
         var resp = await H.sendBg({ type: H.msgKey('RELOAD_ACTIVE_TAB') });
-        if (resp && resp.ok) window.BIAIFToast.show(_t('toast.tab_reloaded', 'Onglet rechargé.'), 'success');
+        if (resp && resp.ok) window.MyFbToast.show(_t('toast.tab_reloaded', 'Onglet rechargé.'), 'success');
       }
     });
   }
@@ -706,8 +725,8 @@
     _bindShotButtons();
     _bindFileImport();
     _bindErrorsButton();
-    if (window.BIAIFBindings.bindTemplatesPopover) {
-      window.BIAIFBindings.bindTemplatesPopover(_autoArm);
+    if (window.MyFbBindings.bindTemplatesPopover) {
+      window.MyFbBindings.bindTemplatesPopover(_autoArm);
     }
     _bindSortToggle();
     _bindSearchToggle();
@@ -734,5 +753,5 @@
     _bindStatusBar();
   }
 
-  window.BIAIFBindings.events = { bind: bind };
+  window.MyFbBindings.events = { bind: bind };
 })(window);

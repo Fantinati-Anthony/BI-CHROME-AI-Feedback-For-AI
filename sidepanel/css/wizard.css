@@ -1,15 +1,15 @@
 /* ============================================================
    Wizard — first-launch onboarding
    ============================================================ */
-.biaif-wizard {
+.myfb-wizard {
   position: fixed; inset: 0; z-index: 9000;
   background: var(--bg-app);
   display: flex; align-items: stretch;
   opacity: 0; transition: opacity 0.28s ease;
   pointer-events: none;
 }
-.biaif-wizard.is-visible { opacity: 1; pointer-events: all; }
-.biaif-wizard.is-out     { opacity: 0; pointer-events: none; }
+.myfb-wizard.is-visible { opacity: 1; pointer-events: all; }
+.myfb-wizard.is-out     { opacity: 0; pointer-events: none; }
 
 .wiz-panel {
   display: flex; flex-direction: column; width: 100%;

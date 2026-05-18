@@ -1,5 +1,5 @@
 /* ============== Segments — focus de la sidebar ============== */
-.biaif-segments-wrap {
+.myfb-segments-wrap {
   display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0;
   /* History scrolls internally so the topbar stays in view at all times,
      regardless of the .topbar-bottom setting. */
@@ -8,8 +8,8 @@
   /* Taille de texte des segments (modifiable via les boutons A- / A+) */
   --seg-text-size: 13px;
 }
-.biaif-segments-wrap .demande-text { font-size: var(--seg-text-size); }
-.biaif-segments-wrap .ref-chip {
+.myfb-segments-wrap .demande-text { font-size: var(--seg-text-size); }
+.myfb-segments-wrap .ref-chip {
   font-size: calc(var(--seg-text-size) - 2px);
 }
 .segments-title {
@@ -45,8 +45,8 @@
 }
 .segments-zoom-btn:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
 .segments-zoom-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.biaif-segments { display: flex; flex-direction: column; gap: 8px; }
-.biaif-empty { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 8px 0; }
+.myfb-segments { display: flex; flex-direction: column; gap: 8px; }
+.myfb-empty { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 8px 0; }
 
 /* Linked session banner */
 .linked-session-banner {
@@ -114,6 +114,26 @@
 .seg-filter-badge--conv:hover  { border-color: #6c47ff; }
 .seg-filter-badge--domain { border-color: rgba(255,255,255,.12); }
 
+/* Eye picto inside the domain badge — opens the page + filters */
+.seg-filter-badge--domain { gap: 4px; }
+.seg-filter-badge-label { display: inline-block; }
+.seg-filter-badge-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  margin-left: 2px;
+  border-left: 1px solid rgba(255,255,255,.12);
+  font-size: 10px;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.14s, transform 0.14s;
+}
+.seg-filter-badge-open:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
 /* ── User-defined tag chips ──────────────────────────────────────── */
 .seg-tag-chip {
   border-color: rgba(245,158,11,.35);
@@ -160,15 +180,15 @@
 }
 
 /* Demande history card */
-.biaif-segment {
+.myfb-segment {
   background: var(--bg-card);
   border: 1px solid var(--border-card); border-radius: 10px;
   padding: 5px;
   transition: border-color 0.15s ease;
   display: flex; flex-direction: column; gap: 2px;
 }
-.biaif-segment:hover { border-color: var(--accent-blue-50); }
-.biaif-segment header {
+.myfb-segment:hover { border-color: var(--accent-blue-50); }
+.myfb-segment header {
   display: flex; align-items: center; gap: 6px;
   margin: 0;
 }
@@ -182,7 +202,7 @@
   cursor: grab; opacity: 0.35;
   transition: opacity 0.15s, color 0.15s, background 0.15s, transform 0.1s;
 }
-.biaif-segment:hover .seg-drag-handle { opacity: 0.9; }
+.myfb-segment:hover .seg-drag-handle { opacity: 0.9; }
 .seg-drag-handle:hover {
   opacity: 1 !important;
   color: var(--accent-blue);
@@ -193,17 +213,17 @@
   outline: 2px solid var(--accent-blue); outline-offset: 1px; opacity: 1;
 }
 /* Drag-drop visual feedback */
-.biaif-segment.is-dragging-seg { opacity: 0.4; }
+.myfb-segment.is-dragging-seg { opacity: 0.4; }
 /* Middle drop = merge → full halo */
-.biaif-segment.is-drop-target {
+.myfb-segment.is-drop-target {
   border-color: var(--accent-blue) !important;
   box-shadow: 0 0 0 2px var(--accent-blue-50), 0 0 16px rgba(14,165,183,0.25);
 }
 /* Top/bottom drop = reorder → blue line indicator */
-.biaif-segment.is-drop-before,
-.biaif-segment.is-drop-after { position: relative; }
-.biaif-segment.is-drop-before::before,
-.biaif-segment.is-drop-after::after {
+.myfb-segment.is-drop-before,
+.myfb-segment.is-drop-after { position: relative; }
+.myfb-segment.is-drop-before::before,
+.myfb-segment.is-drop-after::after {
   content: '';
   position: absolute; left: -2px; right: -2px; height: 3px;
   background: var(--accent-blue);
@@ -212,19 +232,19 @@
   pointer-events: none;
   animation: drop-line-pulse 1s ease-in-out infinite;
 }
-.biaif-segment.is-drop-before::before { top: -5px; }
-.biaif-segment.is-drop-after::after  { bottom: -5px; }
+.myfb-segment.is-drop-before::before { top: -5px; }
+.myfb-segment.is-drop-after::after  { bottom: -5px; }
 @keyframes drop-line-pulse {
   0%, 100% { opacity: 0.7; transform: scaleX(1); }
   50%      { opacity: 1;   transform: scaleX(1.02); }
 }
 
-.biaif-segment .seg-num {
+.myfb-segment .seg-num {
   font-family: 'Inter', monospace; font-size: 11px; font-weight: 700;
   background: var(--accent-blue-50); color: var(--accent-blue);
   padding: 1px 8px; border-radius: var(--radius-pill);
 }
-.biaif-segment .seg-meta {
+.myfb-segment .seg-meta {
   flex: 1; font-size: 10px; color: var(--text-muted);
   display: flex; align-items: center; gap: 6px;
 }
@@ -254,10 +274,10 @@
 }
 
 /* ── Archive zone (done segments) ────────────────────────────────────────── */
-.biaif-archive-zone {
+.myfb-archive-zone {
   margin-top: 4px;
 }
-.biaif-archive-header {
+.myfb-archive-header {
   width: 100%;
   background: none;
   border: 1px solid var(--border-card);
@@ -274,38 +294,38 @@
   text-align: left;
   transition: border-color 0.15s, color 0.15s;
 }
-.biaif-archive-header:hover {
+.myfb-archive-header:hover {
   border-color: var(--accent-blue-50);
   color: var(--text-main);
 }
-.biaif-archive-chevron {
+.myfb-archive-chevron {
   flex-shrink: 0;
   transition: transform 0.2s;
 }
-.biaif-archive-zone.is-expanded .biaif-archive-chevron {
+.myfb-archive-zone.is-expanded .myfb-archive-chevron {
   transform: rotate(180deg);
 }
-.biaif-archive-label {
+.myfb-archive-label {
   flex: 1;
 }
-.biaif-archive-updated {
+.myfb-archive-updated {
   font-size: 10px;
   color: var(--text-muted);
   opacity: 0.7;
   white-space: nowrap;
 }
-.biaif-archive-body {
+.myfb-archive-body {
   display: none;
   flex-direction: column;
   gap: 8px;
   margin-top: 6px;
 }
-.biaif-archive-zone.is-expanded .biaif-archive-body {
+.myfb-archive-zone.is-expanded .myfb-archive-body {
   display: flex;
 }
 
 /* ── Conversation group card ─────────────────────────────────────────────── */
-.biaif-conv-group {
+.myfb-conv-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -314,18 +334,18 @@
   padding: 8px 8px 8px;
   background: var(--bg-card);
 }
-.biaif-conv-header {
+.myfb-conv-header {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 2px 4px;
   border-bottom: 1px solid var(--border-card);
 }
-.biaif-conv-icon {
+.myfb-conv-icon {
   flex-shrink: 0;
   color: var(--text-muted);
 }
-.biaif-conv-url {
+.myfb-conv-url {
   flex: 1;
   color: var(--accent-blue);
   font-size: 10px;
@@ -335,24 +355,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.biaif-conv-url:hover { text-decoration: underline; }
-.biaif-conv-count {
+.myfb-conv-url:hover { text-decoration: underline; }
+.myfb-conv-count {
   font-size: 10px;
   color: var(--text-muted);
   white-space: nowrap;
 }
 
 /* Segments inside the group get a slight indent and no top border-radius */
-.biaif-conv-group > .biaif-segment {
+.myfb-conv-group > .myfb-segment {
   margin-left: 2px;
   border-color: var(--border-card);
 }
 
 /* ── Conversation done sub-segments (archived within a group) ────────────── */
-.biaif-conv-done-wrap {
+.myfb-conv-done-wrap {
   margin-top: 2px;
 }
-.biaif-conv-done-toggle {
+.myfb-conv-done-toggle {
   width: 100%;
   background: none;
   border: 1px dashed var(--border-card);
@@ -369,32 +389,32 @@
   text-align: left;
   transition: border-color 0.15s, color 0.15s;
 }
-.biaif-conv-done-toggle:hover {
+.myfb-conv-done-toggle:hover {
   border-color: var(--accent-blue-50);
   color: var(--text-main);
 }
-.biaif-conv-done-chevron {
+.myfb-conv-done-chevron {
   flex-shrink: 0;
   transition: transform 0.2s;
 }
-.biaif-conv-done-wrap.is-expanded .biaif-conv-done-chevron {
+.myfb-conv-done-wrap.is-expanded .myfb-conv-done-chevron {
   transform: rotate(180deg);
 }
-.biaif-conv-done-label { flex: 1; }
-.biaif-conv-done-ts {
+.myfb-conv-done-label { flex: 1; }
+.myfb-conv-done-ts {
   font-size: 10px;
   color: var(--text-muted);
   opacity: 0.7;
   white-space: nowrap;
 }
-.biaif-conv-done-body {
+.myfb-conv-done-body {
   display: none;
   flex-direction: column;
   gap: 6px;
   margin-top: 4px;
   padding-left: 4px;
 }
-.biaif-conv-done-wrap.is-expanded .biaif-conv-done-body {
+.myfb-conv-done-wrap.is-expanded .myfb-conv-done-body {
   display: flex;
 }
 
@@ -485,7 +505,7 @@
 }
 
 /* Segment en cours d'édition : bordure cyan, halo, fond légèrement bleuté */
-.biaif-segment.is-editing {
+.myfb-segment.is-editing {
   border-color: var(--accent-blue);
   box-shadow:
     0 0 0 1px var(--accent-blue),
@@ -571,7 +591,7 @@
 }
 .demande-text:has(.ref-chip.expanded)::after { display: none; }
 /* Card being edited gets a cyan accent to show it's loaded in the top editor */
-.biaif-segment.is-editing .demande-text { border-left-color: var(--accent-blue); }
+.myfb-segment.is-editing .demande-text { border-left-color: var(--accent-blue); }
 .demande-text-empty {
   color: var(--text-muted); font-style: italic;
   /* Don't clamp empty placeholder */
@@ -652,7 +672,7 @@
 
 
 /* Search term highlight */
-mark.biaif-hl {
+mark.myfb-hl {
   background: rgba(250, 204, 21, .28);
   color: inherit;
   border-radius: 2px;

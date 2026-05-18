@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * BIAIF Config — every magic number, debounce, and limit in one place.
+ * MyFb Config — every magic number, debounce, and limit in one place.
  *
  * Grouped semantically (storage / UI / capture / mic / bridge / watcher).
  * Anything tweakable for tuning lives here so contributors don't have to
@@ -8,9 +8,9 @@
  */
 (function (root) {
   'use strict';
-  root.BIAIF = root.BIAIF || {};
+  root.MyFb = root.MyFb || {};
 
-  root.BIAIF.config = Object.freeze({
+  root.MyFb.config = Object.freeze({
     // ── Storage ────────────────────────────────────────────────────────
     storage: Object.freeze({
       QUOTA_WARN_BYTES:        8 * 1024 * 1024, // warn at 8 MB (Chrome limit ~10 MB)

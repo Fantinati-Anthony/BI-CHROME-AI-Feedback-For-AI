@@ -1,5 +1,5 @@
 /**
- * BIAIF Filter Panel — popover triggered by the topbar 🔍 (loupe).
+ * MyFb Filter Panel — popover triggered by the topbar 🔍 (loupe).
  *
  * Replaces the old expandable text input with a compact but complete
  * filter panel covering every facet a vibe-coder needs:
@@ -15,8 +15,8 @@
  * also exposed via the existing filter-chips bar (above the segments
  * list) so they stay visible after closing the popover.
  *
- *   BIAIFFilterPanel.toggle()  → open/close
- *   BIAIFFilterPanel.close()
+ *   MyFbFilterPanel.toggle()  → open/close
+ *   MyFbFilterPanel.close()
  */
 (function (window) {
   'use strict';
@@ -25,12 +25,12 @@
   var _trigger = null;
 
   function _t(k, fb) {
-    var U = window.BIAIF && window.BIAIF.utils;
+    var U = window.MyFb && window.MyFb.utils;
     return (U && U.t) ? U.t(k, fb) : (fb || k);
   }
 
   function _STATE() {
-    var ctx = window.BIAIFRender && window.BIAIFRender.ctx;
+    var ctx = window.MyFbRender && window.MyFbRender.ctx;
     return ctx && ctx.STATE;
   }
 
@@ -38,7 +38,7 @@
   function _facets(STATE) {
     var tags = new Set(), domains = new Set(), pages = new Set();
     var convs = new Set(), repos = new Set();
-    var DOM = (window.BIAIF && window.BIAIF.dom) || {};
+    var DOM = (window.MyFb && window.MyFb.dom) || {};
     var hostname = DOM.hostname || function (u) { try { return new URL(u).hostname; } catch (_) { return ''; } };
     (STATE.demandes || []).forEach(function (d) {
       (d.tags || []).forEach(function (t) { if (t) tags.add(t); });
@@ -92,36 +92,36 @@
     var query = STATE.searchQuery || '';
 
     var ov = document.createElement('div');
-    ov.className = 'biaif-filter-overlay';
+    ov.className = 'myfb-filter-overlay';
     ov.setAttribute('role', 'dialog');
     ov.setAttribute('aria-modal', 'true');
     ov.setAttribute('aria-label', _t('filter.aria', "Filtrer l'historique"));
     ov.innerHTML =
-      '<div class="biaif-filter-panel" role="group">' +
-        '<div class="biaif-filter-header">' +
-          '<button class="sp-back biaif-filter-back" data-act="filter-close" type="button" aria-label="' +
+      '<div class="myfb-filter-panel" role="group">' +
+        '<div class="myfb-filter-header">' +
+          '<button class="sp-back myfb-filter-back" data-act="filter-close" type="button" aria-label="' +
             _t('filter.close', 'Fermer') + '">' +
             '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>' +
           '</button>' +
           '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>' +
           '<span>' + _t('filter.title', "Filtrer l'historique") + '</span>' +
-          '<button class="biaif-filter-clear" data-act="filter-clear-all" type="button">' +
+          '<button class="myfb-filter-clear" data-act="filter-clear-all" type="button">' +
             _t('filter.clear_all', 'Tout effacer') + '</button>' +
         '</div>' +
-        '<input type="search" class="biaif-filter-search" data-filter-search ' +
+        '<input type="search" class="myfb-filter-search" data-filter-search ' +
           'placeholder="' + _t('filter.text_placeholder', 'Recherche plein-texte…') +
           '" value="' + String(query).replace(/"/g, '&quot;') + '">' +
-        '<div class="biaif-filter-row"><label>' + _t('filter.tag', 'Tag') + '</label>' +
+        '<div class="myfb-filter-row"><label>' + _t('filter.tag', 'Tag') + '</label>' +
           _selectField('tagFilter', f.tags, STATE.tagFilter || '') + '</div>' +
-        '<div class="biaif-filter-row"><label>' + _t('filter.domain', 'Domaine') + '</label>' +
+        '<div class="myfb-filter-row"><label>' + _t('filter.domain', 'Domaine') + '</label>' +
           _selectField('domainFilter', f.domains, STATE.domainFilter || '') + '</div>' +
-        '<div class="biaif-filter-row"><label>' + _t('filter.page', 'Page') + '</label>' +
+        '<div class="myfb-filter-row"><label>' + _t('filter.page', 'Page') + '</label>' +
           _selectField('pageFilter', f.pages, STATE.pageFilter || '') + '</div>' +
-        '<div class="biaif-filter-row"><label>' + _t('filter.conv', 'Conversation') + '</label>' +
+        '<div class="myfb-filter-row"><label>' + _t('filter.conv', 'Conversation') + '</label>' +
           _selectField('conversationFilter', f.convs, STATE.conversationFilter || '') + '</div>' +
-        '<div class="biaif-filter-row"><label>' + _t('filter.repo', 'Repo') + '</label>' +
+        '<div class="myfb-filter-row"><label>' + _t('filter.repo', 'Repo') + '</label>' +
           _selectField('repoFilter', f.repos, STATE.repoFilter || '') + '</div>' +
-        '<div class="biaif-filter-stats">' +
+        '<div class="myfb-filter-stats">' +
           (STATE.demandes || []).length + ' ' + _t('filter.total', 'demandes') +
         '</div>' +
       '</div>';
@@ -134,7 +134,7 @@
     STATE[key] = value || '';
     if (key === 'conversationFilter' && !value) STATE.pendingConversationUrl = null;
     if (key === 'repoFilter'         && !value) STATE.pendingRepoId          = null;
-    if (window.BIAIFRenderer && window.BIAIFRenderer.renderSegments) window.BIAIFRenderer.renderSegments();
+    if (window.MyFbRenderer && window.MyFbRenderer.renderSegments) window.MyFbRenderer.renderSegments();
   }
 
   function _bindOverlay() {
@@ -147,7 +147,7 @@
         var STATE = _STATE();
         if (!STATE) return;
         STATE.searchQuery = input.value || '';
-        if (window.BIAIFRenderer) window.BIAIFRenderer.renderSegments();
+        if (window.MyFbRenderer) window.MyFbRenderer.renderSegments();
       });
       setTimeout(function () { input.focus(); }, 30);
     }
@@ -162,7 +162,7 @@
         .forEach(function (k) { STATE[k] = ''; });
       STATE.pendingConversationUrl = null;
       STATE.pendingRepoId          = null;
-      if (window.BIAIFRenderer) window.BIAIFRenderer.renderSegments();
+      if (window.MyFbRenderer) window.MyFbRenderer.renderSegments();
       close();
     });
     document.addEventListener('keydown', _onKey, true);
@@ -176,7 +176,7 @@
     if (_overlay) return;
     // Defensive: a previous overlay may still be in DOM mid-slide-out.
     // Remove it synchronously so we don't briefly stack two panels.
-    var stale = document.querySelector('.biaif-filter-overlay');
+    var stale = document.querySelector('.myfb-filter-overlay');
     if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
     _overlay = _build();
     if (!_overlay) return;
@@ -213,5 +213,5 @@
 
   function toggle() { _overlay ? close() : open(); }
 
-  window.BIAIFFilterPanel = { open: open, close: close, toggle: toggle };
+  window.MyFbFilterPanel = { open: open, close: close, toggle: toggle };
 })(window);

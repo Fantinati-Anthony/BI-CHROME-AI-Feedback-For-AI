@@ -1,64 +1,68 @@
 // @ts-check
 /**
- * BIAIF Shared Constants
+ * MyFb Shared Constants
  * Single source of truth for all message types, storage keys, and version.
  * Loaded in service worker via importScripts(), in content scripts and side panel via <script>.
  */
 (function (root) {
   'use strict';
 
-  root.BIAIF = root.BIAIF || {};
+  root.MyFb = root.MyFb || {};
 
-  root.BIAIF.VERSION = '0.5.0';
+  root.MyFb.VERSION = '0.5.0';
 
-  root.BIAIF.STORAGE_KEY = 'biaif:v04:state';
-  root.BIAIF.STORAGE_LEGACY_KEYS = ['biaif:v03:state', 'biaif:v02:state', 'biaif:v01:state'];
+  root.MyFb.STORAGE_KEY = 'myfb:v1:state';
+  root.MyFb.STORAGE_LEGACY_KEYS = ['myfb:legacy:dropped'];
 
-  root.BIAIF.MSG = Object.freeze({
+  root.MyFb.MSG = Object.freeze({
     // Commands routed by SW to active tab content script
-    COMMAND:           'biaif:command',
+    COMMAND:           'myfb:command',
     // Picker
-    PICKER_TOGGLE:     'biaif:picker-toggle',
-    PICKER_ENABLE:     'biaif:picker-enable',
-    PICKER_DISABLE:    'biaif:picker-disable',
-    PICKER_STATE:      'biaif:picker-state',
-    ELEMENT_PICKED:    'biaif:element-picked',
+    PICKER_TOGGLE:     'myfb:picker-toggle',
+    PICKER_ENABLE:     'myfb:picker-enable',
+    PICKER_DISABLE:    'myfb:picker-disable',
+    PICKER_STATE:      'myfb:picker-state',
+    ELEMENT_PICKED:    'myfb:element-picked',
     // Capture
-    CAPTURE_MODE:      'biaif:capture-mode',
-    CAPTURE_TAB:       'biaif:capture-tab',
-    CAPTURE_PROGRESS:  'biaif:capture-progress',
+    CAPTURE_MODE:      'myfb:capture-mode',
+    CAPTURE_TAB:       'myfb:capture-tab',
+    CAPTURE_PROGRESS:  'myfb:capture-progress',
     // Annotation
-    ANNOTATE:          'biaif:annotate',
+    ANNOTATE:          'myfb:annotate',
     // Errors
-    GET_ERRORS:        'biaif:get-errors',
-    CONSOLE_ERROR:     'biaif:console-error',
+    GET_ERRORS:        'myfb:get-errors',
+    CONSOLE_ERROR:     'myfb:console-error',
     // Navigation & UI
-    HOTKEY:            'biaif:hotkey',
-    RELOAD_ACTIVE_TAB: 'biaif:reload-active-tab',
+    HOTKEY:            'myfb:hotkey',
+    RELOAD_ACTIVE_TAB: 'myfb:reload-active-tab',
     // Context menu forwarding
-    CONTEXT_STATUS:        'biaif:context-status',
-    CONTEXT_SHOT:          'biaif:context-shot',
-    CONTEXT_ADD_TEXT:      'biaif:context-add-text',
-    CONTEXT_ADD_IMAGE:     'biaif:context-add-image',
-    CONTEXT_NEW_SEGMENT:   'biaif:context-new-segment',
-    CONTEXT_APPEND_TEXT:   'biaif:context-append-text',
+    CONTEXT_STATUS:        'myfb:context-status',
+    CONTEXT_SHOT:          'myfb:context-shot',
+    CONTEXT_ADD_TEXT:      'myfb:context-add-text',
+    CONTEXT_ADD_IMAGE:     'myfb:context-add-image',
+    CONTEXT_NEW_SEGMENT:   'myfb:context-new-segment',
+    CONTEXT_APPEND_TEXT:   'myfb:context-append-text',
     // CustomEvent name (MAIN world → isolated world bridge)
-    PAGE_ERROR_EVENT:  '__biaif_page_error__',
+    PAGE_ERROR_EVENT:  '__myfb_page_error__',
     // Inject into external editor (Claude.ai)
-    INJECT_TO_EDITOR:  'biaif:inject-to-editor',
+    INJECT_TO_EDITOR:  'myfb:inject-to-editor',
     // Inject into VS Code via local bridge
-    INJECT_TO_VSCODE:  'biaif:inject-to-vscode',
+    INJECT_TO_VSCODE:  'myfb:inject-to-vscode',
     // Content script → SW → sidepanel: open panel filtered to a conversation
-    OPEN_WITH_FILTER:      'biaif:open-with-filter',
+    OPEN_WITH_FILTER:      'myfb:open-with-filter',
     // Content script → SW → sidepanel: start new session linked to a conversation
-    START_LINKED_SEGMENT:  'biaif:start-linked-segment',
+    START_LINKED_SEGMENT:  'myfb:start-linked-segment',
     // AI watcher → SW → sidepanel: AI started or stopped generating
-    AI_STATUS_UPDATE:      'biaif:ai-status-update',
+    AI_STATUS_UPDATE:      'myfb:ai-status-update',
     // AI watcher → SW → sidepanel: AI response completed
-    AI_RESPONSE_DONE:      'biaif:ai-response-done',
+    AI_RESPONSE_DONE:      'myfb:ai-response-done',
+    // Page ref overlays (Feature A — v1.3)
+    OVERLAYS_RENDER:       'myfb:overlays-render',     // sidepanel → content: re-render with these refs
+    OVERLAYS_CLEAR:        'myfb:overlays-clear',      // sidepanel → content: hide all
+    OVERLAYS_FOCUS_REF:    'myfb:overlays-focus-ref',  // content → sidepanel: badge clicked, open this demande
   });
 
-  root.BIAIF.VSCODE_BRIDGE_PORT = 51473;
-  root.BIAIF.VSCODE_BRIDGE_PORTS_COUNT = 10;
+  root.MyFb.VSCODE_BRIDGE_PORT = 51473;
+  root.MyFb.VSCODE_BRIDGE_PORTS_COUNT = 10;
 
 })(typeof window !== 'undefined' ? window : self);

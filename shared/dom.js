@@ -1,5 +1,5 @@
 /**
- * BIAIF DOM helpers
+ * MyFb DOM helpers
  *
  * Tiny, dependency-free utilities used across the side panel and content
  * scripts. Lives next to logger / utils so any context (SW, sidepanel,
@@ -17,12 +17,12 @@
  *                                    string, never user data).
  *   hostname(url)                  — URL.hostname or '' on invalid input
  *   formatUrl(url, max=60)         — host + path + truncated search, capped
- *   makeEmpty(message, className)  — div with the given class (default biaif-empty)
+ *   makeEmpty(message, className)  — div with the given class (default myfb-empty)
  *                                    and textContent
  */
 (function (root) {
   'use strict';
-  root.BIAIF = root.BIAIF || {};
+  root.MyFb = root.MyFb || {};
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -98,12 +98,12 @@
 
   function makeEmpty(message, className) {
     var node = document.createElement('div');
-    node.className = className || 'biaif-empty';
+    node.className = className || 'myfb-empty';
     node.textContent = String(message || '');
     return node;
   }
 
-  root.BIAIF.dom = {
+  root.MyFb.dom = {
     esc:       esc,
     escAttr:   esc,
     el:        el,

@@ -1,7 +1,7 @@
 /**
- * BIAIF Screenshot Editor — adapté de wp-blazing-minds/screenshot-editor.js
+ * MyFb Screenshot Editor — adapté de wp-blazing-minds/screenshot-editor.js
  *
- * Annotateur canvas pour les captures BIAIF :
+ * Annotateur canvas pour les captures MyFb :
  *   - Outils : pen, ligne, flèche, rectangle, ellipse, texte
  *   - Choix couleur + taille
  *   - Undo (jusqu'à 20 états), Clear (revient à l'image originale)
@@ -9,14 +9,14 @@
  *   - Tout rendu dans un modal Shadow DOM (zéro conflit CSS avec la page hôte)
  *
  * Usage :
- *   const newDataUrl = await BIAIFScreenshotEditor.open(dataUrl);
+ *   const newDataUrl = await MyFbScreenshotEditor.open(dataUrl);
  *   // newDataUrl === null si l'utilisateur annule
  */
 
 (function (window, document) {
   'use strict';
 
-  const HOST_ID = 'biaif-editor-host';
+  const HOST_ID = 'myfb-editor-host';
 
   const Editor = {
     state: {
@@ -521,5 +521,5 @@
     },
   };
 
-  window.BIAIFScreenshotEditor = Editor;
+  window.MyFbScreenshotEditor = Editor;
 })(window, document);

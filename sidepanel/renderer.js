@@ -1,7 +1,7 @@
 /**
- * BIAIF Renderer (façade)
+ * MyFb Renderer (façade)
  *
- * Exposes the `BIAIFRenderer` public API expected by `sidepanel.js`,
+ * Exposes the `MyFbRenderer` public API expected by `sidepanel.js`,
  * `sidepanel/session.js`, etc. All actual rendering lives in focused
  * modules under `sidepanel/render/*`. This file is intentionally tiny.
  *
@@ -21,15 +21,15 @@
   'use strict';
 
   function init(state, refs) {
-    var R = window.BIAIFRender;
+    var R = window.MyFbRender;
     R.ctx.init(state, refs);
     R.chips.bindDragEvents();
   }
 
-  var R = window.BIAIFRender || {};
-  var DOM = (window.BIAIF && window.BIAIF.dom) || {};
+  var R = window.MyFbRender || {};
+  var DOM = (window.MyFb && window.MyFb.dom) || {};
 
-  window.BIAIFRenderer = {
+  window.MyFbRenderer = {
     init:                   init,
     esc:                    DOM.esc,
     setFilter:              function (k, v) { R.segments.setFilter(k, v); },

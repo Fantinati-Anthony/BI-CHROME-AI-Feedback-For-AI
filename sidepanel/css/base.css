@@ -125,27 +125,27 @@ html, body {
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* Root : seul container avec padding global. height (not min-height) +
-   overflow:hidden on body so .biaif-segments-wrap is the only scroller —
+   overflow:hidden on body so .myfb-segments-wrap is the only scroller —
    keeps the topbar pinned in normal flow without needing position:sticky. */
-.biaif-root {
+.myfb-root {
   display: flex; flex-direction: column; height: 100vh;
   padding: var(--pad-md);
   gap: 10px;
 }
 /* User-controlled vertical layout — inverts the whole sidebar */
-.biaif-root.topbar-bottom { flex-direction: column-reverse; }
+.myfb-root.topbar-bottom { flex-direction: column-reverse; }
 /* When inverted, anchor the segment list to the bottom of the wrap.
-   margin-top: auto on the inner .biaif-segments achieves the visual
+   margin-top: auto on the inner .myfb-segments achieves the visual
    "stick near the topbar" effect WITHOUT the classic flex+overflow
    gotcha: justify-content: flex-end on a scroll container makes the
    topmost overflowing items unreachable (they render above the scroll
    origin). margin-top: auto is overridden once content overflows, so
    the wrap scrolls correctly with many segments. */
-.biaif-root.topbar-bottom .biaif-segments { margin-top: auto; }
+.myfb-root.topbar-bottom .myfb-segments { margin-top: auto; }
 /* Notifications flip to the top edge as well */
-.biaif-root.topbar-bottom #toast-container,
-.biaif-root.topbar-bottom .biaif-status { top: var(--pad-md); bottom: auto; }
-.biaif-root.topbar-bottom .biaif-status:not(:empty) ~ #toast-container {
+.myfb-root.topbar-bottom #toast-container,
+.myfb-root.topbar-bottom .myfb-status { top: var(--pad-md); bottom: auto; }
+.myfb-root.topbar-bottom .myfb-status:not(:empty) ~ #toast-container {
   top: calc(var(--pad-md) + 32px); bottom: auto;
 }
 
@@ -153,39 +153,39 @@ html, body {
    REST  (not armed): history + "Nouvelle conv." only
    ARMED (create/edit): editor zone only (history hidden)               */
 
-/* Demande zone + outils : visibility now governed by .biaif-compose-drawer
+/* Demande zone + outils : visibility now governed by .myfb-compose-drawer
    transform (translateX 100% → 0 on .is-armed/.is-editing-segment). The
    .is-locked class is kept as a marker but no longer hides via display:none
    — that caused the inner buttons (mic/picker/capture) to vanish during
    the drawer slide-in/out phase. */
 .demande-zone.is-locked,
-.biaif-quick-tools.is-locked { /* no display rule — drawer handles it */ }
+.myfb-quick-tools.is-locked { /* no display rule — drawer handles it */ }
 
 /* Hide the main save button at rest (only "Nouvelle conv." stays) */
-.biaif-root:not(.is-armed) .session-main  { display: none; }
-.biaif-root:not(.is-armed) .session-disarm { display: none; }
+.myfb-root:not(.is-armed) .session-main  { display: none; }
+.myfb-root:not(.is-armed) .session-disarm { display: none; }
 
 /* Armed: hide the history, focus on the editor zone */
-.biaif-root.is-armed .biaif-segments-wrap { display: none !important; }
+.myfb-root.is-armed .myfb-segments-wrap { display: none !important; }
 
 /* "Nouvelle conv." rebranded to entry point at rest — keep it visible */
-.biaif-root.is-armed .session-new-conv    { display: none; }
+.myfb-root.is-armed .session-new-conv    { display: none; }
 
 /* État "Hero vide" : aucun historique + session non démarrée → on
    cache l'historique et on centre verticalement le bloc Démarrer +
    message d'accueil. */
-.biaif-empty-state { display: none; }
-.biaif-root.is-empty-state .biaif-empty-state {
+.myfb-empty-state { display: none; }
+.myfb-root.is-empty-state .myfb-empty-state {
   display: flex; flex-direction: column; align-items: center;
   gap: 18px; padding: 12px 8px; text-align: center;
 }
-.biaif-root.is-empty-state .biaif-segments-wrap {
+.myfb-root.is-empty-state .myfb-segments-wrap {
   display: none !important;
 }
-.biaif-root.is-empty-state .session-bar {
+.myfb-root.is-empty-state .session-bar {
   order: 2; margin-top: 0; margin-bottom: auto;
 }
-.biaif-root.is-empty-state .biaif-empty-state {
+.myfb-root.is-empty-state .myfb-empty-state {
   order: 1; margin-top: auto; margin-bottom: 0;
 }
 

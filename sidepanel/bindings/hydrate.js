@@ -1,17 +1,17 @@
 /**
- * BIAIF Bindings — Post-hydration DOM sync
+ * MyFb Bindings — Post-hydration DOM sync
  *
- * Called once by `BIAIFStorage.hydrate(STATE, callback)` after the saved
+ * Called once by `MyFbStorage.hydrate(STATE, callback)` after the saved
  * payload has been merged into STATE. Restores every checkbox, select,
  * font-size readout, language, etc., from the now-populated STATE — and
  * fires the initial render.
  */
 (function (window) {
   'use strict';
-  window.BIAIFBindings = window.BIAIFBindings || {};
-  var ctx   = window.BIAIFBindings.ctx;
-  var H     = window.BIAIFBindings.helpers;
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  window.MyFbBindings = window.MyFbBindings || {};
+  var ctx   = window.MyFbBindings.ctx;
+  var H     = window.MyFbBindings.helpers;
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
   function applyToDOM() {
@@ -20,8 +20,8 @@
     document.documentElement.setAttribute('data-theme', STATE.theme || 'dark');
     if (REFS.langSelect && STATE.lang) REFS.langSelect.value = STATE.lang;
 
-    // Button-visibility checkboxes — derived from BIAIF.ALL_BUTTONS registry.
-    var ALL = (window.BIAIF && window.BIAIF.ALL_BUTTONS) || [];
+    // Button-visibility checkboxes — derived from MyFb.ALL_BUTTONS registry.
+    var ALL = (window.MyFb && window.MyFb.ALL_BUTTONS) || [];
     ALL.forEach(function (def) {
       var cb = document.getElementById('vis-' + def.key);
       if (!cb) return;
@@ -53,7 +53,7 @@
     if (cbConsole) cbConsole.checked = !!STATE.showConsoleBtn;
     if (logsBtn)   logsBtn.hidden    = !STATE.showConsoleBtn;
     var cbTopBottom = document.getElementById('topbar-bottom');
-    var root        = document.querySelector('.biaif-root');
+    var root        = document.querySelector('.myfb-root');
     if (cbTopBottom) cbTopBottom.checked = STATE.topbarPosition === 'bottom';
     if (root)        root.classList.toggle('topbar-bottom', STATE.topbarPosition === 'bottom');
     if (cbHideTa && cbAutoSub) {
@@ -66,21 +66,21 @@
 
     H.updateSpFontVal();
     H.updateSpLinesVal();
-    window.BIAIFRenderer.updateSortToggleLabel();
-    window.BIAIFRenderer.applySegFontSize();
-    window.BIAIFRenderer.applySegTextLines();
-    window.BIAIFRenderer.renderDemandeEditor();
-    window.BIAIFRenderer.renderSegments();
-    window.BIAIFRenderer.updateArmedUi();
+    window.MyFbRenderer.updateSortToggleLabel();
+    window.MyFbRenderer.applySegFontSize();
+    window.MyFbRenderer.applySegTextLines();
+    window.MyFbRenderer.renderDemandeEditor();
+    window.MyFbRenderer.renderSegments();
+    window.MyFbRenderer.updateArmedUi();
 
-    var uiLang = STATE.uiLang || (window.BIAIFi18n && window.BIAIFi18n.detectBrowserLang && window.BIAIFi18n.detectBrowserLang());
-    if (window.BIAIFi18n) window.BIAIFi18n.setLang(uiLang || 'fr');
-    window.BIAIFToast.show(_t('toast.ready', 'Prêt.'), 'info', 1500);
+    var uiLang = STATE.uiLang || (window.MyFbI18n && window.MyFbI18n.detectBrowserLang && window.MyFbI18n.detectBrowserLang());
+    if (window.MyFbI18n) window.MyFbI18n.setLang(uiLang || 'fr');
+    window.MyFbToast.show(_t('toast.ready', 'Prêt.'), 'info', 1500);
 
-    if (window.BIAIFWizard) {
-      window.BIAIFWizard.init(STATE, function () { window.BIAIFStorage.persist(STATE); });
+    if (window.MyFbWizard) {
+      window.MyFbWizard.init(STATE, function () { window.MyFbStorage.persist(STATE); });
     }
   }
 
-  window.BIAIFBindings.hydrate = { applyToDOM: applyToDOM };
+  window.MyFbBindings.hydrate = { applyToDOM: applyToDOM };
 })(window);

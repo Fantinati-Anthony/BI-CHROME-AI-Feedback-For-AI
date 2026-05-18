@@ -1,5 +1,5 @@
 /**
- * BIAIF VS Code Bridge
+ * MyFb VS Code Bridge
  *
  * Serveur HTTP local sur 127.0.0.1:<port> (défaut 51473).
  * POST /inject  { target, text, images[] }
@@ -24,13 +24,13 @@ let lastImages = [];
 
 function activate(context) {
   context.subscriptions.push(
-    vscode.commands.registerCommand('biaif.toggleBridge', () => {
-      if (server) { stopBridge(); vscode.window.showInformationMessage('BIAIF Bridge arrêté.'); }
+    vscode.commands.registerCommand('myfb.toggleBridge', () => {
+      if (server) { stopBridge(); vscode.window.showInformationMessage('MyFb Bridge arrêté.'); }
       else        { startBridge(context); }
     }),
-    vscode.commands.registerCommand('biaif.showLastImages', () => {
+    vscode.commands.registerCommand('myfb.showLastImages', () => {
       if (!lastImages.length) {
-        vscode.window.showInformationMessage('BIAIF : aucune image reçue pour l\'instant.');
+        vscode.window.showInformationMessage('MyFb : aucune image reçue pour l\'instant.');
         return;
       }
       lastImages.forEach((p) => {
@@ -38,7 +38,7 @@ function activate(context) {
       });
     }),
   );
-  const cfg = vscode.workspace.getConfiguration('biaif');
+  const cfg = vscode.workspace.getConfiguration('myfb');
   if (cfg.get('autoStart', true)) startBridge(context);
 }
 
@@ -56,7 +56,7 @@ const MAX_IMAGE_COUNT  = 10;
 const MAX_IMAGE_BYTES  = 8  * 1024 * 1024;  // 8 MB per image (post-decode)
 const ALLOWED_TARGETS  = new Set(['vscode', 'copilot']);
 
-// Restricts the X-origin to chrome-extension://* (the BIAIF side panel).
+// Restricts the X-origin to chrome-extension://* (the MyFb side panel).
 // Loopback-binding alone is NOT enough: any local page can fetch 127.0.0.1.
 // A concrete origin check + the secret-token contract closes the gap.
 function _isAllowedOrigin(req) {
@@ -69,7 +69,7 @@ function _isAllowedOrigin(req) {
 
 function startBridge(context) {
   if (server) return;
-  const port = Number(vscode.workspace.getConfiguration('biaif').get('bridgePort', 51473));
+  const port = Number(vscode.workspace.getConfiguration('myfb').get('bridgePort', 51473));
 
   server = http.createServer((req, res) => {
     const origin = req.headers['origin'] || '';
@@ -148,12 +148,12 @@ function startBridge(context) {
         server.listen(currentPort, '127.0.0.1');
       } else {
         server = null;
-        vscode.window.showWarningMessage('BIAIF Bridge : Aucun port disponible entre ' + port + ' et ' + maxPort + '.');
+        vscode.window.showWarningMessage('MyFb Bridge : Aucun port disponible entre ' + port + ' et ' + maxPort + '.');
         _updateStatusBar(false);
       }
     } else {
       server = null;
-      vscode.window.showWarningMessage('BIAIF Bridge erreur : ' + e.message);
+      vscode.window.showWarningMessage('MyFb Bridge erreur : ' + e.message);
       _updateStatusBar(false);
     }
   });
@@ -203,8 +203,8 @@ function _validatePayload(p) {
 }
 
 function _saveImages(images) {
-  const cfg     = vscode.workspace.getConfiguration('biaif');
-  const tmpBase = cfg.get('tempDir', '') || path.join(os.tmpdir(), 'biaif-inject');
+  const cfg     = vscode.workspace.getConfiguration('myfb');
+  const tmpBase = cfg.get('tempDir', '') || path.join(os.tmpdir(), 'myfb-inject');
   if (!fs.existsSync(tmpBase)) fs.mkdirSync(tmpBase, { recursive: true });
 
   const now   = Date.now();
@@ -214,7 +214,7 @@ function _saveImages(images) {
     const comma   = dataUrl.indexOf(',');
     if (comma < 0) continue;
     const buf  = Buffer.from(dataUrl.slice(comma + 1), 'base64');
-    const file = path.join(tmpBase, 'biaif-' + now + '-' + (i + 1) + '.png');
+    const file = path.join(tmpBase, 'myfb-' + now + '-' + (i + 1) + '.png');
     fs.writeFileSync(file, buf);
     saved.push(file);
   }
@@ -237,11 +237,11 @@ async function handleInjectVscode(payload) {
   if (saved.length) actions.push('Ouvrir images');
 
   const choice = await vscode.window.showInformationMessage(
-    'BIAIF : prompt dans le presse-papier' + imgPart + '.', ...actions,
+    'MyFb : prompt dans le presse-papier' + imgPart + '.', ...actions,
   );
 
   if (choice === 'Coller dans terminal') {
-    const term = vscode.window.activeTerminal || vscode.window.createTerminal({ name: 'BIAIF' });
+    const term = vscode.window.activeTerminal || vscode.window.createTerminal({ name: 'MyFb' });
     term.show(true);
     if (text) term.sendText(text, false);
   }
@@ -321,7 +321,7 @@ async function handleInjectCopilot(payload) {
 
   // ── 3. Notification ──────────────────────────────────────────────────────
   const notAttached = saved.length - attached.length;
-  let msg = 'BIAIF → Copilot : texte injecté (' + textMethod + ')';
+  let msg = 'MyFb → Copilot : texte injecté (' + textMethod + ')';
   if (attached.length) msg += ', ' + attached.length + ' image(s) jointe(s)';
   if (notAttached > 0) msg += ' (' + notAttached + ' image(s) ouverte(s) — glissez dans le chat)';
 
@@ -429,13 +429,13 @@ EOF`, { timeout: 5000 });
 function _updateStatusBar(active, port) {
   if (!statusBar) {
     statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 90);
-    statusBar.command = 'biaif.toggleBridge';
+    statusBar.command = 'myfb.toggleBridge';
   }
   const workspaceName = vscode.workspace.name || 'Untitled';
-  statusBar.text    = active ? '$(plug) BIAIF'          : '$(circle-slash) BIAIF';
+  statusBar.text    = active ? '$(plug) MyFb'          : '$(circle-slash) MyFb';
   statusBar.tooltip = active
-    ? 'BIAIF Bridge actif — port ' + port + ' (' + workspaceName + ')\nCliquer pour désactiver'
-    : 'BIAIF Bridge inactif\nCliquer pour activer';
+    ? 'MyFb Bridge actif — port ' + port + ' (' + workspaceName + ')\nCliquer pour désactiver'
+    : 'MyFb Bridge inactif\nCliquer pour activer';
   statusBar.color   = active ? '#4ec9b0' : undefined;
   statusBar.show();
 }

@@ -1,6 +1,6 @@
 /* ============== Compose drawer ==============
    Wraps quick-tools + demande-zone. Slides in from the right when
-   .biaif-root.is-armed or .is-editing-segment. Sits below the topbar
+   .myfb-root.is-armed or .is-editing-segment. Sits below the topbar
    so the session-bar (✓ save / ✕ disarm) stays accessible at all times.
 
    Logic:
@@ -10,7 +10,7 @@
      - Topbar-bottom layout: drawer flipped to start from top, leaving the
        bottom topbar visible.
 */
-.biaif-compose-drawer {
+.myfb-compose-drawer {
   position: fixed;
   top: var(--compose-top, 48px);
   bottom: var(--compose-bottom, 0);
@@ -31,8 +31,8 @@
   overflow-y: auto;
   scrollbar-width: thin;
 }
-.biaif-root.is-armed .biaif-compose-drawer,
-.biaif-root.is-editing-segment .biaif-compose-drawer {
+.myfb-root.is-armed .myfb-compose-drawer,
+.myfb-root.is-editing-segment .myfb-compose-drawer {
   transform: translateX(0);
   visibility: visible;
   pointer-events: all;
@@ -44,7 +44,7 @@
    at the bottom of the drawer — i.e. just above the topbar — and the
    demande-zone sits above. Mirrors the natural reading flow when controls
    are at the bottom. */
-.biaif-root.topbar-bottom .biaif-compose-drawer {
+.myfb-root.topbar-bottom .myfb-compose-drawer {
   --compose-top: 0;
   --compose-bottom: 48px;
   flex-direction: column-reverse;
@@ -190,10 +190,10 @@
       var(--bg-card) 100%
     );
   background-size: 200% 100%;
-  animation: biaif-skeleton 1.2s ease-in-out infinite;
+  animation: myfb-skeleton 1.2s ease-in-out infinite;
   border-radius: 4px;
 }
-@keyframes biaif-skeleton {
+@keyframes myfb-skeleton {
   0%   { background-position: 100% 0; }
   100% { background-position: -100% 0; }
 }

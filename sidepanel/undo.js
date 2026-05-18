@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * BIAIF Undo / Redo Stack
+ * MyFb Undo / Redo Stack
  * Snapshots pushed before every persist(). Ctrl+Z restores; Ctrl+Shift+Z re-applies.
  */
 (function (window) {
@@ -18,7 +18,7 @@
       if (_undo.length > MAX) _undo.shift();
       _redo = []; // new action invalidates redo history
     } catch (e) {
-      console.warn('[BIAIF Undo] push failed', e && e.message);
+      console.warn('[MyFb Undo] push failed', e && e.message);
     }
   }
 
@@ -45,5 +45,5 @@
   function clear()   { _undo = []; _redo = []; }
   function size()    { return _undo.length; }
 
-  window.BIAIFUndo = { push, pop, popRedo, canUndo, canRedo, clear, size };
+  window.MyFbUndo = { push, pop, popRedo, canUndo, canRedo, clear, size };
 })(window);

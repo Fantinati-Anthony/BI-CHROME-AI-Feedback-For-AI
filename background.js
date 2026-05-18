@@ -1,5 +1,5 @@
 /**
- * BIAIF Service Worker — entry point.
+ * MyFb Service Worker — entry point.
  *
  * importScripts() concatenates each file into the same global SW scope
  * (top-down). Modules under background/ rely on that: declarations in

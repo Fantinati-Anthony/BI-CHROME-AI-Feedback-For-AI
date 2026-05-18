@@ -1,12 +1,12 @@
 /**
- * BIAIF Page Error Monitor
+ * MyFb Page Error Monitor
  *
  * Injecté dans le MAIN world de la page au plus tôt (document_start).
  * - Override console.error pour capter ce qui apparaît dans l'onglet
  *   "Erreurs" des DevTools.
  * - Capture les exceptions non gérées (window.onerror) et les rejets
  *   de promesse non gérés (unhandledrejection).
- * - Dispatch un CustomEvent "__biaif_page_error__" sur window que le
+ * - Dispatch un CustomEvent "__myfb_page_error__" sur window que le
  *   content script bridge (isolated world) intercepte et forwarde au
  *   side panel via chrome.runtime.sendMessage.
  *
@@ -20,8 +20,8 @@
  */
 
 (function () {
-  if (window.__BIAIF_PAGE_MONITOR__) return;
-  window.__BIAIF_PAGE_MONITOR__ = true;
+  if (window.__MYFB_PAGE_MONITOR__) return;
+  window.__MYFB_PAGE_MONITOR__ = true;
 
   const orig = {
     error: console.error.bind(console),
@@ -38,7 +38,7 @@
 
   function fire(detail) {
     try {
-      window.dispatchEvent(new CustomEvent('__biaif_page_error__', { detail }));
+      window.dispatchEvent(new CustomEvent('__myfb_page_error__', { detail }));
     } catch (_) {}
   }
 

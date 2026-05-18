@@ -11,19 +11,19 @@
     "sourceType": "script"
   },
   "globals": {
-    "BIAIF": "readonly",
-    "BIAIFi18n": "readonly",
-    "BIAIFExport": "writable",
-    "BIAIFRenderer": "writable",
-    "BIAIFSession": "writable",
-    "BIAIFStorage": "writable",
-    "BIAIFSpeech": "writable",
-    "BIAIFToast": "writable",
-    "BIAIFUndo": "writable",
-    "BIAIFWizard": "writable",
-    "BIAIFSelector": "readonly",
-    "BIAIFScreenshot": "readonly",
-    "BIAIFElementSelector": "readonly",
+    "MyFb": "readonly",
+    "MyFbI18n": "readonly",
+    "MyFbExport": "writable",
+    "MyFbRenderer": "writable",
+    "MyFbSession": "writable",
+    "MyFbStorage": "writable",
+    "MyFbSpeech": "writable",
+    "MyFbToast": "writable",
+    "MyFbUndo": "writable",
+    "MyFbWizard": "writable",
+    "MyFbSelector": "readonly",
+    "MyFbScreenshot": "readonly",
+    "MyFbElementSelector": "readonly",
     "chrome": "readonly"
   },
   "rules": {
@@ -35,8 +35,27 @@
     "prefer-const": "warn",
     "no-var": "off"
   },
+  "overrides": [
+    {
+      "files": ["tests/**/*.js", "scripts/**/*.mjs", "vitest.config.js"],
+      "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module"
+      },
+      "env": {
+        "node": true,
+        "es2022": true
+      },
+      "globals": {
+        "loadAddonScript": "readonly"
+      }
+    }
+  ],
   "ignorePatterns": [
+    "node_modules/**",
     "vscode-extension/node_modules/**",
+    "coverage/**",
+    "dist/**",
     "**/*.min.js"
   ]
 }

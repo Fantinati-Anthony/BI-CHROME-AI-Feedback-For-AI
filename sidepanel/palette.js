@@ -1,19 +1,19 @@
 /**
- * BIAIF Command Palette — Cmd+K (or Ctrl+K) on any sidepanel page.
+ * MyFb Command Palette — Cmd+K (or Ctrl+K) on any sidepanel page.
  *
  * Single launcher for every action a power user wants to reach without
  * mouse: insert a template, switch theme, open an AI target, jump to
  * settings, run a session command. Inspired by Linear / Raycast.
  *
  * Sources of commands:
- *   - Templates  (window.BIAIFTemplates.list())
- *   - AI targets (window.BIAIF.AI_TARGETS, opens a new tab to the host)
+ *   - Templates  (window.MyFbTemplates.list())
+ *   - AI targets (window.MyFb.AI_TARGETS, opens a new tab to the host)
  *   - Built-in commands  (toggle theme, save, disarm, copy prompt, …)
  *
  * Public API:
- *   BIAIFPalette.open()   → show overlay
- *   BIAIFPalette.close()  → hide
- *   BIAIFPalette.init()   → bind global Cmd+K shortcut
+ *   MyFbPalette.open()   → show overlay
+ *   MyFbPalette.close()  → hide
+ *   MyFbPalette.init()   → bind global Cmd+K shortcut
  *
  * Keyboard:
  *   ↑ ↓     navigate
@@ -33,14 +33,14 @@
   var _selected = 0;
 
   function _t(k, fb, vars) {
-    var U = window.BIAIF && window.BIAIF.utils;
+    var U = window.MyFb && window.MyFb.utils;
     return (U && U.t) ? U.t(k, fb, vars) : (fb || k);
   }
 
   function _buildCommands() {
     var out = [];
-    var T = window.BIAIFTemplates;
-    var S = window.BIAIFSession;
+    var T = window.MyFbTemplates;
+    var S = window.MyFbSession;
 
     // 1) Built-ins (always available)
     if (S) {
@@ -54,9 +54,9 @@
       out.push({ id: 'cmd.disarm',   kind: 'cmd', label: _t('palette.cmd.disarm', "Retour à l'historique"),
         run: function () { if (S.disarm) S.disarm(); } });
     }
-    if (window.BIAIFExport && window.BIAIFExport.copyPrompt) {
+    if (window.MyFbExport && window.MyFbExport.copyPrompt) {
       out.push({ id: 'cmd.copy',     kind: 'cmd', label: _t('palette.cmd.copy', 'Copier le prompt complet'),
-        hint: 'Alt+Shift+C', run: function () { window.BIAIFExport.copyPrompt(); } });
+        hint: 'Alt+Shift+C', run: function () { window.MyFbExport.copyPrompt(); } });
     }
     out.push({ id: 'cmd.theme.dark',  kind: 'cmd', label: _t('palette.cmd.theme_dark',  'Thème sombre'),  run: function () { _setTheme('dark'); } });
     out.push({ id: 'cmd.theme.light', kind: 'cmd', label: _t('palette.cmd.theme_light', 'Thème clair'),   run: function () { _setTheme('light'); } });
@@ -68,7 +68,7 @@
       } });
     out.push({ id: 'cmd.search',     kind: 'cmd', label: _t('palette.cmd.search', "Filtrer l'historique (texte, tag, domaine…)"),
       run: function () {
-        if (window.BIAIFFilterPanel) window.BIAIFFilterPanel.open();
+        if (window.MyFbFilterPanel) window.MyFbFilterPanel.open();
         else { var b = document.querySelector('[data-act="filter-toggle"], [data-act="search-toggle"]'); if (b) b.click(); }
       } });
 
@@ -85,14 +85,14 @@
     }
 
     // 3) AI targets — open in a new tab + copy prompt to clipboard.
-    var AI = (window.BIAIF && window.BIAIF.AI_TARGETS) || [];
+    var AI = (window.MyFb && window.MyFb.AI_TARGETS) || [];
     AI.forEach(function (t) {
       out.push({
         id: 'ai.' + t.key, kind: 'ai',
         label: _t('palette.ai.open', 'Ouvrir dans {name}', { name: t.label }).replace('{name}', t.label),
         hint: t.webUrl,
         run: function () {
-          var fn = window.BIAIFExport && window.BIAIFExport[t.exportFn];
+          var fn = window.MyFbExport && window.MyFbExport[t.exportFn];
           if (typeof fn === 'function') fn(); else if (t.webUrl) window.open(t.webUrl, '_blank');
         },
       });
@@ -103,10 +103,10 @@
 
   function _setTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
-    var ctx = window.BIAIFRender && window.BIAIFRender.ctx;
+    var ctx = window.MyFbRender && window.MyFbRender.ctx;
     if (ctx && ctx.STATE) {
       ctx.STATE.theme = t;
-      if (window.BIAIFStorage) window.BIAIFStorage.persist(ctx.STATE);
+      if (window.MyFbStorage) window.MyFbStorage.persist(ctx.STATE);
     }
     // Sync the settings picker chips if visible.
     document.querySelectorAll('.sp-theme-btn').forEach(function (b) {
@@ -144,27 +144,27 @@
     _list.innerHTML = '';
     if (!_filtered.length) {
       var empty = document.createElement('div');
-      empty.className = 'biaif-palette-empty';
+      empty.className = 'myfb-palette-empty';
       empty.textContent = _t('palette.empty', 'Aucun résultat');
       _list.appendChild(empty);
       return;
     }
     _filtered.forEach(function (cmd, i) {
       var row = document.createElement('div');
-      row.className = 'biaif-palette-row' + (i === _selected ? ' is-selected' : '');
+      row.className = 'myfb-palette-row' + (i === _selected ? ' is-selected' : '');
       row.setAttribute('role', 'option');
       row.dataset.idx = String(i);
       var kindBadge = document.createElement('span');
-      kindBadge.className = 'biaif-palette-kind biaif-palette-kind--' + cmd.kind;
+      kindBadge.className = 'myfb-palette-kind myfb-palette-kind--' + cmd.kind;
       kindBadge.textContent = cmd.kind === 'template' ? '📝' : (cmd.kind === 'ai' ? '🤖' : '⚡');
       var label = document.createElement('span');
-      label.className = 'biaif-palette-label';
+      label.className = 'myfb-palette-label';
       label.textContent = cmd.label;
       row.appendChild(kindBadge);
       row.appendChild(label);
       if (cmd.hint) {
         var hint = document.createElement('span');
-        hint.className = 'biaif-palette-hint';
+        hint.className = 'myfb-palette-hint';
         hint.textContent = cmd.hint;
         row.appendChild(hint);
       }
@@ -178,7 +178,7 @@
     var cmd = _filtered[i];
     if (!cmd) return;
     close();
-    try { cmd.run(); } catch (e) { console.warn('[BIAIF Palette] run failed', e); }
+    try { cmd.run(); } catch (e) { console.warn('[MyFb Palette] run failed', e); }
   }
 
   function _onKeydown(e) {
@@ -195,17 +195,17 @@
     _filtered = _commands.slice(0, 12);
     _selected = 0;
     _overlay = document.createElement('div');
-    _overlay.className = 'biaif-palette-overlay';
+    _overlay.className = 'myfb-palette-overlay';
     _overlay.setAttribute('role', 'dialog');
     _overlay.setAttribute('aria-modal', 'true');
     _overlay.setAttribute('aria-label', _t('palette.aria', 'Palette de commandes'));
     var box = document.createElement('div');
-    box.className = 'biaif-palette';
+    box.className = 'myfb-palette';
     _input = document.createElement('input');
-    _input.className = 'biaif-palette-input';
+    _input.className = 'myfb-palette-input';
     _input.type = 'search';
     _input.placeholder = _t('palette.placeholder', 'Tapez une commande, un modèle ou une IA…');
-    _input.setAttribute('aria-controls', 'biaif-palette-list');
+    _input.setAttribute('aria-controls', 'myfb-palette-list');
     _input.setAttribute('aria-autocomplete', 'list');
     _input.addEventListener('input', function () {
       _filtered = _filter(_input ? _input.value : '');
@@ -213,8 +213,8 @@
       _render();
     });
     _list = document.createElement('div');
-    _list.className = 'biaif-palette-list';
-    _list.id = 'biaif-palette-list';
+    _list.className = 'myfb-palette-list';
+    _list.id = 'myfb-palette-list';
     _list.setAttribute('role', 'listbox');
     box.appendChild(_input);
     box.appendChild(_list);
@@ -243,5 +243,5 @@
     });
   }
 
-  window.BIAIFPalette = { open: open, close: close, init: init };
+  window.MyFbPalette = { open: open, close: close, init: init };
 })(window);

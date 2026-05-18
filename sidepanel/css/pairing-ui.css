@@ -1,0 +1,73 @@
+/* My-Feedbacks Pairing UI (v1.16) */
+
+.myfb-pairing-block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  background: rgba(124, 58, 237, 0.05);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.myfb-pairing-section h4 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #a78bfa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.myfb-pairing-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px dashed rgba(124, 58, 237, 0.4);
+  border-radius: 8px;
+  margin: 6px 0;
+}
+.myfb-pairing-code {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  color: #a78bfa;
+  font-weight: 700;
+  background: transparent;
+}
+
+.myfb-pairing-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin: 4px 0 0;
+  font-style: italic;
+}
+
+.myfb-pairing-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.myfb-pairing-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-family: ui-monospace, monospace;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.myfb-pairing-input::placeholder { color: #475569; text-transform: none; letter-spacing: normal; }
+.myfb-pairing-input:focus {
+  outline: none;
+  border-color: #a78bfa;
+  background: rgba(124, 58, 237, 0.06);
+}

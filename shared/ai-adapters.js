@@ -1,15 +1,15 @@
 /**
- * BIAIF AI Adapters — data-driven stop-button selectors per AI host.
+ * MyFb AI Adapters — data-driven stop-button selectors per AI host.
  * Logic is frozen in the extension; only selectors live here (future: remote JSON).
  */
 (function (root) {
   'use strict';
-  root.BIAIF = root.BIAIF || {};
+  root.MyFb = root.MyFb || {};
   // Online "open in" targets — single source of truth for the segment-card
   // online buttons + visibility toggles + i18n labels.
   // Each entry: { key, slug, label, i18nKey, webUrl, defaultVisible, exportFn }
   // Listed in the order they should appear on the segment card.
-  root.BIAIF.AI_TARGETS = [
+  root.MyFb.AI_TARGETS = [
     { key: 'claude_online', slug: 'claude-online', label: 'Claude.ai',  i18nKey: 'btn.claude_online', webUrl: 'https://claude.ai/new',          defaultVisible: false, exportFn: 'openInClaudeOnline' },
     { key: 'chatgpt',       slug: 'chatgpt',       label: 'ChatGPT',    i18nKey: 'btn.chatgpt',       webUrl: 'https://chatgpt.com/',           defaultVisible: false, exportFn: 'openInChatgpt'      },
     { key: 'gemini',        slug: 'gemini',        label: 'Gemini',     i18nKey: 'btn.gemini',        webUrl: 'https://gemini.google.com/app',  defaultVisible: false, exportFn: 'openInGemini'       },
@@ -21,7 +21,7 @@
 
   // Local-action buttons (inject / vscode / copilot / copy / download)
   // Same shape as AI_TARGETS but without webUrl/exportFn (they have ad-hoc handlers).
-  root.BIAIF.LOCAL_ACTIONS = [
+  root.MyFb.LOCAL_ACTIONS = [
     { key: 'inject',   slug: 'inject',   label: 'Injecter',                i18nKey: 'btn.inject',   defaultVisible: true,  exportFn: 'injectDemande'        },
     { key: 'vscode',   slug: 'vscode',   label: 'VS-Code Terminal',        i18nKey: 'btn.vscode',   defaultVisible: true,  exportFn: 'injectToVscode'       },
     { key: 'copilot',  slug: 'copilot',  label: 'VS-Code GH for Copilot',  i18nKey: 'btn.copilot',  defaultVisible: true,  exportFn: 'injectToCopilot'      },
@@ -30,9 +30,9 @@
   ];
 
   // Convenience: full ordered list (local actions first, then online targets).
-  root.BIAIF.ALL_BUTTONS = root.BIAIF.LOCAL_ACTIONS.concat(root.BIAIF.AI_TARGETS);
+  root.MyFb.ALL_BUTTONS = root.MyFb.LOCAL_ACTIONS.concat(root.MyFb.AI_TARGETS);
 
-  root.BIAIF.AI_ADAPTERS = [
+  root.MyFb.AI_ADAPTERS = [
     {
       host: 'claude.ai',
       label: 'Claude.ai',
@@ -138,10 +138,10 @@
   // Soft ESM: re-export the registries for Node/Vitest consumers.
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-      AI_TARGETS:    root.BIAIF.AI_TARGETS,
-      LOCAL_ACTIONS: root.BIAIF.LOCAL_ACTIONS,
-      ALL_BUTTONS:   root.BIAIF.ALL_BUTTONS,
-      AI_ADAPTERS:   root.BIAIF.AI_ADAPTERS,
+      AI_TARGETS:    root.MyFb.AI_TARGETS,
+      LOCAL_ACTIONS: root.MyFb.LOCAL_ACTIONS,
+      ALL_BUTTONS:   root.MyFb.ALL_BUTTONS,
+      AI_ADAPTERS:   root.MyFb.AI_ADAPTERS,
     };
   }
 })(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis));

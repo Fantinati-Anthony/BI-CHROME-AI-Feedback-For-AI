@@ -1,5 +1,5 @@
 /**
- * BIAIF Service Worker — chrome.runtime.onMessage routing
+ * MyFb Service Worker — chrome.runtime.onMessage routing
  *
  * Routes messages between sidepanel ↔ content scripts. Returning `true`
  * from the listener tells Chrome to keep the message channel open until
@@ -29,7 +29,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // Sidepanel → active tab : picker
   if (msg.type === MSG.PICKER_TOGGLE || msg.type === MSG.PICKER_ENABLE ||
       msg.type === MSG.PICKER_DISABLE) {
-    const action = msg.type.replace('biaif:', '');
+    const action = msg.type.replace('myfb:', '');
     sendToActiveTabContent({ type: MSG.COMMAND, action })
       .then((resp) => sendResponse(resp));
     return true;

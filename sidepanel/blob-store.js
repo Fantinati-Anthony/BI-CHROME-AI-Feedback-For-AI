@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * BIAIF BlobStore — IndexedDB-backed storage for screenshot dataUrls.
+ * MyFb BlobStore — IndexedDB-backed storage for screenshot dataUrls.
  *
  * Why: chrome.storage.local has a 10 MB hard quota and is meant for small
  * settings, not for blobs. A single full-page PNG can be 1–3 MB ; 5
@@ -14,16 +14,16 @@
  * resolved back to dataUrls in memory only.
  *
  * Public API:
- *   await BIAIFBlobStore.put(dataUrl)       → blobId
- *   await BIAIFBlobStore.get(blobId)        → dataUrl | null
- *   await BIAIFBlobStore.remove(blobId)     → boolean
- *   await BIAIFBlobStore.gc(activeIds)      → number removed
- *   await BIAIFBlobStore.size()             → bytes
+ *   await MyFbBlobStore.put(dataUrl)       → blobId
+ *   await MyFbBlobStore.get(blobId)        → dataUrl | null
+ *   await MyFbBlobStore.remove(blobId)     → boolean
+ *   await MyFbBlobStore.gc(activeIds)      → number removed
+ *   await MyFbBlobStore.size()             → bytes
  */
 (function (window) {
   'use strict';
 
-  var DB_NAME    = 'biaif';
+  var DB_NAME    = 'myfb';
   var STORE_NAME = 'blobs';
   var DB_VERSION = 1;
   var _dbPromise = null;
@@ -137,7 +137,7 @@
     return Promise.all(jobs).then(function () { return refs; });
   }
 
-  window.BIAIFBlobStore = {
+  window.MyFbBlobStore = {
     put: put, get: get, remove: remove, gc: gc, size: size,
     rehydrateRefs: rehydrateRefs,
   };

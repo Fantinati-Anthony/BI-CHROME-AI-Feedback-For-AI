@@ -1,5 +1,5 @@
 /**
- * BIAIF Side Panel — bootstrap
+ * MyFb Side Panel — bootstrap
  *
  * Owns three things only:
  *   1. The STATE shape and its initial defaults.
@@ -82,8 +82,8 @@
     theme:                  'dark',
     privacyScrub:           true,
     syncEnabled:            false,
-    // Defaults derived from BIAIF.ALL_BUTTONS (single source of truth).
-    visibleButtons: ((window.BIAIF && window.BIAIF.ALL_BUTTONS) || []).reduce(function (acc, def) {
+    // Defaults derived from MyFb.ALL_BUTTONS (single source of truth).
+    visibleButtons: ((window.MyFb && window.MyFb.ALL_BUTTONS) || []).reduce(function (acc, def) {
       acc[def.key] = !!def.defaultVisible; return acc;
     }, {}),
   };
@@ -131,10 +131,10 @@
     REFS.demandeEditor     = document.querySelector('.demande-editor');
     REFS.demandeRefsStrip  = document.querySelector('.demande-refs-strip');
     REFS.demandeRefsCount  = document.querySelector('.demande-refs-count');
-    REFS.segments          = document.querySelector('.biaif-segments');
+    REFS.segments          = document.querySelector('.myfb-segments');
     REFS.segmentsCount     = document.querySelector('.segments-count');
-    REFS.status            = document.querySelector('.biaif-status');
-    REFS.timer             = document.querySelector('.biaif-timer');
+    REFS.status            = document.querySelector('.myfb-status');
+    REFS.timer             = document.querySelector('.myfb-timer');
     REFS.langSelect        = document.querySelector('select[name="lang"]');
     REFS.sortToggle        = document.querySelector('[data-act="sort-toggle"]');
     REFS.toggleSettings    = document.querySelector('[data-act="toggle-settings"]');
@@ -146,8 +146,8 @@
     REFS.micDeviceSelect   = document.querySelector('select[name="mic-device"]');
     REFS.micTestBtn        = document.querySelector('[data-act="mic-test"]');
     REFS.micRefreshBtn     = document.querySelector('[data-act="mic-refresh"]');
-    REFS.micMeter          = document.querySelector('.biaif-mic-meter');
-    REFS.micMeterBar       = document.querySelector('.biaif-mic-meter-bar');
+    REFS.micMeter          = document.querySelector('.myfb-mic-meter');
+    REFS.micMeterBar       = document.querySelector('.myfb-mic-meter-bar');
     REFS.shotButtons       = document.querySelectorAll('[data-shot]');
     REFS.searchInput       = document.getElementById('history-search');
     REFS.captureProgress   = document.getElementById('capture-progress');
@@ -163,27 +163,95 @@
     cacheRefs();
 
     // Wire the shared context for both renderer and bindings.
-    window.BIAIFBindings.ctx.init(STATE, REFS);
+    window.MyFbBindings.ctx.init(STATE, REFS);
 
     // Init every domain module that exposes init(state, refs).
-    window.BIAIFRenderer.init(STATE, REFS);
-    if (window.BIAIFPerf) { window.BIAIFPerf.mark('boot'); window.BIAIFPerf.observeWebVitals(); }
-    window.BIAIFSpeech.init(STATE, REFS);
-    window.BIAIFSession.init(STATE, REFS);
-    if (window.BIAIFTemplates) window.BIAIFTemplates.init(STATE);
-    if (window.BIAIFPalette) window.BIAIFPalette.init();
-    window.BIAIFExport.init(STATE, REFS);
+    window.MyFbRenderer.init(STATE, REFS);
+    if (window.MyFbPerf) { window.MyFbPerf.mark('boot'); window.MyFbPerf.observeWebVitals(); }
+    window.MyFbSpeech.init(STATE, REFS);
+    window.MyFbSession.init(STATE, REFS);
+    if (window.MyFbTemplates) window.MyFbTemplates.init(STATE);
+    if (window.MyFbPalette) window.MyFbPalette.init();
+    window.MyFbExport.init(STATE, REFS);
 
     // Wire UI events, runtime messages, keyboard, and tab lifecycle.
-    window.BIAIFBindings.bindAll();
+    window.MyFbBindings.bindAll();
 
     // Hydrate from chrome.storage, then apply persisted state to the DOM.
-    await window.BIAIFStorage.hydrate(STATE, () => {
-      window.BIAIFBindings.hydrate.applyToDOM();
+    await window.MyFbStorage.hydrate(STATE, () => {
+      window.MyFbBindings.hydrate.applyToDOM();
     });
 
     // Initial tab-state probe (independent of hydration).
-    window.BIAIFBindings.tabs.checkActiveTabReady();
-    window.BIAIFBindings.helpers.refreshErrorsFromActiveTab();
+    window.MyFbBindings.tabs.checkActiveTabReady();
+    window.MyFbBindings.helpers.refreshErrorsFromActiveTab();
+
+    // v1.0.0 runtime: event-sourcing core + first-launch onboarding.
+    // Fire-and-forget — degrades gracefully on failure (legacy code path
+    // keeps working).
+    if (window.MyFb && window.MyFb.runtimeBoot) {
+      window.MyFb.runtimeBoot.boot();
+    }
+
+    // v1.3: page overlay controller (toggle in topbar-extras).
+    if (window.MyFbOverlayController) {
+      window.MyFbOverlayController.init();
+    }
+
+    // v1.8: AI UI — Settings → IA section + per-card ✨ button.
+    if (window.MyFbAiUi) {
+      window.MyFbAiUi.initSettingsPanel();
+      window.MyFbAiUi.initCardDecorator();
+    }
+
+    // v1.9: Settings UI — Cet appareil / Sync / Liaisons sections.
+    if (window.MyFbSettingsUi) {
+      window.MyFbSettingsUi.init();
+    }
+
+    // v1.11: Per-card "Send to…" multi-target picker.
+    if (window.MyFbExportPicker) {
+      window.MyFbExportPicker.init();
+    }
+
+    // v1.12: Per-card triage UI (status / priority / tags / comments).
+    if (window.MyFbTriageUi) {
+      window.MyFbTriageUi.init();
+    }
+
+    // v1.13: Filter bar above the segments list.
+    if (window.MyFbTriageFilter) {
+      window.MyFbTriageFilter.init();
+    }
+
+    // v1.14: GDPR data controls (export / reset / delete) wiring.
+    if (window.MyFbDataControls) {
+      window.MyFbDataControls.init();
+    }
+
+    // v1.16: Pairing UI inside Settings → Liaisons.
+    if (window.MyFbPairingUi) {
+      window.MyFbPairingUi.init();
+    }
+
+    // v2.0: Legacy ↔ event store bridges. Forward bridge wraps
+    // MyFbStorage.persist; reverse bridge subscribes to the active
+    // transport. Both swallow errors so the legacy code path keeps
+    // working even if the runtime never boots.
+    if (window.MyFbLegacyEventBridge) {
+      window.MyFbLegacyEventBridge.attach();
+    }
+    if (window.MyFb && window.MyFb.runtimeBoot && window.MyFb.runtimeBoot.boot) {
+      window.MyFb.runtimeBoot.boot().then(function () {
+        if (window.MyFbStateSync && window.MyFbStateSync.attach) {
+          window.MyFbStateSync.attach();
+        }
+      }).catch(function () {});
+    }
+
+    // v2.0: Privacy controls (telemetry + E2E + reload) UI.
+    if (window.MyFbPrivacyControls) {
+      window.MyFbPrivacyControls.init();
+    }
   });
 })();

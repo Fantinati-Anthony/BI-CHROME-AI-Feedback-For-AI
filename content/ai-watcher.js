@@ -1,5 +1,5 @@
 /**
- * BIAIF AI Watcher v2
+ * MyFb AI Watcher v2
  *
  * Three redundant detection strategies — first to fire enters "generating";
  * all three must be silent for DONE_DELAY_MS before "done" is declared.
@@ -19,11 +19,11 @@
 (function () {
   'use strict';
 
-  if (window.__BIAIF_AI_WATCHER__) return;
-  window.__BIAIF_AI_WATCHER__ = true;
+  if (window.__MYFB_AI_WATCHER__) return;
+  window.__MYFB_AI_WATCHER__ = true;
 
-  var MSG      = (window.BIAIF && window.BIAIF.MSG) || {};
-  var ADAPTERS = (window.BIAIF && window.BIAIF.AI_ADAPTERS) || [];
+  var MSG      = (window.MyFb && window.MyFb.MSG) || {};
+  var ADAPTERS = (window.MyFb && window.MyFb.AI_ADAPTERS) || [];
 
   // ── Adapter ─────────────────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@
     _doneTimer = null;
     if (_wasGenerating) return;
     _wasGenerating = true;
-    _send(MSG.AI_STATUS_UPDATE || 'biaif:ai-status-update', { status: 'generating' });
+    _send(MSG.AI_STATUS_UPDATE || 'myfb:ai-status-update', { status: 'generating' });
   }
 
   function _scheduleDone() {
@@ -66,7 +66,7 @@
       // Final confirmation: none of the active indicators are present
       if (!_isActive()) {
         _wasGenerating = false;
-        _send(MSG.AI_RESPONSE_DONE || 'biaif:ai-response-done');
+        _send(MSG.AI_RESPONSE_DONE || 'myfb:ai-response-done');
       }
       // else: something became active again — stay in generating state
     }, DONE_DELAY_MS);

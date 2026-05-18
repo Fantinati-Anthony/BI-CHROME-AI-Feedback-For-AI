@@ -1,0 +1,50 @@
+/* My-Feedbacks Triage Filter Bar (v1.13) */
+
+.myfb-triage-filterbar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.myfb-triage-filterbar::-webkit-scrollbar { height: 4px; }
+
+.myfb-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 140ms;
+}
+.myfb-filter-pill:hover { background: rgba(255, 255, 255, 0.08); color: #cbd5e1; }
+.myfb-filter-pill-count {
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Active states per status */
+.myfb-filter-pill.is-active                              { background: rgba(43, 212, 217, 0.18); color: #2bd4d9; border-color: rgba(43, 212, 217, 0.5); }
+.myfb-filter-pill-new.is-active                          { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.5); }
+.myfb-filter-pill-accepted.is-active                     { background: rgba(251, 191, 36, 0.18); color: #fbbf24; border-color: rgba(251, 191, 36, 0.5); }
+.myfb-filter-pill-rejected.is-active                     { background: rgba(248, 113, 113, 0.18); color: #f87171; border-color: rgba(248, 113, 113, 0.5); }
+.myfb-filter-pill-shipped.is-active                      { background: rgba(74, 222, 128, 0.18); color: #4ade80; border-color: rgba(74, 222, 128, 0.5); }
+
+/* Filtering: hide cards whose data-status doesn't match the active filter */
+#segments[data-myfb-triage-filter="new"]      .myfb-segment:not([data-status="new"])      { display: none; }
+#segments[data-myfb-triage-filter="accepted"] .myfb-segment:not([data-status="accepted"]) { display: none; }
+#segments[data-myfb-triage-filter="rejected"] .myfb-segment:not([data-status="rejected"]) { display: none; }
+#segments[data-myfb-triage-filter="shipped"]  .myfb-segment:not([data-status="shipped"])  { display: none; }

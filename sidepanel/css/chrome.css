@@ -1,8 +1,8 @@
 /* ============== Sticky bottom action bar ==============
-   Contient : .biaif-quick-tools (Micro/Sélecteur/Capture/Erreurs),
-   .biaif-footer (icones debug/micro/shortcuts + Vider/Copier/.MD),
-   .biaif-status. Toujours collée au bas du panneau, débord aux bords. */
-.biaif-footer-area {
+   Contient : .myfb-quick-tools (Micro/Sélecteur/Capture/Erreurs),
+   .myfb-footer (icones debug/micro/shortcuts + Vider/Copier/.MD),
+   .myfb-status. Toujours collée au bas du panneau, débord aux bords. */
+.myfb-footer-area {
   position: sticky; bottom: 0;
   margin-top: auto; /* pousse vers le bas si l'historique est court */
   margin-left: calc(var(--pad-md) * -1);
@@ -15,7 +15,7 @@
   z-index: 10;
 }
 
-.biaif-footer {
+.myfb-footer {
   display: flex; gap: 6px; align-items: center;
 }
 .footer-spacer { flex: 1; }
@@ -73,13 +73,13 @@
 .btn-primary > * { position: relative; z-index: 1; }
 
 /* ============== Logs panel (overlay) ============== */
-.biaif-logs-panel {
+.myfb-logs-panel {
   position: fixed; bottom: 120px; left: 12px; right: 12px;
   background: var(--bg-card); border: 1px solid var(--border-card);
   border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
   z-index: 999; max-height: 280px; display: flex; flex-direction: column;
 }
-.biaif-logs-panel[hidden] { display: none; }
+.myfb-logs-panel[hidden] { display: none; }
 .logs-header {
   padding: 8px 12px; font-size: 11px; font-weight: 600;
   text-transform: uppercase; color: var(--text-muted);
@@ -103,7 +103,7 @@
 }
 
 /* ============== Status (sticky at bottom of sidebar, above toasts) ============== */
-.biaif-status {
+.myfb-status {
   position: fixed;
   left: var(--pad-md); right: var(--pad-md); bottom: var(--pad-md);
   z-index: 49;
@@ -112,11 +112,11 @@
   background: var(--bg-card); border: 1px solid var(--border-card);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
-.biaif-status:empty { display: none; }
+.myfb-status:empty { display: none; }
 /* Push toasts above the status when status is shown */
-.biaif-status:not(:empty) ~ #toast-container { bottom: calc(var(--pad-md) + 32px); }
-.biaif-status[data-kind="error"]   { color: var(--danger);  border-color: rgba(255, 69, 58, 0.3); cursor: pointer; }
-.biaif-status[data-kind="success"] { color: var(--success); border-color: rgba(48, 209, 88, 0.3); }
+.myfb-status:not(:empty) ~ #toast-container { bottom: calc(var(--pad-md) + 32px); }
+.myfb-status[data-kind="error"]   { color: var(--danger);  border-color: rgba(255, 69, 58, 0.3); cursor: pointer; }
+.myfb-status[data-kind="success"] { color: var(--success); border-color: rgba(48, 209, 88, 0.3); }
 
 /* ============== Tool button "Erreurs" (badge dynamique) ============== */
 .tool-btn--errors svg { color: var(--text-muted); }
@@ -139,12 +139,12 @@
 }
 
 /* ============== Reload modal (full sidebar overlay) ============== */
-.biaif-reload-modal {
+.myfb-reload-modal {
   position: fixed; inset: 0; z-index: 1000;
   background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
-.biaif-reload-modal[hidden] { display: none; }
+.myfb-reload-modal[hidden] { display: none; }
 .reload-modal-content {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
   background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 12px;
@@ -163,12 +163,12 @@
 .reload-dismiss:hover { color: var(--text-main); }
 
 /* ============== Confirm modal (destructive-action gate) ============== */
-.biaif-confirm-modal {
+.myfb-confirm-modal {
   position: fixed; inset: 0; z-index: 1000;
   background: rgba(0, 0, 0, 0.78); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
-.biaif-confirm-modal[hidden] { display: none; }
+.myfb-confirm-modal[hidden] { display: none; }
 .confirm-modal-content {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
   background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 12px;
@@ -205,7 +205,7 @@
 }
 #toast-container:empty { display: none; }
 #toast-container > * { pointer-events: auto; }
-.biaif-toast {
+.myfb-toast {
   display: flex; align-items: center; gap: 7px;
   padding: 6px 10px;
   border-radius: var(--radius-sm);
@@ -216,19 +216,19 @@
   transition: opacity 0.18s ease-out, transform 0.18s ease-out;
   will-change: transform, opacity;
 }
-.biaif-toast.is-visible {
+.myfb-toast.is-visible {
   opacity: 1; transform: translateY(0);
 }
-.biaif-toast.is-leaving {
+.myfb-toast.is-leaving {
   opacity: 0; transform: translateY(6px);
   transition: opacity 0.16s ease-in, transform 0.16s ease-in;
 }
-.biaif-toast--success { border-color: rgba(48, 209, 88, 0.35); }
-.biaif-toast--success .toast-icon { color: var(--success); }
-.biaif-toast--error   { border-color: rgba(255, 69, 58, 0.35); }
-.biaif-toast--error   .toast-icon { color: var(--danger); }
-.biaif-toast--info    { border-color: var(--accent-blue-100); }
-.biaif-toast--info    .toast-icon { color: var(--accent-blue); }
+.myfb-toast--success { border-color: rgba(48, 209, 88, 0.35); }
+.myfb-toast--success .toast-icon { color: var(--success); }
+.myfb-toast--error   { border-color: rgba(255, 69, 58, 0.35); }
+.myfb-toast--error   .toast-icon { color: var(--danger); }
+.myfb-toast--info    { border-color: var(--accent-blue-100); }
+.myfb-toast--info    .toast-icon { color: var(--accent-blue); }
 .toast-icon { flex-shrink: 0; }
 .toast-msg  { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toast-close {
