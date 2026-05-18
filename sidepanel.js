@@ -248,5 +248,10 @@
         }
       }).catch(function () {});
     }
+
+    // v2.0: Privacy controls (telemetry + E2E + reload) UI.
+    if (window.MyFbPrivacyControls) {
+      window.MyFbPrivacyControls.init();
+    }
   });
 })();

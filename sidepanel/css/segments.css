@@ -114,6 +114,26 @@
 .seg-filter-badge--conv:hover  { border-color: #6c47ff; }
 .seg-filter-badge--domain { border-color: rgba(255,255,255,.12); }
 
+/* Eye picto inside the domain badge — opens the page + filters */
+.seg-filter-badge--domain { gap: 4px; }
+.seg-filter-badge-label { display: inline-block; }
+.seg-filter-badge-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  margin-left: 2px;
+  border-left: 1px solid rgba(255,255,255,.12);
+  font-size: 10px;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.14s, transform 0.14s;
+}
+.seg-filter-badge-open:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
 /* ── User-defined tag chips ──────────────────────────────────────── */
 .seg-tag-chip {
   border-color: rgba(245,158,11,.35);

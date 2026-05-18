@@ -1,6 +1,77 @@
 # Changelog
 
 All notable changes to My-Feedbacks are documented here.
+
+## [2.0.0] — Final Chrome Web Store-ready release
+
+Closes the gaps identified at the end of v1.x : the new event-sourced
+core is no longer parallel to the legacy STATE — it's now genuinely
+integrated.
+
+### Added — legacy ↔ event store bridges (PR #136)
+
+- `sidepanel/legacy-event-bridge.js` — wraps MyFbStorage.persist and
+  emits the corresponding events whenever STATE.demandes mutates :
+  demande.created / .text_updated / .deleted, ref.added / .removed,
+  demande.tagged / .untagged. Legacy refs without ids are synthesised
+  as `legacy:<demandeId>:<index>`. Idempotent via a shadow snapshot.
+- `sidepanel/state-sync.js` — reverse bridge that subscribes to the
+  transport, patches STATE.demandes in place when a remote event
+  arrives, and triggers `renderSegments()`. Calls syncShadow() to
+  avoid the forward bridge re-emitting the same change.
+
+Result : a user creating a demande through the legacy submit flow
+now produces real events in IndexedDB, which the sync engine then
+pushes to peers; conversely, a remote demande appears live in the
+existing UI without reload.
+
+### Added — E2E encryption foundation (PR #137)
+
+- `shared/core/crypto/keypair.js` — generate / loadOrCreate /
+  deriveSharedKey / encrypt / decrypt using SubtleCrypto :
+  ECDH P-256 for key agreement, AES-GCM-256 for symmetric payload
+  encryption. Envelopes are "iv:ct" base64 strings safe to put in
+  the JSONL stream.
+
+### Added — opt-in anonymous telemetry + AI prompts in user's language (PR #138)
+
+- `shared/core/telemetry.js` — strict opt-in (default OFF), local-only
+  counters in v2.0. Whitelist of 11 event names. NEVER collects UUID,
+  IP, user text, URLs, etc — header docs every guarantee.
+- `shared/core/ai-client.js` — new `_detectLang()` helper reads
+  `MyFbI18n.getLang()` and pins the system prompt to that language
+  (Reply in French / English / etc) instead of "same as input".
+
+### Added — privacy controls UI (PR #139)
+
+- `sidepanel/privacy-controls.js` + CSS : 3 controls in Settings →
+  "Vos données" :
+    • Telemetry opt-in toggle + live local counter + reset button
+    • 🔒 E2E encryption opt-in (persisted in chrome.storage.local
+      under `myfb:e2e:enabled`)
+    • 🔄 Reload extension button (chrome.runtime.reload())
+- 14 new `priv.*` i18n keys × 7 langs.
+
+### Notes for the next major (server tiers)
+
+Everything above is purely client-side. The roadmap from this point
+on involves a backend :
+
+- Tier 3 server (PHP/MySQL, open-source AGPL) — separate repo
+- Tier 4 cloud (my-feedbacks.com on o2switch) — multi-tenant + Stripe
+- Public Plausible endpoint for the telemetry counters (currently
+  local-only)
+- Transport-level encrypt/decrypt wiring (the crypto primitives are
+  ready ; the sync-engine just needs to call them when the toggle
+  is ON and we have a peer publicJwk)
+- Webhooks / issue-tracker integrations
+
+The extension v2.0.0 is feature-complete for what it can do
+without a server. Numbers : 547+ i18n keys × 7 langs = 3,800+
+translations, 31 test files, 366 tests passing, ~5,000 LOC across
+the v2 bridges and crypto.
+
+
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 

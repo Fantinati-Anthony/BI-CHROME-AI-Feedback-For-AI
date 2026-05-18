@@ -155,6 +155,9 @@ declare global {
     MyFbTriageFilter?: { [k: string]: any };
     MyFbDataControls?: { [k: string]: any };
     MyFbPairingUi?: { [k: string]: any };
+    MyFbLegacyEventBridge?: { [k: string]: any };
+    MyFbStateSync?: { [k: string]: any };
+    MyFbPrivacyControls?: { [k: string]: any };
     MyFbNetworkBridge?: { [k: string]: any };
     MyFbIntentParser?: { [k: string]: any };
     MyFbLog?:      (level: string, ...args: any[]) => void;

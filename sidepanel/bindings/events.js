@@ -661,6 +661,25 @@
   function _bindFilterBadges() {
     var STATE = ctx.STATE;
     document.addEventListener('click', function (e) {
+      // Eye picto inside a domain badge : open the page in a new tab
+      // AND apply the matching filter (acts as if the badge was clicked).
+      var openBtn = e.target.closest && e.target.closest('.seg-filter-badge-open[data-open-url]');
+      if (openBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        var url = openBtn.getAttribute('data-open-url');
+        var fk  = openBtn.getAttribute('data-filter-key');
+        var fv  = openBtn.getAttribute('data-filter-val');
+        if (url) {
+          try { chrome.tabs.create({ url: url, active: true }); }
+          catch (_) { window.open(url, '_blank', 'noopener,noreferrer'); }
+        }
+        if (fk && fv !== null) {
+          STATE[fk] = fv;
+          window.MyFbRenderer.renderSegments();
+        }
+        return;
+      }
       var badge = e.target.closest('.seg-filter-badge[data-fk]');
       if (badge) {
         e.stopPropagation();
