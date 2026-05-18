@@ -144,6 +144,9 @@ declare global {
     MyFbWizard?:   { [k: string]: any };
     MyFbOnboarding?: { [k: string]: any };
     MyFbRuntimeBoot?: { [k: string]: any };
+    MyFbOverlayController?: { [k: string]: any };
+    MyFbRefOverlay?: { [k: string]: any };
+    MyFbTriage?:   { [k: string]: any };
     MyFbIntentParser?: { [k: string]: any };
     MyFbLog?:      (level: string, ...args: any[]) => void;
   }
