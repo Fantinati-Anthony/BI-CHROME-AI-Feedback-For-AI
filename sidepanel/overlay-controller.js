@@ -44,6 +44,27 @@
     }
     _wireButton();
     _wireFocusMessage();
+    _wireTabListeners();
+  }
+
+  // Re-broadcast overlays whenever the user switches tabs or a tab
+  // finishes loading. Without this, overlays only appear on the tab
+  // that was active when the toggle was flipped ON — opening a new
+  // page (e.g. via the domain badge's eye picto) wouldn't trigger
+  // any redraw.
+  function _wireTabListeners() {
+    try {
+      chrome.tabs.onActivated.addListener(function () {
+        if (_visible) broadcast();
+      });
+      chrome.tabs.onUpdated.addListener(function (tabId, info, tab) {
+        if (!_visible) return;
+        // Only when the page finished loading and the tab is active.
+        if (info.status !== 'complete') return;
+        if (!tab || !tab.active) return;
+        broadcast();
+      });
+    } catch (_) { /* tabs API not available in this context */ }
   }
 
   function isVisible() { return _visible; }
