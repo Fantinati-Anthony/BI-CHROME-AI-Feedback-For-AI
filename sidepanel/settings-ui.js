@@ -47,6 +47,30 @@
     _renderDevicePanel();
     _renderSyncPanel();
     _renderLinksPanel();
+
+    // The runtime boot is async — re-render once it resolves so the
+    // device panel picks up the UUID + deviceMeta. boot() returns the
+    // same promise on every call, so this is safe even if runtime has
+    // already booted (we just re-render once more).
+    var rb = window.MyFb && window.MyFb.runtimeBoot;
+    if (rb && rb.boot) {
+      rb.boot().then(function () {
+        _renderDevicePanel();
+        _renderSyncPanel();
+        _renderLinksPanel();
+      }).catch(function () {});
+    }
+
+    // Also re-render each time the user opens any sp-section so the
+    // values stay fresh (deviceMeta changes with viewport / network).
+    document.querySelectorAll('details.sp-section').forEach(function (det) {
+      det.addEventListener('toggle', function () {
+        if (!det.open) return;
+        _renderDevicePanel();
+        _renderSyncPanel();
+        _renderLinksPanel();
+      });
+    });
   }
 
   // ── Cet appareil ───────────────────────────────────────────────────
@@ -263,13 +287,26 @@
 
   function _reopenOnboarding() {
     var rb = window.MyFb && window.MyFb.runtimeBoot;
-    if (rb && rb.reopenOnboarding) rb.reopenOnboarding();
+    if (!rb || !rb.boot) {
+      _toast(t('settings.device.runtime_not_ready', 'Runtime non chargé.'), 'error');
+      return;
+    }
+    // Make sure boot is finished before opening — onboarding needs ctx.
+    rb.boot().then(function () {
+      if (rb.reopenOnboarding) rb.reopenOnboarding();
+      else _toast(t('settings.device.runtime_not_ready', 'Runtime non chargé.'), 'error');
+    }).catch(function () {
+      _toast(t('settings.device.runtime_not_ready', 'Runtime non chargé.'), 'error');
+    });
   }
 
   function _regenUuid() {
     if (!confirm(t('settings.device.regen_confirm', 'Régénérer votre UUID ? Vos demandes existantes resteront, mais elles ne seront plus reliées à votre identité précédente pour vos partenaires.'))) return;
     var dm = window.MyFb && window.MyFb.core && window.MyFb.core.deviceMeta;
-    if (!dm || !dm.regenerateUuid) return;
+    if (!dm || !dm.regenerateUuid) {
+      _toast(t('settings.device.runtime_not_ready', 'Runtime non chargé.'), 'error');
+      return;
+    }
     dm.regenerateUuid().then(function (newUuid) {
       if (window.MyFb && window.MyFb.runtime) window.MyFb.runtime.uuid = newUuid;
       _renderDevicePanel();
