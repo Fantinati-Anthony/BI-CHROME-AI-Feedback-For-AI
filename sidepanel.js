@@ -203,5 +203,10 @@
       window.MyFbAiUi.initSettingsPanel();
       window.MyFbAiUi.initCardDecorator();
     }
+
+    // v1.9: Settings UI — Cet appareil / Sync / Liaisons sections.
+    if (window.MyFbSettingsUi) {
+      window.MyFbSettingsUi.init();
+    }
   });
 })();

@@ -1,0 +1,154 @@
+/* My-Feedbacks Settings UI — device / sync / links panels (v1.9) */
+
+/* Cet appareil */
+.myfb-device-uuid-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  background: rgba(43, 212, 217, 0.05);
+  border: 1px solid rgba(43, 212, 217, 0.18);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.myfb-device-uuid-label { font-size: 11px; font-weight: 700; color: #94a3b8; }
+.myfb-device-uuid {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+  color: #2bd4d9;
+  background: transparent;
+  word-break: break-all;
+}
+.myfb-mini-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 140ms;
+}
+.myfb-mini-btn:hover { color: #2bd4d9; border-color: #2bd4d9; }
+
+.myfb-device-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.myfb-device-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.myfb-device-meta-label { color: #94a3b8; font-weight: 600; }
+.myfb-device-meta-value { color: #e2e8f0; font-family: ui-monospace, monospace; text-align: right; }
+
+.myfb-device-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.sp-action-btn-danger {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: #f87171;
+}
+.sp-action-btn-danger:hover {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: #f87171;
+}
+
+/* Sync */
+.myfb-sync-modes {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-bottom: 12px;
+}
+.myfb-sync-mode {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 140ms;
+}
+.myfb-sync-mode:hover:not(.is-disabled) {
+  background: rgba(43, 212, 217, 0.08);
+  border-color: rgba(43, 212, 217, 0.3);
+}
+.myfb-sync-mode.is-disabled { opacity: 0.5; cursor: not-allowed; }
+.myfb-sync-mode input { margin: 0; accent-color: #2bd4d9; }
+.myfb-sync-mode input:checked + .myfb-sync-mode-icon ~ .myfb-sync-mode-text .myfb-sync-mode-label {
+  color: #2bd4d9;
+}
+.myfb-sync-mode-icon { font-size: 18px; }
+.myfb-sync-mode-text { display: flex; flex-direction: column; gap: 2px; }
+.myfb-sync-mode-label { font-size: 12px; font-weight: 600; color: #f1f5f9; }
+.myfb-sync-mode-hint  { font-size: 10.5px; color: #94a3b8; }
+
+.myfb-sync-folder-config {
+  padding: 10px;
+  background: rgba(43, 212, 217, 0.04);
+  border: 1px dashed rgba(43, 212, 217, 0.25);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+.myfb-sync-current {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 6px 0 0;
+}
+.myfb-sync-current code {
+  background: rgba(0,0,0,0.25);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #2bd4d9;
+  font-family: ui-monospace, monospace;
+}
+.myfb-sync-hint, .myfb-sync-status {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 6px 0;
+}
+.myfb-sync-status [data-myfb-sync-status] {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+}
+
+/* Liaisons */
+.myfb-links-empty {
+  padding: 16px;
+  text-align: center;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+}
+.myfb-links-empty p { margin: 0 0 6px; font-size: 12px; }
+.myfb-links-list {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.myfb-link-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.myfb-link-label  { flex: 1; color: #f1f5f9; font-weight: 600; }
+.myfb-link-role   { color: #94a3b8; font-size: 11px; }
+.myfb-link-status {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.myfb-link-status-accepted { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+.myfb-link-status-pending  { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+.myfb-link-status-revoked  { background: rgba(248, 113, 113, 0.2); color: #f87171; }
