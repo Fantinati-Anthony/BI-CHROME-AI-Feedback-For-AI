@@ -112,10 +112,25 @@
 
   // ── chrome.runtime API ──────────────────────────────────────────────
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-    if (!msg || msg.type !== 'myfb:breadcrumbs:get') return;
+    if (!msg || !msg.type) return;
     if (sender.id && sender.id !== chrome.runtime.id) return;
-    sendResponse({ breadcrumbs: _ring.slice() });
-    return false;
+    if (msg.type === 'myfb:breadcrumbs:get') {
+      sendResponse({ breadcrumbs: _ring.slice() });
+      return false;
+    }
+    if (msg.type === 'myfb:page-info') {
+      // Returns the host page's actual viewport / dpr — the side panel
+      // can't see these from its own `window` (which is the panel itself).
+      sendResponse({
+        viewport: { w: window.innerWidth || 0, h: window.innerHeight || 0 },
+        outer:    { w: window.outerWidth  || 0, h: window.outerHeight || 0 },
+        scroll:   { x: window.scrollX     || 0, y: window.scrollY     || 0 },
+        dpr:      window.devicePixelRatio || 1,
+        url:      location.href || '',
+        title:    document.title || '',
+      });
+      return false;
+    }
   });
 
   // Test-friendly export

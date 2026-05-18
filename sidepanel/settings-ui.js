@@ -92,8 +92,8 @@
       '<div class="myfb-device-meta">' +
         _metaRow(t('settings.device.browser', 'Navigateur'), (meta.browser && (meta.browser.name + ' ' + (meta.browser.version || ''))) || '—') +
         _metaRow(t('settings.device.os', 'Système'),        (meta.os && (meta.os.name + ' ' + (meta.os.version || ''))) || '—') +
-        _metaRow(t('settings.device.viewport', 'Viewport'), (meta.viewport && (meta.viewport.w + '×' + meta.viewport.h)) || '—') +
-        _metaRow(t('settings.device.dpr', 'DPR'),           meta.dpr || '—') +
+        '<div class="myfb-device-meta-row" data-meta-key="viewport"><span class="myfb-device-meta-label">' + _esc(t('settings.device.viewport', 'Viewport')) + '</span><span class="myfb-device-meta-value">' + ((meta.viewport && (meta.viewport.w + '×' + meta.viewport.h)) || '—') + '</span></div>' +
+        '<div class="myfb-device-meta-row" data-meta-key="dpr"><span class="myfb-device-meta-label">' + _esc(t('settings.device.dpr', 'DPR')) + '</span><span class="myfb-device-meta-value">' + (meta.dpr || '—') + '</span></div>' +
         _metaRow(t('settings.device.deviceClass', 'Catégorie'), meta.deviceClass || '—') +
         _metaRow(t('settings.device.language', 'Langue'),   (meta.locale && meta.locale.language) || '—') +
         _metaRow(t('settings.device.network', 'Réseau'),    (meta.network && meta.network.online ? 'en ligne' : 'hors ligne')) +
@@ -106,6 +106,32 @@
           t('settings.device.regen_uuid', '⚠ Régénérer l\'UUID') +
         '</button>' +
       '</div>';
+
+    // Replace viewport + dpr with the host page's values, not the side
+    // panel's. Async because we have to ask the active tab.
+    _fetchActiveTabPageInfo().then(function (info) {
+      if (!info) return;
+      var vp = host.querySelector('[data-meta-key="viewport"] .myfb-device-meta-value');
+      if (vp && info.viewport) vp.textContent = info.viewport.w + '×' + info.viewport.h;
+      var dp = host.querySelector('[data-meta-key="dpr"] .myfb-device-meta-value');
+      if (dp && typeof info.dpr === 'number') dp.textContent = String(info.dpr);
+    });
+  }
+
+  function _fetchActiveTabPageInfo() {
+    return new Promise(function (resolve) {
+      try {
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+          var tab = tabs && tabs[0];
+          if (!tab || !tab.id) return resolve(null);
+          chrome.tabs.sendMessage(tab.id, { type: 'myfb:page-info' }, function (resp) {
+            // lastError fires when no content script is listening (chrome://, etc.)
+            if (chrome.runtime.lastError) return resolve(null);
+            resolve(resp || null);
+          });
+        });
+      } catch (_) { resolve(null); }
+    });
   }
 
   function _metaRow(label, value) {
