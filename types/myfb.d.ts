@@ -159,6 +159,7 @@ declare global {
     MyFbStateSync?: { [k: string]: any };
     MyFbPrivacyControls?: { [k: string]: any };
     MyFbNetworkBridge?: { [k: string]: any };
+    MyFbSegmentConversation?: { [k: string]: any };
     MyFbIntentParser?: { [k: string]: any };
     MyFbLog?:      (level: string, ...args: any[]) => void;
   }

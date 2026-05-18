@@ -1,0 +1,182 @@
+/* My-Feedbacks Segment Conversation (v2.3) — rich thread enhancements */
+
+/* Toolbar above the comment input */
+.myfb-conv-toolbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px 0 6px;
+  align-items: center;
+  font-size: 11px;
+}
+.myfb-conv-tool {
+  padding: 3px 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #cbd5e1;
+  font: inherit; font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.myfb-conv-tool:hover { border-color: #2bd4d9; color: #2bd4d9; }
+.myfb-conv-draft-info {
+  font-size: 10.5px;
+  color: #64748b;
+  margin-left: 4px;
+  font-style: italic;
+}
+
+/* Mentions & targets in rendered comments */
+.myfb-conv-mention {
+  display: inline-block;
+  padding: 0 6px;
+  background: rgba(43, 212, 217, 0.18);
+  border-radius: 999px;
+  color: #2bd4d9;
+  font-weight: 600;
+}
+.myfb-conv-comment.is-mine { border-left: 3px solid rgba(43, 212, 217, 0.5); }
+.myfb-conv-comment.is-targeted {
+  border-left: 3px solid #fbbf24;
+}
+.myfb-conv-target-pill {
+  padding: 1px 6px;
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.myfb-conv-status {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.myfb-conv-status-accepted { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+.myfb-conv-status-refused  { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+
+/* Propose-edit card inside a comment */
+.myfb-conv-propose {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: rgba(43, 212, 217, 0.05);
+  border-left: 3px solid #2bd4d9;
+  border-radius: 6px;
+}
+.myfb-conv-propose-label {
+  font-size: 10px;
+  color: #2bd4d9;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.myfb-conv-propose-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, monospace;
+  padding: 6px 8px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 4px;
+}
+.myfb-conv-propose-actions { margin-top: 6px; display: flex; gap: 6px; }
+.myfb-conv-status-row { margin-top: 6px; font-size: 11px; color: #94a3b8; }
+
+.myfb-conv-mini {
+  padding: 3px 10px;
+  border-radius: 4px;
+  font: inherit; font-size: 11px; font-weight: 600;
+  cursor: pointer;
+  border: 1px solid;
+}
+.myfb-conv-accept { background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.5); color: #4ade80; }
+.myfb-conv-accept:hover { background: rgba(34, 197, 94, 0.3); }
+.myfb-conv-refuse { background: transparent; border-color: rgba(248, 113, 113, 0.4); color: #f87171; }
+.myfb-conv-refuse:hover { background: rgba(248, 113, 113, 0.15); }
+
+/* Peer picker popover */
+.myfb-conv-peer-picker {
+  position: fixed;
+  z-index: 99999;
+  background: #0f172a;
+  border: 1px solid rgba(43, 212, 217, 0.4);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  min-width: 200px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.myfb-conv-peer-header {
+  font-size: 10px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 4px;
+}
+.myfb-conv-peer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: 0;
+  color: #e2e8f0;
+  font: inherit; font-size: 12.5px;
+  text-align: left;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.myfb-conv-peer-item:hover { background: rgba(43, 212, 217, 0.12); }
+.myfb-conv-peer-label { font-weight: 600; }
+.myfb-conv-peer-role { font-size: 10px; color: #64748b; text-transform: uppercase; }
+.myfb-conv-peer-cancel {
+  width: 100%;
+  padding: 5px;
+  background: transparent;
+  border: 0;
+  color: #94a3b8;
+  font: inherit; font-size: 11px;
+  cursor: pointer;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 4px;
+}
+
+/* Propose-text inline editor */
+.myfb-conv-propose-editor {
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(43, 212, 217, 0.05);
+  border: 1px dashed rgba(43, 212, 217, 0.4);
+  border-radius: 6px;
+}
+.myfb-conv-propose-editor-label {
+  font-size: 11px; color: #2bd4d9; font-weight: 600; margin-bottom: 6px;
+}
+.myfb-conv-propose-editor-text {
+  width: 100%;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #f1f5f9;
+  font: inherit; font-size: 12px;
+  font-family: ui-monospace, monospace;
+  resize: vertical;
+}
+.myfb-conv-propose-editor-text:focus { outline: none; border-color: #2bd4d9; }
+.myfb-conv-propose-editor-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}

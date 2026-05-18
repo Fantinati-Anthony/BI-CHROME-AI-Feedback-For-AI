@@ -238,9 +238,12 @@
           var dc = Object.assign({}, s.demandes[p.demandeId]);
           dc.comments = Object.assign({}, dc.comments);
           dc.comments[p.commentId] = {
-            authorUuid: e.actorUuid,
-            text:       p.text || '',
-            ts:         e.ts,
+            authorUuid:  e.actorUuid,
+            text:        p.text || '',
+            ts:          e.ts,
+            mentions:    Array.isArray(p.mentions) ? p.mentions.slice() : [],
+            target:      typeof p.target === 'string' ? p.target : null,
+            proposeText: typeof p.proposeText === 'string' ? p.proposeText : null,
           };
           s.demandes[p.demandeId] = dc;
         }
@@ -251,10 +254,11 @@
         if (s.demandes[p.demandeId] && s.demandes[p.demandeId].comments[p.commentId]) {
           var de = Object.assign({}, s.demandes[p.demandeId]);
           de.comments = Object.assign({}, de.comments);
-          de.comments[p.commentId] = Object.assign({}, de.comments[p.commentId], {
-            text:   p.text,
-            edited: true,
-          });
+          var patch = { text: p.text, edited: true };
+          if (typeof p.proposalStatus === 'string') patch.proposalStatus = p.proposalStatus;
+          if (typeof p.acceptedBy === 'string')     patch.acceptedBy     = p.acceptedBy;
+          if (typeof p.refusedBy === 'string')      patch.refusedBy      = p.refusedBy;
+          de.comments[p.commentId] = Object.assign({}, de.comments[p.commentId], patch);
           s.demandes[p.demandeId] = de;
         }
         break;

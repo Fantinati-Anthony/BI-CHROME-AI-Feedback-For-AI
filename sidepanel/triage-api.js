@@ -133,7 +133,21 @@
 
   // ── Comments ────────────────────────────────────────────────────────
 
-  function addComment(demandeId, text) {
+  /**
+   * Add a comment to a demande. Optional metadata :
+   *   - mentions    : array of peer UUIDs that are @-mentioned in the text
+   *   - target      : single peer UUID this comment is directed at
+   *   - proposeText : if non-null, this comment proposes replacing the
+   *                   demande's text with this value. Other peers can
+   *                   then accept (which triggers a DEMANDE_TEXT_UPDATED)
+   *                   or refuse the proposal via acceptProposal /
+   *                   refuseProposal helpers below.
+   *
+   * @param {string} demandeId
+   * @param {string} text
+   * @param {{ mentions?: string[], target?: string|null, proposeText?: string|null }} [opts]
+   */
+  function addComment(demandeId, text, opts) {
     var clean = (text || '').toString().trim();
     if (!clean) return Promise.reject(new Error('[MyFb triage] comment is empty'));
     var ctx = _ctx(); var T = _types(); var ev = window.MyFb && window.MyFb.core && window.MyFb.core.events;
@@ -142,10 +156,71 @@
       return Promise.reject(new Error('[MyFb triage] unknown demande: ' + demandeId));
     }
     var commentId = 'cmt-' + ev.uuid();
-    return ctx.emit(T.DEMANDE_COMMENTED, {
+    var payload = {
       demandeId: demandeId,
       commentId: commentId,
       text:      clean.slice(0, 2000),
+    };
+    if (opts && Array.isArray(opts.mentions) && opts.mentions.length) {
+      payload.mentions = opts.mentions.slice(0, 10).map(function (m) { return String(m); });
+    }
+    if (opts && typeof opts.target === 'string' && opts.target.length) {
+      payload.target = opts.target;
+    }
+    if (opts && typeof opts.proposeText === 'string' && opts.proposeText.trim().length) {
+      payload.proposeText = opts.proposeText.trim().slice(0, 5000);
+    }
+    return ctx.emit(T.DEMANDE_COMMENTED, payload);
+  }
+
+  /**
+   * Apply the proposeText of a previously-emitted comment as the new
+   * demande.text. Emits both an ACCEPT marker (as an edit on the
+   * proposing comment) AND a DEMANDE_TEXT_UPDATED event.
+   *
+   * @param {string} demandeId
+   * @param {string} commentId
+   */
+  function acceptProposal(demandeId, commentId) {
+    var ctx = _ctx(); var T = _types();
+    if (!ctx || !T) return Promise.resolve(null);
+    var d = ctx.state.demandes[demandeId];
+    if (!d || !d.comments || !d.comments[commentId]) {
+      return Promise.reject(new Error('[MyFb triage] unknown comment'));
+    }
+    var c = d.comments[commentId];
+    if (!c.proposeText) {
+      return Promise.reject(new Error('[MyFb triage] comment has no proposeText'));
+    }
+    return ctx.emit(T.DEMANDE_TEXT_UPDATED, { id: demandeId, text: c.proposeText })
+      .then(function () {
+        return ctx.emit(T.DEMANDE_COMMENT_EDITED, {
+          demandeId: demandeId,
+          commentId: commentId,
+          text:      c.text,
+          proposalStatus: 'accepted',
+          acceptedBy: ctx.uuid,
+        });
+      });
+  }
+
+  /**
+   * Mark a proposeText comment as refused (UI-level only — segment text
+   * unchanged). Sets proposalStatus on the comment.
+   */
+  function refuseProposal(demandeId, commentId) {
+    var ctx = _ctx(); var T = _types();
+    if (!ctx || !T) return Promise.resolve(null);
+    var d = ctx.state.demandes[demandeId];
+    if (!d || !d.comments || !d.comments[commentId]) {
+      return Promise.reject(new Error('[MyFb triage] unknown comment'));
+    }
+    return ctx.emit(T.DEMANDE_COMMENT_EDITED, {
+      demandeId: demandeId,
+      commentId: commentId,
+      text:      d.comments[commentId].text,
+      proposalStatus: 'refused',
+      refusedBy: ctx.uuid,
     });
   }
 
@@ -249,6 +324,8 @@
     removeTag:      removeTag,
     getTags:        getTags,
     addComment:     addComment,
+    acceptProposal: acceptProposal,
+    refuseProposal: refuseProposal,
     editComment:    editComment,
     deleteComment:  deleteComment,
     listComments:   listComments,

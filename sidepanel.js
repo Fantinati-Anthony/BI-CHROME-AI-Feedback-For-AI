@@ -253,5 +253,10 @@
     if (window.MyFbPrivacyControls) {
       window.MyFbPrivacyControls.init();
     }
+
+    // v2.3: Rich segment conversation (mentions / target / propose-edit).
+    if (window.MyFbSegmentConversation) {
+      window.MyFbSegmentConversation.init();
+    }
   });
 })();
