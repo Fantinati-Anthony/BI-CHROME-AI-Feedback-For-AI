@@ -510,6 +510,19 @@
           </button>
         </div>
 
+        <!-- Toggle: show ref overlays on the host page -->
+        <button class="topbar-split topbar-overlays-btn" type="button"
+                data-act="toggle-overlays"
+                aria-pressed="false"
+                aria-label="Afficher/masquer les zones sélectionnées sur la page"
+                title="Afficher les zones sélectionnées sur la page"
+                data-i18n-title="topbar.overlays_toggle_title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+
         <!-- Font-size split-button: A+ / A− -->
         <div class="topbar-split" role="group" aria-label="Taille du texte">
           <button class="topbar-split-half topbar-split-up" data-act="seg-font-up" aria-label="Agrandir le texte" title="Agrandir A+">
@@ -758,6 +771,7 @@
   <script src="sidepanel/wizard.js"></script>
   <script src="sidepanel/onboarding.js"></script>
   <script src="sidepanel/runtime.js"></script>
+  <script src="sidepanel/overlay-controller.js"></script>
   <script src="sidepanel/toast.js"></script>
   <script src="sidepanel/undo.js"></script>
   <script src="sidepanel/imaging.js"></script>

@@ -192,5 +192,10 @@
     if (window.MyFb && window.MyFb.runtimeBoot) {
       window.MyFb.runtimeBoot.boot();
     }
+
+    // v1.3: page overlay controller (toggle in topbar-extras).
+    if (window.MyFbOverlayController) {
+      window.MyFbOverlayController.init();
+    }
   });
 })();

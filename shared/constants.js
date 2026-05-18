@@ -56,6 +56,10 @@
     AI_STATUS_UPDATE:      'myfb:ai-status-update',
     // AI watcher → SW → sidepanel: AI response completed
     AI_RESPONSE_DONE:      'myfb:ai-response-done',
+    // Page ref overlays (Feature A — v1.3)
+    OVERLAYS_RENDER:       'myfb:overlays-render',     // sidepanel → content: re-render with these refs
+    OVERLAYS_CLEAR:        'myfb:overlays-clear',      // sidepanel → content: hide all
+    OVERLAYS_FOCUS_REF:    'myfb:overlays-focus-ref',  // content → sidepanel: badge clicked, open this demande
   });
 
   root.MyFb.VSCODE_BRIDGE_PORT = 51473;
