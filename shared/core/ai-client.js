@@ -132,9 +132,10 @@
    */
   function summarize(demande, opts) {
     var prompt = _buildSummaryPrompt(demande);
+    var lang   = _detectLang();
     return complete(prompt, Object.assign({
       maxTokens: 200,
-      system:    'You are a concise feedback triage assistant. Reply in the same language as the input.',
+      system:    'You are a concise feedback triage assistant. ALWAYS reply in ' + lang + ' regardless of the input language. Be factual, short (max 200 chars).',
     }, opts || {}));
   }
 
@@ -149,7 +150,7 @@
     var prompt = _buildTriagePrompt(demande);
     return complete(prompt, Object.assign({
       maxTokens: 300,
-      system:    'You output ONLY valid JSON matching the requested schema. No prose, no markdown fence.',
+      system:    'You output ONLY valid JSON matching the requested schema. No prose, no markdown fence. The "tags" array values stay in English (slug form: kebab-case ASCII).',
     }, opts || {})).then(function (text) {
       var cleaned = (text || '').trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
       var json;
@@ -166,6 +167,26 @@
         confidence: typeof json.confidence === 'number' ? Math.max(0, Math.min(1, json.confidence)) : 0.5,
       };
     });
+  }
+
+  // ── Language detection helper ──────────────────────────────────────
+
+  /**
+   * Maps the user's MyFbI18n locale to a full English language name
+   * so the model knows what to write in. Defaults to 'French'.
+   * @returns {string}
+   */
+  function _detectLang() {
+    var code = null;
+    try {
+      if (root.MyFbI18n && typeof root.MyFbI18n.getLang === 'function') code = root.MyFbI18n.getLang();
+      else if (typeof navigator !== 'undefined' && navigator.language) code = String(navigator.language).slice(0, 2);
+    } catch (_) {}
+    var map = {
+      fr: 'French', en: 'English', es: 'Spanish', de: 'German',
+      it: 'Italian', pt: 'Portuguese', nl: 'Dutch',
+    };
+    return map[code] || 'French';
   }
 
   // ── Prompt builders (exposed for tests) ────────────────────────────
