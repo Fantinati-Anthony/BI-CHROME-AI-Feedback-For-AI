@@ -223,5 +223,10 @@
     if (window.MyFbTriageFilter) {
       window.MyFbTriageFilter.init();
     }
+
+    // v1.14: GDPR data controls (export / reset / delete) wiring.
+    if (window.MyFbDataControls) {
+      window.MyFbDataControls.init();
+    }
   });
 })();
