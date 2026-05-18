@@ -307,18 +307,26 @@
       '</div>' +
       '<div class="myfb-tp-editor-row">' +
         '<label class="myfb-tp-editor-label">' + _t('tagpicker.edit_color', 'Couleur') + '</label>' +
-        '<div class="myfb-tp-swatches">' +
-          PRESET_HUES.map(function (h) {
-            return '<button type="button" class="myfb-tp-swatch" data-hue="' + h + '" ' +
-                   'style="background:hsl(' + h + ',60%,50%)" ' +
-                   'aria-label="Hue ' + h + '"></button>';
-          }).join('') +
-        '</div>' +
+        '<div class="myfb-tp-swatches"></div>' +
       '</div>' +
       '<div class="myfb-tp-editor-actions">' +
         '<button type="button" class="myfb-tp-editor-cancel">' + _t('tagpicker.cancel', 'Annuler') + '</button>' +
         '<button type="button" class="myfb-tp-editor-save">'   + _t('tagpicker.save',   'Enregistrer') + '</button>' +
       '</div>';
+
+    // Build swatches via DOM API so the inline style.background isn't
+    // blocked by the strict `style-src 'self'` CSP (which rejects
+    // inline `style="…"` attributes, even though .style.X = … works).
+    var swatchesHost = editor.querySelector('.myfb-tp-swatches');
+    PRESET_HUES.forEach(function (h) {
+      var sw = document.createElement('button');
+      sw.type      = 'button';
+      sw.className = 'myfb-tp-swatch';
+      sw.setAttribute('data-hue', String(h));
+      sw.setAttribute('aria-label', 'Hue ' + h);
+      sw.style.background = 'hsl(' + h + ',60%,50%)';
+      swatchesHost.appendChild(sw);
+    });
 
     var nameInp = editor.querySelector('.myfb-tp-editor-name');
     nameInp.value = tag;
