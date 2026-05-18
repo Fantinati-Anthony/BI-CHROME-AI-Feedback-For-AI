@@ -36,8 +36,8 @@
     return Math.abs(h) % 360;
   }
 
-  /* 8 preset hues offered in the edit popover. */
-  var PRESET_HUES = [180, 220, 270, 320, 0, 30, 50, 120];
+  /* 10 preset hues offered in the edit popover (rainbow-ordered). */
+  var PRESET_HUES = [0, 30, 50, 90, 120, 180, 220, 250, 290, 320];
 
   function _chipVars(name, active) {
     var hue = _hue(name);
