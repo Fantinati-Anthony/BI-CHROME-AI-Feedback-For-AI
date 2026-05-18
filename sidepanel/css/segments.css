@@ -317,9 +317,20 @@
 .biaif-conv-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 0 2px 4px;
   border-bottom: 1px solid var(--border-card);
+}
+.biaif-conv-repos {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.biaif-conv-repos .seg-filter-badge--repo {
+  font-size: 10px;
 }
 .biaif-conv-icon {
   flex-shrink: 0;
