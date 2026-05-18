@@ -582,16 +582,6 @@
     <div class="topbar-tools topbar-col topbar-col--right" role="toolbar" aria-label="Outils de navigation">
       <!-- Sort + Font split-buttons — revealed on cog hover via .topbar-extras -->
       <div class="topbar-extras" aria-label="Trier et redimensionner">
-        <!-- Sort split-button: ↑ A→Z / ↓ Z→A -->
-        <div class="topbar-split" role="group" aria-label="Trier l'historique">
-          <button class="topbar-split-half topbar-split-up" data-act="sort-asc" aria-label="Trier A→Z" title="A→Z (plus ancien en haut)">
-            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>
-          </button>
-          <button class="topbar-split-half topbar-split-down" data-act="sort-desc" aria-label="Trier Z→A" title="Z→A (plus récent en haut)">
-            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-        </div>
-
         <!-- Toggle: show ref overlays on the host page -->
         <button class="topbar-split topbar-overlays-btn" type="button"
                 data-act="toggle-overlays"
@@ -604,6 +594,16 @@
             <circle cx="12" cy="12" r="3"/>
           </svg>
         </button>
+
+        <!-- Sort split-button: ↑ A→Z / ↓ Z→A -->
+        <div class="topbar-split" role="group" aria-label="Trier l'historique">
+          <button class="topbar-split-half topbar-split-up" data-act="sort-asc" aria-label="Trier A→Z" title="A→Z (plus ancien en haut)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>
+          </button>
+          <button class="topbar-split-half topbar-split-down" data-act="sort-desc" aria-label="Trier Z→A" title="Z→A (plus récent en haut)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
 
         <!-- Font-size split-button: A+ / A− -->
         <div class="topbar-split" role="group" aria-label="Taille du texte">
