@@ -185,5 +185,12 @@
     // Initial tab-state probe (independent of hydration).
     window.MyFbBindings.tabs.checkActiveTabReady();
     window.MyFbBindings.helpers.refreshErrorsFromActiveTab();
+
+    // v1.0.0 runtime: event-sourcing core + first-launch onboarding.
+    // Fire-and-forget — degrades gracefully on failure (legacy code path
+    // keeps working).
+    if (window.MyFb && window.MyFb.runtimeBoot) {
+      window.MyFb.runtimeBoot.boot();
+    }
   });
 })();

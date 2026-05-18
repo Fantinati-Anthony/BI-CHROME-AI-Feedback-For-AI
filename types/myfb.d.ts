@@ -141,7 +141,9 @@ declare global {
     MyFbBlobStore?:{ [k: string]: any };
     MyFbPalette?:  { [k: string]: any };
     MyFbPerf?:     { [k: string]: any };
-    MyFbI18n?:     { [k: string]: any };
+    MyFbWizard?:   { [k: string]: any };
+    MyFbOnboarding?: { [k: string]: any };
+    MyFbRuntimeBoot?: { [k: string]: any };
     MyFbIntentParser?: { [k: string]: any };
     MyFbLog?:      (level: string, ...args: any[]) => void;
   }
