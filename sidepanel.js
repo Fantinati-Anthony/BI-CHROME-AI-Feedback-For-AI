@@ -213,5 +213,10 @@
     if (window.MyFbExportPicker) {
       window.MyFbExportPicker.init();
     }
+
+    // v1.12: Per-card triage UI (status / priority / tags / comments).
+    if (window.MyFbTriageUi) {
+      window.MyFbTriageUi.init();
+    }
   });
 })();

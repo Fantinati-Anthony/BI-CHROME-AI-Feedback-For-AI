@@ -1,0 +1,159 @@
+/* My-Feedbacks Triage UI on cards (v1.12) */
+
+.myfb-triage-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  margin-bottom: 6px;
+  border-bottom: 1px dashed rgba(255,255,255,0.05);
+}
+
+/* Status chip */
+.myfb-triage-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 140ms;
+}
+.myfb-triage-status:hover { filter: brightness(1.2); }
+.myfb-triage-dot {
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.myfb-triage-status-new      { color: #94a3b8; border-color: rgba(148,163,184,0.4); }
+.myfb-triage-status-new      .myfb-triage-dot { background: #94a3b8; }
+.myfb-triage-status-accepted { color: #fbbf24; border-color: rgba(251,191,36,0.4); }
+.myfb-triage-status-accepted .myfb-triage-dot { background: #fbbf24; }
+.myfb-triage-status-rejected { color: #f87171; border-color: rgba(248,113,113,0.4); }
+.myfb-triage-status-rejected .myfb-triage-dot { background: #f87171; }
+.myfb-triage-status-shipped  { color: #4ade80; border-color: rgba(74,222,128,0.4); }
+.myfb-triage-status-shipped  .myfb-triage-dot { background: #4ade80; }
+
+/* Priority dot */
+.myfb-triage-priority {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px;
+}
+.myfb-triage-priority-low      { color: #64748b; }
+.myfb-triage-priority-medium   { color: #cbd5e1; }
+.myfb-triage-priority-high     { color: #fb923c; }
+.myfb-triage-priority-critical { color: #ef4444; animation: myfb-triage-pulse 1.4s infinite ease-in-out; }
+@keyframes myfb-triage-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* Tags */
+.myfb-triage-tags {
+  display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center;
+}
+.myfb-triage-tag {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 1px 8px;
+  background: rgba(43,212,217,0.12);
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: #2bd4d9;
+}
+.myfb-triage-tag-x {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 0 0 2px;
+}
+.myfb-triage-tag-x:hover { color: #f87171; }
+.myfb-triage-add-tag {
+  background: transparent;
+  border: 1px dashed rgba(255,255,255,0.18);
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1;
+}
+.myfb-triage-add-tag:hover {
+  border-color: #2bd4d9; color: #2bd4d9;
+}
+
+/* Comments toggle + thread */
+.myfb-triage-comments {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #cbd5e1;
+  cursor: pointer;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-family: inherit;
+}
+.myfb-triage-comments:hover { border-color: #2bd4d9; color: #2bd4d9; }
+
+.myfb-triage-comments-thread {
+  flex-basis: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+}
+.myfb-triage-thread-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; margin-bottom: 8px; }
+.myfb-triage-thread-empty { font-size: 11px; color: #64748b; margin: 0; text-align: center; padding: 8px 0; }
+.myfb-triage-comment {
+  background: rgba(255,255,255,0.04);
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+.myfb-triage-comment-meta {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: #64748b; margin-bottom: 4px;
+}
+.myfb-triage-comment-author { font-weight: 700; font-family: ui-monospace, monospace; color: #94a3b8; }
+.myfb-triage-comment-edited { font-style: italic; }
+.myfb-triage-comment-del {
+  margin-left: auto;
+  background: transparent; border: none;
+  color: #64748b; cursor: pointer; font-size: 13px;
+}
+.myfb-triage-comment-del:hover { color: #f87171; }
+.myfb-triage-comment-text { font-size: 12px; line-height: 1.45; color: #e2e8f0; white-space: pre-wrap; word-break: break-word; }
+
+.myfb-triage-thread-form { display: flex; gap: 6px; }
+.myfb-triage-thread-input {
+  flex: 1;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #f1f5f9;
+  font-family: inherit;
+  font-size: 12px;
+}
+.myfb-triage-thread-input:focus { outline: none; border-color: #2bd4d9; }
+.myfb-triage-thread-send {
+  padding: 6px 12px;
+  background: #2bd4d9;
+  color: #0f172a;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 11.5px;
+}
+.myfb-triage-thread-send:hover { background: #4ee6eb; }
