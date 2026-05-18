@@ -1,0 +1,58 @@
+/* My-Feedbacks video recorder + quick-tools config (v2.2) */
+
+/* Recording state on the video subline button */
+.subline-btn[data-act="video"].is-recording,
+.tool-btn[data-act="video"].is-recording {
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+  position: relative;
+}
+.subline-btn[data-act="video"].is-recording::after,
+.tool-btn[data-act="video"].is-recording::after {
+  content: '';
+  position: absolute;
+  top: 3px; right: 3px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: myfb-rec-pulse 1s ease infinite;
+}
+@keyframes myfb-rec-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* Hide a tool when disabled in Settings */
+.tool-btn.is-hidden,
+.tool-btn[hidden],
+.subline-btn.is-hidden,
+.subline-btn[hidden] { display: none !important; }
+
+/* Settings → Outils rapides */
+.myfb-qt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.myfb-qt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.myfb-qt-row:hover { background: rgba(255,255,255,0.06); }
+.myfb-qt-row input { accent-color: #2bd4d9; width: 16px; height: 16px; cursor: pointer; }
+.myfb-qt-label { flex: 1; font-size: 12.5px; color: #f1f5f9; font-weight: 600; }
+.myfb-qt-key {
+  font-size: 10px;
+  color: #64748b;
+  background: rgba(0,0,0,0.25);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+}

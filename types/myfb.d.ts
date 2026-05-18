@@ -158,6 +158,8 @@ declare global {
     MyFbLegacyEventBridge?: { [k: string]: any };
     MyFbStateSync?: { [k: string]: any };
     MyFbPrivacyControls?: { [k: string]: any };
+    MyFbVideoRecorder?: { [k: string]: any };
+    MyFbQuickToolsConfig?: { [k: string]: any };
     MyFbNetworkBridge?: { [k: string]: any };
     MyFbIntentParser?: { [k: string]: any };
     MyFbLog?:      (level: string, ...args: any[]) => void;
