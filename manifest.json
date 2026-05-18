@@ -24,7 +24,7 @@
       "matches": ["<all_urls>"],
       "run_at": "document_start",
       "world": "MAIN",
-      "js": ["content/page-error-monitor.js"]
+      "js": ["content/page-error-monitor.js", "content/network-monitor.js"]
     },
     {
       "matches": ["<all_urls>"],
@@ -46,6 +46,7 @@
         "content/screenshot.js",
         "content/screenshot-editor.js",
         "content/ref-overlay.js",
+        "content/breadcrumbs.js",
         "content/main.js",
         "content/inject.js"
       ]

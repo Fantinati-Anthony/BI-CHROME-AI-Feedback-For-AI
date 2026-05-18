@@ -136,10 +136,13 @@
       case transports.TRANSPORTS.SOLO:
         return transports.solo.create();
       case transports.TRANSPORTS.SHARED_FOLDER:
+        // Available since v1.5. Caller must run tx.init({ dirHandle })
+        // separately — bootstrap can't pick a folder unattended.
+        return (transports.sharedFolder || transports.solo).create();
       case transports.TRANSPORTS.SELF_HOSTED:
       case transports.TRANSPORTS.CLOUD:
-        // Not implemented yet (v1.2 / v1.3 / v2.0) — fall back to solo
-        // so the UI keeps working instead of crashing.
+        // Not implemented yet (v2.0) — fall back to solo so the UI
+        // keeps working instead of crashing.
         return transports.solo.create();
       default:
         return transports.solo.create();
