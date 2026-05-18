@@ -228,5 +228,10 @@
     if (window.MyFbDataControls) {
       window.MyFbDataControls.init();
     }
+
+    // v1.16: Pairing UI inside Settings → Liaisons.
+    if (window.MyFbPairingUi) {
+      window.MyFbPairingUi.init();
+    }
   });
 })();
