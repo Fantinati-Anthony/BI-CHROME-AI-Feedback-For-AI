@@ -155,6 +155,83 @@ cloud), AI-native via Claude, GDPR-conscious from day one.
 - v2.0: Tier 3 (self-hosted PHP/MySQL server, open-source AGPL)
 - v2.x: Tier 4 (my-feedbacks.com hosted cloud)
 
+### Added — visible UI for v1.0.0 launch (PRs 9 → 18)
+
+**AI integration UI** (v1.8)
+- `sidepanel/ai-ui.js` — Settings → IA section with API key input
+  (password, 600 ms debounced save), model picker (Opus 4.7 / Sonnet
+  4.6 / Haiku 4.5), "Test connection" button + status badge
+- Per-card ✨ button (decorator) opens a menu with "Résumer cette
+  demande" and "Suggérer un triage" — calls Anthropic, renders result
+  inline, applies suggested triage with one click
+
+**Settings UI complete** (v1.9)
+- Settings → "Cet appareil" — UUID display + 📋 copy + live deviceMeta
+  dump (browser, OS, viewport, DPR, deviceClass, language, network) +
+  "Refaire l'onboarding" / "Régénérer l'UUID" buttons
+- Settings → "Synchronisation" — 4-mode picker (Solo / Shared folder /
+  Self-hosted [v2.0] / Cloud [v2.0+]). For "Shared folder" :
+  showDirectoryPicker() integration that hands the dirHandle to the
+  tier-2 transport, hot-swaps runtime.transport, shows live status
+- Settings → "Liaisons" — empty state + structured list once partners
+  exist (rows with role + status pill)
+
+**Sync engine** (v1.10)
+- `shared/core/sync-engine.js` — bridges the local event store and
+  the active transport. ingest / syncNow / pushOne / start / stop /
+  status. Auto-pull every 30 s (configurable). Idempotent dedup via
+  seen-set + store ConstraintError. attach(ctx) wraps ctx.emit so
+  locally-emitted events auto-push.
+
+**Per-card export picker** (v1.11)
+- `sidepanel/export-picker.js` + `content/network-bridge.js` :
+  ↗ button on each card opens a 9-target menu (Claude / ChatGPT /
+  Gemini / Mistral / Perplexity / Cursor / Aider / VS Code Copilot /
+  mailto). Routes per kind (url / cli clipboard / mailto). Prompt
+  builder pulls breadcrumbs + network failures from active tab in
+  parallel — best-effort. Network bridge listens to the MAIN-world
+  CustomEvent and exposes the buffer to chrome.tabs.sendMessage.
+
+**Triage UI** (v1.12 + v1.13)
+- `sidepanel/triage-ui.js` — status chip (cycle new → accepted →
+  rejected → shipped), priority dot (cycle low → medium → high →
+  critical, pulses on critical), tag pills with × + "+", comments
+  thread with delete (confirm) + edit-flag + inline form
+- `sidepanel/triage-filter.js` — pill bar above #segments with live
+  counts via MyFbTriage.statusCounts(), filter persisted in
+  chrome.storage.local, applies via CSS attribute selector
+
+**GDPR data controls** (v1.14)
+- `sidepanel/data-controls.js` — Settings → "Vos données" with
+  ⬇ Export full bundle, 🔄 Reset profile, 🗑 Delete all my data.
+  3-step confirm flow on delete (offers pre-export bundle, final ⚠
+  warning, then auto-reload). Wipes chrome.storage local+sync +
+  IndexedDB. RGPD compliance for Chrome Web Store EU review.
+
+**Pairing protocol** (v1.15 + v1.16 + v1.17)
+- `shared/core/pairing.js` — generateCode / parseCode / fingerprintOf.
+  6-char MYFB-XXXXXX codes (Crockford-ish base32 + checksum).
+  Deterministic from UUID, shareable by voice/email/chat.
+- `sidepanel/pairing-ui.js` — Settings → Liaisons enriched with
+  "Mon code" (admin) + 📋 copy and "Coller un code reçu" (client)
+  with format/checksum/empty/self-pair handling.
+- `shared/core/pairing-handler.js` — reactive layer that auto-emits
+  link.accepted when a link.requested with matching fingerprint
+  arrives via sync. Idempotent. resolvePlaceholders() helper swaps
+  "pending:<fingerprint>" keys to full UUID once link.accepted
+  is observed.
+
+### Tests
+- Total: **341 tests passing** (from 296 in the previous v1.0.0 batch)
+- New : ai-client x19, export-targets x12, sync-engine x16,
+  data-controls x5, pairing x13, pairing-handler x11
+- DOM-heavy UI modules (triage-ui, ai-ui, settings-ui, etc.) are not
+  unit-tested — their underlying APIs are.
+
+### i18n
+- 547 keys × 7 languages = **3,829 strings**
+- Audit clean (`npm run i18n:check` green)
+
 ## [Unreleased]
 
 ### Changed

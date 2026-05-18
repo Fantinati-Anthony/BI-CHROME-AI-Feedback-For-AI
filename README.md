@@ -167,10 +167,9 @@ tests/          vitest + jsdom
 ## Roadmap
 
 - ✅ **v1.0.0** — Foundation : rebrand, event sourcing core, tier Solo
-- 🟡 **v1.1** — UX V4 : wizard, rôles, overlays page, triage, comments, breadcrumbs
-- 🟡 **v1.2** — Tier 2 (shared folder) + IA (résumé, triage suggéré)
-- 🟡 **v1.3** — Tier 3 (self-hosted server open-source, repo séparé)
-- 🟡 **v2.0** — Tier 4 (my-feedbacks.com cloud + dashboard + billing)
+- ✅ **v1.1 → v1.7** — UX V4 complete : onboarding wizard, page overlays, triage workflow, comments, breadcrumbs, network capture, shared-folder transport, AI client + 9 export targets, ship-ready packaging
+- ✅ **v1.8 → v1.17** — Visible UI on top : AI buttons on cards, Settings (device/sync/links/data), sync engine, export picker, triage chips/filter, GDPR controls, pairing codes + handler
+- 🟡 **v2.0** — Tier 3 (self-hosted PHP/MySQL server, open-source AGPL) + Tier 4 (my-feedbacks.com cloud + dashboard + billing on o2switch)
 
 ---
 
