@@ -208,5 +208,10 @@
     if (window.MyFbSettingsUi) {
       window.MyFbSettingsUi.init();
     }
+
+    // v1.11: Per-card "Send to…" multi-target picker.
+    if (window.MyFbExportPicker) {
+      window.MyFbExportPicker.init();
+    }
   });
 })();

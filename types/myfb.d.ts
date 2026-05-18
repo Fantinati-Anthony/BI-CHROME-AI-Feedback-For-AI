@@ -150,6 +150,8 @@ declare global {
     MyFbBreadcrumbs?: { [k: string]: any };
     MyFbAiUi?: { [k: string]: any };
     MyFbSettingsUi?: { [k: string]: any };
+    MyFbExportPicker?: { [k: string]: any };
+    MyFbNetworkBridge?: { [k: string]: any };
     MyFbIntentParser?: { [k: string]: any };
     MyFbLog?:      (level: string, ...args: any[]) => void;
   }

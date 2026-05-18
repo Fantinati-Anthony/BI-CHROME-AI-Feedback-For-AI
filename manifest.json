@@ -47,6 +47,7 @@
         "content/screenshot-editor.js",
         "content/ref-overlay.js",
         "content/breadcrumbs.js",
+        "content/network-bridge.js",
         "content/main.js",
         "content/inject.js"
       ]
