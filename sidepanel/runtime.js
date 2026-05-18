@@ -51,6 +51,18 @@
     return bootstrapMod.init().then(function (ctx) {
       // Stash on the namespace so other modules can reach it.
       window.MyFb.runtime = ctx;
+      // Wire the sync engine — wraps ctx.emit so locally-emitted
+      // events also push to the transport, and subscribes to remote
+      // events from the transport.
+      var syncMod = window.MyFb.core && window.MyFb.core.syncEngine;
+      if (syncMod) {
+        try {
+          var engine = syncMod.attach(ctx);
+          // Start the engine in the background — failures are surfaced
+          // in engine.status() and the UI shows them in Settings → Sync.
+          engine.start().catch(function () {});
+        } catch (_) { /* solo transport may not need the engine; ignore */ }
+      }
       // First-launch onboarding gate.
       if (window.MyFbOnboarding && window.MyFbOnboarding.shouldOpen(ctx.profile)) {
         // Defer to next frame so the panel has rendered first.
