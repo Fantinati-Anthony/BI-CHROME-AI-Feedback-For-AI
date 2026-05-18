@@ -78,13 +78,21 @@
       if (!r.tabUrl) return;
       var host = DOM.hostname ? DOM.hostname(r.tabUrl) : '';
       if (!host || seen[host]) return;
-      seen[host] = true;
+      seen[host] = host; // remember the first tabUrl that matched this host
+      // Capture the first ref URL so the eye picto can re-open the page
+      var firstUrl = r.tabUrl;
       var activeDom = STATE.domainFilter === host;
       parts.push('<button class="seg-filter-badge seg-filter-badge--domain' +
         (activeDom ? ' is-active' : '') +
         '" data-fk="domainFilter" data-fv="' + esc(host) +
         '" title="Filtrer par domaine : ' + esc(host) + '" type="button">' +
-        esc(host) + '</button>');
+        '<span class="seg-filter-badge-label">' + esc(host) + '</span>' +
+        '<span class="seg-filter-badge-open" role="button" tabindex="0" ' +
+              'data-open-url="' + esc(firstUrl) + '" ' +
+              'data-filter-key="domainFilter" data-filter-val="' + esc(host) + '" ' +
+              'title="Ouvrir cette page + filtrer par ce domaine" ' +
+              'aria-label="Ouvrir cette page + filtrer par ce domaine">👁</span>' +
+        '</button>');
     });
     // User-defined tags — clickable to filter, ✕ to remove on hover.
     var origIndexAttr = STATE.demandes.indexOf(dem);
