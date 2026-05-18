@@ -55,7 +55,7 @@ cpSync(join(DIST, 'background.bundle.js'), join(STAGE, 'background.bundle.js'));
 // Source files referenced from manifest content_scripts
 //  → we keep the source layout under shared/ and content/ for clarity.
 //  → the side panel HTML loads scripts directly, so we ship those too.
-const RUNTIME_DIRS = ['shared', 'content', 'sidepanel'];
+const RUNTIME_DIRS = ['shared', 'content', 'sidepanel', 'logos'];
 RUNTIME_DIRS.forEach((d) => {
   cpSync(join(ROOT, d), join(STAGE, d), { recursive: true });
 });
