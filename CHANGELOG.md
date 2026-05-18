@@ -4,7 +4,39 @@ All notable changes to My-Feedbacks are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] — Unreleased (v1 foundation)
+## [1.0.0] — Unreleased
+
+Initial public release under the **My-Feedbacks** brand. Local-first
+feedback bridge between developers and their clients. Event-sourced
+core, 4-tier sync architecture (solo / shared-folder / self-hosted /
+cloud), AI-native via Claude, GDPR-conscious from day one.
+
+### Highlights
+
+- **Event sourcing** — every state change is an immutable event in
+  IndexedDB. Sync, undo, audit log and multi-device become trivial.
+- **4-screen onboarding wizard** — role (admin / client), identity,
+  pairing (placeholder for v1.7+), RGPD consent.
+- **Persistent ref overlays** — toggle 👁 in topbar to show captured
+  picker / screenshot regions as cadres on the host page, with badge
+  showing the demande number. Click badge → opens the panel.
+- **Triage workflow** — status (new / accepted / rejected / shipped),
+  priority (low / medium / high / critical), assignee, tags, and a
+  threaded comments API.
+- **Passive capture** — last 20 breadcrumbs (clicks, submits, focus,
+  navigations) + last 20 network failures + JS errors. Auto-attached
+  to feedbacks per consent toggle.
+- **Tier 2 sync (shared folder)** — point two installs at the same
+  Drive / Dropbox / OneDrive folder, sync via append-only JSONL.
+  Conflict-free thanks to idempotent event ids.
+- **AI integration** — paste your Anthropic API key in Settings, get
+  `summarize()` and `suggestTriage()` on any feedback. Choice between
+  Claude Opus 4.7 / Sonnet 4.6 / Haiku 4.5.
+- **Multi-target export** — one-click send to Claude.ai, ChatGPT,
+  Gemini, Mistral, Perplexity, Cursor, Aider, VS Code Copilot, mailto.
+- **Privacy first** — local-first by design, opt-in consent toggles,
+  PII auto-scrubbing always-on, no telemetry, no analytics, no phone-
+  home. EU-friendly defaults.
 
 ### Changed (BREAKING — fresh launch, no migration)
 - **Rebrand** : `BIAIF` → `MyFb` (code), `BI Chrome AI Feedback` →
@@ -37,9 +69,91 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
   transport-solo. Couvre l'idempotence sync, l'ordering, la
   forward-compat, et le KV meta.
 
-### Notes
-- Le core est livré mais **pas encore câblé** dans l'UI side panel — la
-  migration progressive vers l'event store se fait en v1.1.
+### Added — runtime + onboarding (was v1.1 + v1.2)
+
+- **`shared/core/device-meta.js`** — persistent UUID in chrome.storage.sync,
+  rich `collectDeviceMeta()` snapshot (browser, OS, viewport, DPR, screen,
+  hardware, prefs, network, locale, performance), `anonymize()` for the
+  opt-in anonymous mode.
+- **`shared/core/profile.js`** — admin/client role + RGPD consent toggles,
+  conservative client defaults (breadcrumbs off), validate / update /
+  acceptConsent / hasOnboarded helpers, chrome.storage.sync persistence.
+- **`shared/core/bootstrap.js`** — `init()` that opens IndexedDB,
+  hydrates the lamport clock, loads/creates UUID, loads profile,
+  replays events, emits `device.connected` on first run, returns a
+  ctx with an `emit(type, payload)` helper.
+- **`sidepanel/runtime.js`** — orchestrates `bootstrap.init()` + the
+  first-launch onboarding overlay. Fire-and-forget so failures don't
+  block the legacy UI.
+- **`sidepanel/onboarding.js` + CSS** — 4-screen overlay (role /
+  identity / pairing-placeholder / RGPD consent). Skippable from any
+  screen, falls back to a conservative admin profile.
+
+### Added — page overlays (was v1.3)
+
+- **`content/ref-overlay.js`** — Shadow-DOM mounted overlay layer,
+  z-index max - 1, `pointer-events: none`. Re-resolves `ref.selector`
+  each frame, falls back to stored `box` with stale style if element
+  is gone. Bucket overlapping refs into a single overlay with combined
+  badge ("1+2"). Repositions on scroll / resize / SPA URL change.
+- **`sidepanel/overlay-controller.js`** — toggle button in topbar-extras
+  with mini count badge. Broadcasts ref list filtered by active tab
+  URL via `chrome.tabs.sendMessage`.
+- Badge click → side panel scrolls + flashes the matching segment card.
+
+### Added — triage workflow (was v1.4)
+
+- **`sidepanel/triage-api.js`** — `MyFbTriage.{setStatus,getStatus,
+  setPriority,getPriority,setAssignee,getAssignee,addTag,removeTag,
+  getTags,addComment,editComment,deleteComment,listComments,
+  listByStatus,listByPriority,listByAssignee,listByTag,statusCounts}`.
+  All headless-testable, safe no-ops when runtime not booted.
+
+### Added — passive capture + tier 2 sync (was v1.5)
+
+- **`content/breadcrumbs.js`** — rolling 20-entry buffer of click /
+  submit / focus / navigate. Never captures field values, skips
+  password/cc inputs entirely. PII-scrubbed via MyFbScrub.
+- **`content/network-monitor.js`** (MAIN world) — wraps `window.fetch`
+  + `XMLHttpRequest.send` to keep last 20 FAILURES (status ≥ 400 OR
+  network error). No body, no headers, no cookies.
+- **`shared/core/transports/shared-folder.js`** — append-only JSONL
+  via File System Access API. Push / pull / subscribe / dispose.
+  Conflict-free via event-id dedup.
+- Wired into `bootstrap._createTransport` so `MyFb.runtime` can pick
+  this tier as soon as the UI lets the user choose a folder.
+
+### Added — AI client + export targets (was v1.6)
+
+- **`shared/core/ai-client.js`** — thin wrapper over Anthropic Messages
+  API. `summarize()`, `suggestTriage()`, `complete()`. Picks model
+  from Opus 4.7 / Sonnet 4.6 / Haiku 4.5 (default haiku). API key
+  stored locally only. CSP allows `https://api.anthropic.com`.
+- **`shared/core/export-targets.js`** — catalog of 9 destinations with
+  per-target URL builders: claude / chatgpt / gemini / mistral /
+  perplexity / cursor / aider / vscode-copilot / mailto.
+
+### Privacy / Security
+
+- PRIVACY.md exhaustively updated with the v1 storage layout,
+  consent toggles, and network-call inventory (every outbound HTTP
+  documented — there are very few).
+
+### Tests
+
+- **296 tests** (vs 168 in pre-v1 BIAIF) covering the entire new core
+  + onboarding + overlay controller + triage API + AI client +
+  export targets + shared-folder transport.
+- All run headless via Vitest + jsdom + fake-indexeddb.
+
+### Notes for future work (v1.x roadmap visible in README)
+
+- v1.7: Settings → AI panel UI for API key input
+- v1.7: Per-segment "Summarize" + "Suggest triage" buttons
+- v1.7: Multi-target export picker on segment cards
+- v1.8: Tier 2 folder-picker UI in Settings → Sync
+- v2.0: Tier 3 (self-hosted PHP/MySQL server, open-source AGPL)
+- v2.x: Tier 4 (my-feedbacks.com hosted cloud)
 
 ## [Unreleased]
 

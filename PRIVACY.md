@@ -6,15 +6,45 @@ My-Feedbacks is **fully local-first**: nothing leaves your browser unless you ex
 
 | Claim | Status |
 |---|---|
-| Sends your prompts to a third-party server | ❌ Never |
+| Sends your prompts to a third-party server unprompted | ❌ Never |
 | Collects analytics / telemetry | ❌ Never |
 | Reads cookies, localStorage of visited sites | ❌ Never |
 | Injects ads / modifies foreign DOM beyond picker/capture overlays | ❌ Never |
 | Phones home for updates / config | ❌ Never |
 | Uses `chrome.storage.local` for your history | ✅ Yes (your machine only) |
-| Uses `chrome.storage.sync` to sync your **settings + templates** across your own devices | ✅ Optional, opt-in |
+| Uses `chrome.storage.sync` to sync your **profile (UUID, role, name, consent), settings + templates** across your own Chromes | ✅ Optional, opt-in |
+| Uses `IndexedDB` for the event log (since v1.0) and binary blobs (screenshots) | ✅ Yes (your machine only) |
 | Re-encodes screenshots to JPEG before storage | ✅ Yes (saves quota) |
 | Auto-redacts PII / secrets (emails, IBAN, JWT, Bearer/sk-, Luhn-valid cards) | ✅ Yes, default ON |
+| Generates a persistent device UUID on first run | ✅ Yes (regeneratable on demand) |
+| Captures recent JS errors / network failures / breadcrumbs on the page | ✅ Yes — but **only** included in a feedback if YOU click "Send" with the matching consent toggle ON |
+| Calls api.anthropic.com (Claude) for "Summarize" / "Suggest triage" | ⚠ Only if YOU paste your own API key in Settings → AI and click the button. Your key is stored locally only. |
+
+## What's stored on your machine
+
+| Data | Where | Lifecycle |
+|---|---|---|
+| Your demandes (text + refs) | `chrome.storage.local` (`myfb:v1:state`) | Until you delete |
+| Event log (every state mutation) | `IndexedDB` (`my-feedbacks` db, `events` store) | Until you delete |
+| Blobs (screenshots) | `IndexedDB` (`my-feedbacks` db, `blobs` store) | GC'd when no demande references them |
+| Profile (UUID, role, displayName, email, consent toggles) | `chrome.storage.sync` (`myfb:profile:v1`) | Until you reset profile or uninstall |
+| Lamport clock counter | `IndexedDB` meta store | Until you clear data |
+| Anthropic API key (if you configured one) | `chrome.storage.local` (`myfb:ai:anthropic-key`) | Until you clear |
+| Overlay-toggle visibility preference | `chrome.storage.local` (`myfb:overlays:visible`) | Until you toggle off |
+
+## Network calls
+
+My-Feedbacks makes a network call ONLY when you trigger an explicit action :
+
+| Action | Destination | What's sent |
+|---|---|---|
+| "Send to Claude.ai" button | https://claude.ai/new?q=… | The formatted prompt only |
+| "Send to ChatGPT" / "Perplexity" / etc. | Their public URL | The formatted prompt only |
+| "Summarize" / "Suggest triage" (Settings → AI configured) | https://api.anthropic.com/v1/messages | Your prompt + the API key YOU provided. No UUID / no device meta unless those are inside the prompt text you authored. |
+| "Send to VS Code" | http://127.0.0.1:51473 (local bridge) | The formatted prompt + screenshots, to your own machine only |
+| "Send via tier 2 shared folder" (v1.5+) | The folder YOU picked (Drive / Dropbox / OneDrive) | The event log JSONL line |
+
+That's the full list. No background pings, no version checks, no analytics, no error reporting to us.
 
 ## Build variants (`dist/`)
 
