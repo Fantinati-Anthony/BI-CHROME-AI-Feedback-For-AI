@@ -96,31 +96,109 @@
 }
 
 .myfb-tp-chip {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 4px 10px 4px 8px;
+  display: inline-flex; align-items: stretch; gap: 0;
   background: var(--tp-bg);
   border: 1px solid var(--tp-bd);
   border-radius: var(--radius-pill);
   color: var(--tp-tx);
   font: inherit; font-size: 11.5px; font-weight: 600;
-  cursor: pointer; transition: all 0.14s;
+  transition: all 0.14s;
   user-select: none;
+  overflow: hidden;
   /* fallback if CSS vars not set */
   --tp-bg: var(--bg-app);
   --tp-bd: var(--border-card);
   --tp-tx: var(--text-muted);
 }
 .myfb-tp-chip:hover {
-  filter: brightness(1.25);
-  transform: translateY(-1px);
+  filter: brightness(1.15);
   box-shadow: 0 3px 10px rgba(0,0,0,0.25);
 }
-.myfb-tp-chip:active { transform: translateY(0) scale(0.97); }
-
-/* Active state: brighter border, checkmark visible */
 .myfb-tp-chip.is-active {
   box-shadow: 0 0 0 1px var(--tp-bd), 0 2px 8px rgba(0,0,0,0.2);
 }
+
+.myfb-tp-chip-body {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 4px 4px 8px;
+  background: transparent; border: 0; color: inherit;
+  font: inherit; cursor: pointer;
+}
+
+.myfb-tp-action {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid rgba(0,0,0,0.25);
+  color: inherit;
+  cursor: pointer;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.65;
+  transition: opacity 0.12s, background 0.12s;
+}
+.myfb-tp-action:hover { opacity: 1; background: rgba(0,0,0,0.25); }
+.myfb-tp-del:hover { color: #f87171; }
+
+/* ── Inline editor below an edited chip ──────────────────── */
+.myfb-tp-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0;
+  padding: 10px;
+  background: var(--bg-elev, rgba(255,255,255,0.04));
+  border: 1px solid var(--border-card, rgba(255,255,255,0.1));
+  border-radius: 8px;
+  flex-basis: 100%;
+}
+.myfb-tp-editor-row {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.myfb-tp-editor-label {
+  font-size: 11px; color: var(--text-muted, #94a3b8); font-weight: 600;
+}
+.myfb-tp-editor-name {
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--text-strong, #f1f5f9);
+  font: inherit; font-size: 12px;
+}
+.myfb-tp-editor-name:focus { outline: none; border-color: var(--accent-blue, #2bd4d9); }
+.myfb-tp-swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+.myfb-tp-swatch {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.12s;
+}
+.myfb-tp-swatch:hover { transform: scale(1.15); }
+.myfb-tp-swatch.is-active {
+  border-color: var(--text-strong, #f1f5f9);
+  box-shadow: 0 0 0 2px var(--accent-blue, #2bd4d9);
+}
+.myfb-tp-editor-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.myfb-tp-editor-cancel, .myfb-tp-editor-save {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font: inherit; font-size: 11.5px; font-weight: 600;
+  cursor: pointer;
+}
+.myfb-tp-editor-cancel {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text-muted, #94a3b8);
+}
+.myfb-tp-editor-save {
+  background: var(--accent-blue, #2bd4d9);
+  border: 0;
+  color: #0f172a;
+}
+.myfb-tp-editor-save:hover { filter: brightness(1.1); }
 
 .myfb-tp-hash {
   opacity: 0.65; font-size: 10px; font-weight: 700; flex-shrink: 0;
