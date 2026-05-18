@@ -1,0 +1,41 @@
+/* My-Feedbacks Privacy Controls UI (v2.0) */
+
+.myfb-priv-toggle { margin-bottom: 12px; }
+.myfb-priv-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(43, 212, 217, 0.04);
+  border: 1px solid rgba(43, 212, 217, 0.15);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.myfb-priv-toggle-row input { margin-top: 2px; accent-color: #2bd4d9; width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+.myfb-priv-toggle-text { display: flex; flex-direction: column; gap: 3px; }
+.myfb-priv-toggle-label { font-size: 12.5px; font-weight: 600; color: #f1f5f9; }
+.myfb-priv-toggle-detail { font-size: 11px; color: #94a3b8; line-height: 1.45; }
+
+.myfb-priv-stats {
+  margin-top: 6px;
+  margin-left: 28px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.myfb-priv-mini-btn {
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #94a3b8;
+  font: inherit; font-size: 10.5px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.myfb-priv-mini-btn:hover { border-color: #f87171; color: #f87171; }
+.myfb-priv-actions { margin-top: 8px; }
