@@ -107,6 +107,68 @@ toast.show("Demande #N → VS-Code Terminal")
 
 ---
 
+## Data flow: DB context bridge (v2.4)
+
+Goal — feed the AI with the structure + a few rows of the client's
+database so the model can reason about real schema, not hallucinate.
+
+```
+Side panel                  Service Worker          User's webserver
+──────────                  ──────────────          ─────────────────
+db-profiles-ui.js           messages.js             myfb-bridge.php
+"🔄 Rafraîchir"
+   │
+   ├─ readSecret(profile) ─► AES-GCM decrypt
+   │                          (key from IndexedDB,
+   │                           extractable: false)
+   │
+   ├─ db-bridge-client.js:
+   │   body = { op, args, ts, nonce }
+   │   sig  = HMAC-SHA256(secret,
+   │                       ts.nonce.op.canonArgs)
+   │
+   └─ chrome.runtime.sendMessage({
+        type: 'myfb:db-bridge-call',
+        url:  profile.bridgeUrl,
+        body: body
+      }) ──────────────────► fetch(url, POST body) ──► HMAC verify
+                                                       nonce replay check
+                                                       PDO prepared
+                                                       op switch
+                                                          (meta / tables /
+                                                           describe / sample /
+                                                           count / schema_md)
+                             ◄──────────────────────── JSON response
+       ◄──── { ok, status,                              { ok, data, version }
+              body, raw }
+   │
+   ├─ humanizeError(status, raw)  // network ? 401 ? 5xx ?
+   ├─ version check vs MIN_BRIDGE_VERSION
+   │
+   └─ profile.schemaMd = data.markdown
+      persist(STATE)
+      render()
+```
+
+**Why this routing** — sidepanel pages run under a strict CSP
+(`connect-src 'self' …`) that forbids `fetch()` to arbitrary HTTPS
+hosts. The service worker has no such limit, so the sidepanel signs
+the body locally and asks the SW to do the actual POST.
+
+**Why we never send the secret over the wire** — only the signature
+travels. The secret stays in the extension's encrypted IndexedDB
+store (`myfb-secret-crypto` DB, `extractable: false` AES-GCM key).
+Even a script injected into the extension cannot `exportKey()` it.
+
+**Why the bridge is a single PHP file** — universally drop-in on any
+LAMP host (cPanel, OVH mutualisé, WordPress, …) that already runs
+PHP-FPM. The setup wizard (first GET request) writes
+`myfb-bridge.config.php` with the secret + DB credentials, then
+self-locks. See `bridge/README.md`, `bridge/SECURITY.md` for the
+threat model, `bridge/EXAMPLES.md` for curl recipes.
+
+---
+
 ## Storage versioning
 
 `chrome.storage.local[My-Feedbacks.STORAGE_KEY]` holds a single object with
@@ -180,6 +242,9 @@ shape transformation in `_migrateLegacy()` if needed.
 | `toast.js`  | Notification queue (max 4) |
 | `undo.js`   | Undo stack (max 50) |
 | `wizard.js` | First-run onboarding modal |
+| `db-bridge-client.js` (v2.4) | HMAC-SHA256 request signer + version check + `_humanizeError`. Routes the actual fetch through the SW (sidepanel CSP forbids arbitrary `connect-src`). |
+| `db-profiles-ui.js`  (v2.4) | CRUD for `STATE.dbProfiles`, in-form `🔌 Tester`, `🔄 Rafraîchir`, `📋 Insérer`, `autoInjectForSession()` called from `MyFbSession.startSession()`. |
+| `db-secret-crypto.js` (v2.4) | AES-GCM-256 wrap of the HMAC secret. Non-extractable WebCrypto key persisted in a dedicated IndexedDB (`myfb-secret-crypto`). |
 
 ### `background.js` (service worker)
 
