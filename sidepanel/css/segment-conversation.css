@@ -1,0 +1,168 @@
+/* ============================================================
+   Segment Conversation (v2.5)
+   ============================================================ */
+
+/* ── Composer toolbar (@ / → / ✏) ─────────────────────────── */
+
+.myfb-conv-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  margin-bottom: 4px;
+}
+.myfb-conv-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  color: var(--text-main);
+  font-family: inherit; font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.myfb-conv-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.myfb-conv-btn--primary {
+  background: var(--accent-blue); color: #000; border-color: var(--accent-blue);
+  font-weight: 600;
+}
+.myfb-conv-btn--accept { border-color: #3ecf8e; color: #3ecf8e; }
+.myfb-conv-btn--accept:hover { background: rgba(62, 207, 142, 0.15); }
+.myfb-conv-btn--refuse { border-color: #ff6b6b; color: #ff6b6b; }
+.myfb-conv-btn--refuse:hover { background: rgba(255, 107, 107, 0.15); }
+
+/* ── Draft pills (mentions / target / propose preview) ────── */
+
+.myfb-conv-draft {
+  display: inline-flex; flex-wrap: wrap; gap: 3px;
+  margin-left: 4px;
+}
+.myfb-conv-pill {
+  display: inline-flex; align-items: center;
+  font-size: 10px; padding: 2px 6px;
+  border-radius: 999px; cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.12s;
+}
+.myfb-conv-pill:hover { filter: brightness(1.2); }
+.myfb-conv-pill--mention {
+  background: rgba(45, 212, 217, 0.15);
+  color: #2bd4d9; border: 1px solid rgba(45, 212, 217, 0.4);
+}
+.myfb-conv-pill--target {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.myfb-conv-pill--propose {
+  background: rgba(139, 92, 246, 0.15);
+  color: #b39dff; border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+/* ── Peer picker popover ──────────────────────────────────── */
+
+.myfb-conv-picker {
+  position: relative;
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: 4px;
+  padding: 6px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  max-height: 180px; overflow-y: auto;
+  flex-basis: 100%;
+}
+.myfb-conv-peer-btn {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%;
+  background: transparent; border: 0; padding: 4px 6px;
+  color: var(--text-main); font: inherit; font-size: 11px;
+  text-align: left; cursor: pointer; border-radius: 4px;
+}
+.myfb-conv-peer-btn:hover { background: var(--bg-card-hover); }
+.myfb-conv-peer-role {
+  font-size: 9px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.myfb-conv-picker-empty {
+  font-size: 10px; color: var(--text-muted); font-style: italic;
+  margin: 0; padding: 6px 4px;
+}
+
+/* ── Propose-edit inline editor ───────────────────────────── */
+
+.myfb-conv-propose-editor {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-top: 6px; padding: 8px;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-left-width: 3px;
+  border-radius: 6px;
+  flex-basis: 100%;
+}
+.myfb-conv-propose-editor .myfb-conv-propose-label {
+  font-size: 10px; font-weight: 600; color: #b39dff;
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.myfb-conv-propose-textarea {
+  background: var(--bg-card); color: var(--text-main);
+  border: 1px solid var(--border-card); border-radius: 5px;
+  padding: 6px 8px; font: inherit; font-family: 'Inter', monospace;
+  font-size: 12px; resize: vertical; min-height: 80px;
+  width: 100%; box-sizing: border-box;
+}
+.myfb-conv-propose-actions {
+  display: flex; gap: 6px; justify-content: flex-end;
+}
+
+/* ── Comment with target (amber left border) ──────────────── */
+
+.myfb-conv-comment.is-targeted {
+  border-left: 3px solid #f59e0b;
+  padding-left: 6px;
+}
+.myfb-conv-target-pill {
+  display: inline-block;
+  font-size: 9px; font-weight: 600;
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+  padding: 1px 6px; border-radius: 999px;
+  margin-left: 4px;
+}
+
+/* ── Mention pill inside rendered comment text ────────────── */
+
+.myfb-conv-mention {
+  display: inline-block;
+  background: rgba(45, 212, 217, 0.15);
+  color: #2bd4d9;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* ── Propose card inside rendered comment ─────────────────── */
+
+.myfb-conv-propose {
+  margin-top: 6px; padding: 8px;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-left-width: 3px;
+  border-radius: 6px;
+}
+.myfb-conv-propose--accepted { border-color: rgba(62, 207, 142, 0.45); background: rgba(62, 207, 142, 0.06); }
+.myfb-conv-propose--refused  { border-color: rgba(255, 107, 107, 0.45); background: rgba(255, 107, 107, 0.06); opacity: 0.8; }
+.myfb-conv-propose-label {
+  font-size: 10px; font-weight: 600; color: #b39dff;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+.myfb-conv-propose-status {
+  text-transform: none; font-weight: 600; margin-left: 4px;
+}
+.myfb-conv-propose-text {
+  margin: 4px 0;
+  padding: 6px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  font-family: 'Inter', monospace; font-size: 11px;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 200px; overflow-y: auto;
+}

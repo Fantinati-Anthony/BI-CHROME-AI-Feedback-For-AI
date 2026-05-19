@@ -268,5 +268,10 @@
     if (window.MyFbDbProfilesUi) {
       window.MyFbDbProfilesUi.init(STATE);
     }
+
+    // v2.5: Segment conversation — @-mentions, target, propose-edit.
+    if (window.MyFbSegmentConversation) {
+      window.MyFbSegmentConversation.init();
+    }
   });
 })();

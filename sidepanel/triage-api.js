@@ -133,7 +133,17 @@
 
   // ── Comments ────────────────────────────────────────────────────────
 
-  function addComment(demandeId, text) {
+  /**
+   * Adds a comment to a demande. `opts` (v2.5+, optional) :
+   *   - mentions    Array<string>  : peer UUIDs cited by `@name` in text
+   *   - target      string         : peer UUID the comment is addressed to
+   *                                  (amber left border + "→ Nom" pill)
+   *   - proposeText string         : revised segment text the recipient can
+   *                                  ✅ accept (fires DEMANDE_TEXT_UPDATED)
+   *                                  or ❌ refuse
+   */
+  function addComment(demandeId, text, opts) {
+    opts = opts || {};
     var clean = (text || '').toString().trim();
     if (!clean) return Promise.reject(new Error('[MyFb triage] comment is empty'));
     var ctx = _ctx(); var T = _types(); var ev = window.MyFb && window.MyFb.core && window.MyFb.core.events;
@@ -142,10 +152,61 @@
       return Promise.reject(new Error('[MyFb triage] unknown demande: ' + demandeId));
     }
     var commentId = 'cmt-' + ev.uuid();
-    return ctx.emit(T.DEMANDE_COMMENTED, {
+    var payload = {
       demandeId: demandeId,
       commentId: commentId,
       text:      clean.slice(0, 2000),
+    };
+    if (Array.isArray(opts.mentions) && opts.mentions.length) {
+      payload.mentions = opts.mentions.slice(0, 16).map(String);
+    }
+    if (typeof opts.target === 'string' && opts.target) {
+      payload.target = opts.target;
+    }
+    if (typeof opts.proposeText === 'string' && opts.proposeText.trim()) {
+      payload.proposeText = opts.proposeText.trim().slice(0, 50000);
+    }
+    return ctx.emit(T.DEMANDE_COMMENTED, payload);
+  }
+
+  /**
+   * Accept the proposed segment-text edit attached to a comment. Emits :
+   *   1. DEMANDE_TEXT_UPDATED → segment text is REALLY changed
+   *   2. DEMANDE_COMMENT_EDITED with proposalStatus='accepted' → audit
+   */
+  function acceptProposal(demandeId, commentId) {
+    var ctx = _ctx(); var T = _types();
+    if (!ctx || !T) return Promise.resolve(null);
+    var d = ctx.state.demandes[demandeId];
+    if (!d || !d.comments || !d.comments[commentId]) {
+      return Promise.reject(new Error('[MyFb triage] unknown comment'));
+    }
+    var c = d.comments[commentId];
+    if (!c.proposeText) {
+      return Promise.reject(new Error('[MyFb triage] comment has no proposeText'));
+    }
+    if (c.proposalStatus) {
+      return Promise.reject(new Error('[MyFb triage] proposal already resolved: ' + c.proposalStatus));
+    }
+    return Promise.all([
+      ctx.emit(T.DEMANDE_TEXT_UPDATED,   { id: demandeId, text: c.proposeText }),
+      ctx.emit(T.DEMANDE_COMMENT_EDITED, { demandeId: demandeId, commentId: commentId, proposalStatus: 'accepted' }),
+    ]);
+  }
+
+  /** Refuse a proposed edit — segment text stays untouched, status flagged. */
+  function refuseProposal(demandeId, commentId) {
+    var ctx = _ctx(); var T = _types();
+    if (!ctx || !T) return Promise.resolve(null);
+    var d = ctx.state.demandes[demandeId];
+    if (!d || !d.comments || !d.comments[commentId]) {
+      return Promise.reject(new Error('[MyFb triage] unknown comment'));
+    }
+    if (d.comments[commentId].proposalStatus) {
+      return Promise.reject(new Error('[MyFb triage] proposal already resolved: ' + d.comments[commentId].proposalStatus));
+    }
+    return ctx.emit(T.DEMANDE_COMMENT_EDITED, {
+      demandeId: demandeId, commentId: commentId, proposalStatus: 'refused',
     });
   }
 
@@ -252,6 +313,8 @@
     editComment:    editComment,
     deleteComment:  deleteComment,
     listComments:   listComments,
+    acceptProposal: acceptProposal,
+    refuseProposal: refuseProposal,
     listByStatus:   listByStatus,
     listByPriority: listByPriority,
     listByAssignee: listByAssignee,

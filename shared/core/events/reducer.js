@@ -241,6 +241,10 @@
             authorUuid: e.actorUuid,
             text:       p.text || '',
             ts:         e.ts,
+            // v2.5 — rich segment conversation (optional fields)
+            mentions:    Array.isArray(p.mentions) ? p.mentions.slice() : undefined,
+            target:      p.target || undefined,
+            proposeText: typeof p.proposeText === 'string' && p.proposeText ? p.proposeText : undefined,
           };
           s.demandes[p.demandeId] = dc;
         }
@@ -251,10 +255,23 @@
         if (s.demandes[p.demandeId] && s.demandes[p.demandeId].comments[p.commentId]) {
           var de = Object.assign({}, s.demandes[p.demandeId]);
           de.comments = Object.assign({}, de.comments);
-          de.comments[p.commentId] = Object.assign({}, de.comments[p.commentId], {
-            text:   p.text,
-            edited: true,
-          });
+          var prev = de.comments[p.commentId];
+          var patch = {};
+          // Text-only edit (legacy + UI manual edit)
+          if (typeof p.text === 'string') {
+            patch.text = p.text;
+            patch.edited = true;
+          }
+          // v2.5 — proposal lifecycle (accept / refuse). The reducer
+          // accepts a flag-only payload so the proposal status can be
+          // mutated without touching the comment body.
+          if (p.proposalStatus === 'accepted' || p.proposalStatus === 'refused') {
+            patch.proposalStatus = p.proposalStatus;
+            if (p.proposalStatus === 'accepted') patch.acceptedBy = e.actorUuid;
+            if (p.proposalStatus === 'refused')  patch.refusedBy  = e.actorUuid;
+            patch.proposalResolvedAt = e.ts;
+          }
+          de.comments[p.commentId] = Object.assign({}, prev, patch);
           s.demandes[p.demandeId] = de;
         }
         break;
