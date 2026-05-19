@@ -1,5 +1,5 @@
 /* ============== Filter panel — slide-in drawer (matches .sp pattern) ============== */
-.biaif-filter-overlay {
+.myfb-filter-overlay {
   position: fixed; inset: 0; z-index: 999;
   background: var(--bg-app);
   display: flex; flex-direction: column;
@@ -7,15 +7,15 @@
   transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
-.biaif-filter-overlay.is-open {
+.myfb-filter-overlay.is-open {
   transform: translateX(0);
   pointer-events: all;
 }
 @media (prefers-reduced-motion: reduce) {
-  .biaif-filter-overlay { transition: none; }
+  .myfb-filter-overlay { transition: none; }
 }
 
-.biaif-filter-panel {
+.myfb-filter-panel {
   width: 100%;
   flex: 1;
   background: var(--bg-app);
@@ -28,22 +28,22 @@
   scrollbar-width: thin;
 }
 
-.biaif-filter-header {
+.myfb-filter-header {
   display: flex; align-items: center; gap: 10px;
   padding: 0 0 12px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--border-card);
 }
-.biaif-filter-header > svg { color: var(--accent-blue); flex-shrink: 0; }
-.biaif-filter-header > span {
+.myfb-filter-header > svg { color: var(--accent-blue); flex-shrink: 0; }
+.myfb-filter-header > span {
   flex: 1;
   font-size: 15px; font-weight: 700;
   color: var(--text-main);
   text-transform: none; letter-spacing: 0;
 }
-.biaif-filter-back { /* inherits .sp-back styling */ }
+.myfb-filter-back { /* inherits .sp-back styling */ }
 
-.biaif-filter-clear {
+.myfb-filter-clear {
   flex-shrink: 0;
   padding: 4px 10px;
   background: transparent; color: var(--text-muted);
@@ -52,12 +52,12 @@
   text-transform: none; letter-spacing: 0;
   cursor: pointer; transition: all 0.12s;
 }
-.biaif-filter-clear:hover {
+.myfb-filter-clear:hover {
   color: var(--danger); border-color: var(--danger);
   background: rgba(255, 69, 58, 0.08);
 }
 
-.biaif-filter-search {
+.myfb-filter-search {
   width: 100%; height: 34px;
   padding: 0 10px;
   background: var(--bg-app);
@@ -67,17 +67,17 @@
   outline: none;
   box-shadow: 0 0 6px rgba(14, 165, 183, 0.18);
 }
-.biaif-filter-search::placeholder { color: var(--text-muted); }
+.myfb-filter-search::placeholder { color: var(--text-muted); }
 
-.biaif-filter-row {
+.myfb-filter-row {
   display: flex; flex-direction: column; gap: 4px;
   width: 100%; min-width: 0;
 }
-.biaif-filter-row label {
+.myfb-filter-row label {
   font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
   text-transform: uppercase; color: var(--text-muted);
 }
-.biaif-filter-row select {
+.myfb-filter-row select {
   width: 100%; max-width: 100%;
   height: 32px; padding: 0 28px 0 10px;
   background: var(--bg-app); color: var(--text-main);
@@ -88,14 +88,14 @@
   /* keep native arrow visible */
   -webkit-appearance: auto; appearance: auto;
 }
-.biaif-filter-row select:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(14,165,183,0.15); }
-.biaif-filter-row select option { white-space: normal; overflow-wrap: break-word; }
-.biaif-filter-row select:disabled {
+.myfb-filter-row select:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(14,165,183,0.15); }
+.myfb-filter-row select option { white-space: normal; overflow-wrap: break-word; }
+.myfb-filter-row select:disabled {
   color: var(--text-muted); font-style: italic; cursor: not-allowed;
   opacity: 0.6;
 }
 
-.biaif-filter-stats {
+.myfb-filter-stats {
   text-align: right; font-size: 10px; color: var(--text-muted);
   margin-top: 2px;
 }

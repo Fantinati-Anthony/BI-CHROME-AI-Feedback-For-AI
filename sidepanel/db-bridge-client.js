@@ -1,13 +1,13 @@
 /**
- * BIAIF DB Bridge Client
+ * MyFb DB Bridge Client
  *
  * Client-side companion to bridge/myfb-bridge.php. Handles HMAC-SHA256
  * request signing and routes the fetch through the background service
  * worker (the sidepanel page CSP forbids arbitrary connect-src).
  *
  * Public API:
- *   BIAIFDbBridge.call(profile, op, args) → Promise<data>
- *   BIAIFDbBridge.signRequest(secret, ts, nonce, op, args) → Promise<sigHex>
+ *   MyFbDbBridge.call(profile, op, args) → Promise<data>
+ *   MyFbDbBridge.signRequest(secret, ts, nonce, op, args) → Promise<sigHex>
  *
  * All signing happens via SubtleCrypto. Secrets never leave the
  * sidepanel — only the signature is sent over the wire.
@@ -64,7 +64,7 @@
     var body  = { op: op, args: args || {}, ts: ts, nonce: nonce };
     body.sig = await signRequest(profile.bridgeSecret, ts, nonce, op, body.args);
 
-    var MSG = (window.BIAIF && window.BIAIF.MSG && window.BIAIF.MSG.DB_BRIDGE_CALL) || 'biaif:db-bridge-call';
+    var MSG = (window.MyFb && window.MyFb.MSG && window.MyFb.MSG.DB_BRIDGE_CALL) || 'myfb:db-bridge-call';
     var resp = await new Promise(function (resolve) {
       chrome.runtime.sendMessage({ type: MSG, url: profile.bridgeUrl, body: body }, function (r) {
         resolve(r || { error: 'no response' });
@@ -83,7 +83,7 @@
     return data && data.markdown || '';
   }
 
-  window.BIAIFDbBridge = {
+  window.MyFbDbBridge = {
     call:          call,
     fetchSchemaMd: fetchSchemaMd,
     signRequest:   signRequest,

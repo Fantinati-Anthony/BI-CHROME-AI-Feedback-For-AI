@@ -1,13 +1,13 @@
 /**
- * BIAIF Toast — compact notification bar above footer.
- * Shows up to BIAIF.config.ui.MAX_TOASTS toasts; oldest dismissed when full.
+ * MyFb Toast — compact notification bar above footer.
+ * Shows up to MyFb.config.ui.MAX_TOASTS toasts; oldest dismissed when full.
  */
 (function (window) {
   'use strict';
 
-  var CFG = (window.BIAIF && window.BIAIF.config && window.BIAIF.config.ui) || {};
+  var CFG = (window.MyFb && window.MyFb.config && window.MyFb.config.ui) || {};
   var MAX_TOASTS = CFG.MAX_TOASTS || 4;
-  var DOM = (window.BIAIF && window.BIAIF.dom) || {};
+  var DOM = (window.MyFb && window.MyFb.dom) || {};
   var esc = DOM.esc || function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
   var container = null;
 
@@ -33,7 +33,7 @@
     // ("+N autres") instead of dropping silently — feedback never lost.
     var nonBadge = function () {
       return Array.prototype.filter.call(c.children, function (el) {
-        return !el.classList.contains('biaif-toast--overflow');
+        return !el.classList.contains('myfb-toast--overflow');
       });
     };
     while (nonBadge().length >= MAX_TOASTS) {
@@ -42,7 +42,7 @@
     }
 
     var toast = document.createElement('div');
-    toast.className = 'biaif-toast biaif-toast--' + kind;
+    toast.className = 'myfb-toast myfb-toast--' + kind;
     toast.setAttribute('role', 'status');
 
     var icons = { success: '✓', error: '✕', info: 'ℹ' };
@@ -77,10 +77,10 @@
   // Overflow badge: increments a "+N autres" pill at the top of the stack.
   // Auto-dismisses when its count drops to zero (rare in practice).
   function _bumpOverflow(c) {
-    var badge = c.querySelector('.biaif-toast--overflow');
+    var badge = c.querySelector('.myfb-toast--overflow');
     if (!badge) {
       badge = document.createElement('div');
-      badge.className = 'biaif-toast biaif-toast--overflow biaif-toast--info is-visible';
+      badge.className = 'myfb-toast myfb-toast--overflow myfb-toast--info is-visible';
       badge.setAttribute('role', 'status');
       badge.dataset.count = '0';
       var msg = document.createElement('span');
@@ -92,8 +92,8 @@
     }
     var n = (Number(badge.dataset.count) || 0) + 1;
     badge.dataset.count = String(n);
-    var label = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.t)
-      ? window.BIAIF.utils.t('toast.overflow', '+ {n} autres', { n: n })
+    var label = (window.MyFb && window.MyFb.utils && window.MyFb.utils.t)
+      ? window.MyFb.utils.t('toast.overflow', '+ {n} autres', { n: n })
       : '+ ' + n + ' autres';
     badge.querySelector('.toast-msg').textContent = label.replace('{n}', n);
   }
@@ -130,7 +130,7 @@
     while (c.children.length >= MAX_TOASTS) dismiss(c.firstElementChild, true);
 
     var toast = document.createElement('div');
-    toast.className = 'biaif-toast biaif-toast--' + kind + ' biaif-toast--with-action';
+    toast.className = 'myfb-toast myfb-toast--' + kind + ' myfb-toast--with-action';
     toast.setAttribute('role', 'status');
 
     var icons = { success: '✓', error: '✕', info: 'ℹ' };
@@ -168,6 +168,6 @@
     return toast;
   }
 
-  window.BIAIFToast = { show: show, showAction: showAction };
+  window.MyFbToast = { show: show, showAction: showAction };
 
 })(window);

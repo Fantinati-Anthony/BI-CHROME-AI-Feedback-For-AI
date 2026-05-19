@@ -1,5 +1,5 @@
 /**
- * BIAIF DB-Secret Crypto
+ * MyFb DB-Secret Crypto
  *
  * Wraps WebCrypto to encrypt/decrypt the bridge HMAC secret stored in
  * chrome.storage.local. The AES-GCM 256-bit key is generated once and
@@ -18,14 +18,14 @@
  *     key material on disk. Trade-off accepted; we still raise the bar.
  *
  * Public API:
- *   await BIAIFDbSecretCrypto.encrypt(plaintext)  → { iv, ct } (base64)
- *   await BIAIFDbSecretCrypto.decrypt(envelope)   → plaintext
- *   await BIAIFDbSecretCrypto.ready()             → true once key is loaded
+ *   await MyFbDbSecretCrypto.encrypt(plaintext)  → { iv, ct } (base64)
+ *   await MyFbDbSecretCrypto.decrypt(envelope)   → plaintext
+ *   await MyFbDbSecretCrypto.ready()             → true once key is loaded
  */
 (function (window) {
   'use strict';
 
-  var DB_NAME    = 'biaif-secret-crypto';
+  var DB_NAME    = 'myfb-secret-crypto';
   var STORE_NAME = 'keys';
   var KEY_ID     = 'master';
   var DB_VERSION = 1;
@@ -134,7 +134,7 @@
               typeof v.ct === 'string' && v.iv && v.ct);
   }
 
-  window.BIAIFDbSecretCrypto = {
+  window.MyFbDbSecretCrypto = {
     encrypt:     encrypt,
     decrypt:     decrypt,
     ready:       ready,

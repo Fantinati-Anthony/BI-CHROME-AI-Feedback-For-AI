@@ -1,0 +1,37 @@
+/* My-Feedbacks Overlay Toggle (topbar-extras 3rd button) */
+
+.topbar-overlays-btn {
+  height: 24px;
+  min-width: 24px;
+  padding: 0 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  color: #94a3b8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+.topbar-overlays-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border-color: rgba(43, 212, 217, 0.3);
+}
+.topbar-overlays-btn.is-on {
+  background: rgba(43, 212, 217, 0.18);
+  color: #2bd4d9;
+  border-color: #2bd4d9;
+  box-shadow: 0 0 0 1px rgba(43, 212, 217, 0.25);
+}
+
+/* Flash animation when a segment card is focused from a page badge */
+.myfb-segment.is-flash {
+  animation: myfb-segment-flash 1400ms ease;
+}
+@keyframes myfb-segment-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(43, 212, 217, 0.0); }
+  20%  { box-shadow: 0 0 0 4px rgba(43, 212, 217, 0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(43, 212, 217, 0.0); }
+}

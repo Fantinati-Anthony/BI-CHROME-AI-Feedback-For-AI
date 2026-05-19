@@ -5,22 +5,22 @@ beforeAll(() => {
   loadAddonScript('sidepanel/imaging.js');
 });
 
-describe('BIAIFImaging.bytes', () => {
+describe('MyFbImaging.bytes', () => {
   it('returns 0 for empty input', () => {
-    expect(window.BIAIFImaging.bytes('')).toBe(0);
-    expect(window.BIAIFImaging.bytes(null)).toBe(0);
+    expect(window.MyFbImaging.bytes('')).toBe(0);
+    expect(window.MyFbImaging.bytes(null)).toBe(0);
   });
 
   it('approximates base64 byte length', () => {
     const dataUrl = 'data:image/png;base64,' + 'A'.repeat(100);
     // 100 chars of base64 ≈ 75 bytes
-    expect(window.BIAIFImaging.bytes(dataUrl)).toBe(75);
+    expect(window.MyFbImaging.bytes(dataUrl)).toBe(75);
   });
 });
 
-describe('BIAIFImaging.compressDataUrl', () => {
+describe('MyFbImaging.compressDataUrl', () => {
   it('returns the original on bogus input', async () => {
-    const out = await window.BIAIFImaging.compressDataUrl(null);
+    const out = await window.MyFbImaging.compressDataUrl(null);
     expect(out).toBe(null);
   });
 
@@ -39,7 +39,7 @@ describe('BIAIFImaging.compressDataUrl', () => {
     };
     try {
       const dataUrl = 'data:image/png;base64,not-a-real-image';
-      const out = await window.BIAIFImaging.compressDataUrl(dataUrl);
+      const out = await window.MyFbImaging.compressDataUrl(dataUrl);
       expect(out).toBe(dataUrl);
     } finally {
       window.Image = RealImage;

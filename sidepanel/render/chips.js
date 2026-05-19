@@ -1,5 +1,5 @@
 /**
- * BIAIF Render — Chips
+ * MyFb Render — Chips
  *
  * Reference chips (element / screenshot / error) shown inline in the
  * demande editor and in segment cards. Owns:
@@ -12,10 +12,10 @@
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
-  var ctx   = window.BIAIFRender.ctx;
-  var DOM   = (window.BIAIF && window.BIAIF.dom)   || {};
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  window.MyFbRender = window.MyFbRender || {};
+  var ctx   = window.MyFbRender.ctx;
+  var DOM   = (window.MyFb && window.MyFb.dom)   || {};
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   var esc   = DOM.esc || function (s) { return String(s == null ? '' : s); };
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
@@ -32,7 +32,7 @@
     var isErr  = ref && ref.type === 'error';
     if (isErr) span.classList.add('ref-chip--error');
 
-    var ICONS = window.BIAIFRender.icons;
+    var ICONS = window.MyFbRender.icons;
     var icon  = isShot ? ICONS.image() : isErr ? ICONS.alert() : ICONS.arrow();
 
     var labelKind = isShot ? 'capture' : isErr ? 'erreur' : 'élément';
@@ -125,7 +125,7 @@
       ctx.DRAG.chip = span;
       ctx.DRAG.sourceContainer = span.closest('.demande-editor, .demande-text');
       e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', '__biaif_chip__'); } catch (_) {}
+      try { e.dataTransfer.setData('text/plain', '__myfb_chip__'); } catch (_) {}
       span.classList.add('is-dragging');
     });
     span.addEventListener('dragend', function () {
@@ -170,9 +170,9 @@
       }
       if (!range || !ed.contains(range.startContainer)) ed.appendChild(ctx.DRAG.chip);
       else { ctx.DRAG.chip.remove(); range.insertNode(ctx.DRAG.chip); }
-      if (window.BIAIFSession) window.BIAIFSession.syncCurrentDemandeFromEditor();
-      if (window.BIAIFRender.editor) window.BIAIFRender.editor.renderRefsStrip();
-      if (window.BIAIFStorage) window.BIAIFStorage.persist(ctx.STATE);
+      if (window.MyFbSession) window.MyFbSession.syncCurrentDemandeFromEditor();
+      if (window.MyFbRender.editor) window.MyFbRender.editor.renderRefsStrip();
+      if (window.MyFbStorage) window.MyFbStorage.persist(ctx.STATE);
       ctx.DRAG.chip.classList.remove('is-dragging');
       ctx.DRAG.chip = null; ctx.DRAG.sourceContainer = null;
     });
@@ -195,7 +195,7 @@
     });
   }
 
-  window.BIAIFRender.chips = {
+  window.MyFbRender.chips = {
     make:                makeChipElement,
     renderTextWithChips: renderTextWithChips,
     bindDragEvents:      bindDragEvents,

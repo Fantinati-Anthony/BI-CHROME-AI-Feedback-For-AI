@@ -1,5 +1,5 @@
 /**
- * BIAIF Render — token counter
+ * MyFb Render — token counter
  *
  * Shows a live estimate of the prompt token count next to the
  * "Enregistrer" button. Approximation: chars/4 (matches Claude/GPT
@@ -11,13 +11,13 @@
  *   ─ < 100k  : warn (amber)
  *   ─ ≥ 100k  : danger (red, pulsing)
  *
- * Invocation: BIAIFRender.tokenCounter.update() — debounced from the
+ * Invocation: MyFbRender.tokenCounter.update() — debounced from the
  * editor input listener and from segment renders.
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
-  var ctx = window.BIAIFRender.ctx;
+  window.MyFbRender = window.MyFbRender || {};
+  var ctx = window.MyFbRender.ctx;
 
   var THRESHOLDS = { info: 4000, warn: 32000, danger: 100000 };
 
@@ -64,7 +64,7 @@
   }
 
   function _t(k, fb) {
-    var U = window.BIAIF && window.BIAIF.utils;
+    var U = window.MyFb && window.MyFb.utils;
     return (U && U.t) ? U.t(k, fb) : (fb || k);
   }
 
@@ -111,5 +111,5 @@
     badge.title = _t('tokens.tooltip', 'Estimation des tokens (heuristique BPE)');
   }
 
-  window.BIAIFRender.tokenCounter = { update: update, _estimate: _estimate, _kindFor: _kindFor };
+  window.MyFbRender.tokenCounter = { update: update, _estimate: _estimate, _kindFor: _kindFor };
 })(window);

@@ -1,8 +1,14 @@
 {
-  "name": "biaif",
-  "version": "0.4.0",
+  "name": "my-feedbacks",
+  "version": "2.0.0",
   "private": true,
-  "description": "BIAIF — BI Chrome AI Feedback For AI (Chrome MV3 extension).",
+  "description": "My-Feedbacks — Local-first feedback bridge between developers and their clients (Chrome MV3 extension).",
+  "homepage": "https://my-feedbacks.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fantinati-Anthony/my-feedbacks-extension"
+  },
+  "license": "MIT",
   "scripts": {
     "test":          "vitest run",
     "test:watch":    "vitest",
@@ -11,7 +17,9 @@
     "i18n:check":    "node scripts/i18n-coverage.mjs",
     "i18n:strict":   "node scripts/i18n-coverage.mjs --strict",
     "build":         "node scripts/build.mjs",
-    "build:watch":   "node scripts/build.mjs --watch"
+    "build:watch":   "node scripts/build.mjs --watch",
+    "package":       "node scripts/package.mjs",
+    "package:dev":   "node scripts/package.mjs --dev"
   },
   "devDependencies": {
     "vitest":              "^1.6.0",

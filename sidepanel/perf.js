@@ -1,15 +1,15 @@
 /**
- * BIAIF Perf — local-only performance breadcrumbs.
+ * MyFb Perf — local-only performance breadcrumbs.
  *
  * Tracks a few high-signal metrics in memory (and emits them to the
  * console only when STATE.showConsoleBtn is enabled). NO telemetry,
  * NO network calls — this is purely a debugging aid for power users
  * and contributors.
  *
- *   BIAIFPerf.mark(label)         → records a timestamp
- *   BIAIFPerf.measure(start, end) → reads delta in ms
- *   BIAIFPerf.snapshot()          → { hydrate_ms, render_ms, ... }
- *   BIAIFPerf.observeWebVitals()  → INP / CLS via PerformanceObserver
+ *   MyFbPerf.mark(label)         → records a timestamp
+ *   MyFbPerf.measure(start, end) → reads delta in ms
+ *   MyFbPerf.snapshot()          → { hydrate_ms, render_ms, ... }
+ *   MyFbPerf.observeWebVitals()  → INP / CLS via PerformanceObserver
  */
 (function (window) {
   'use strict';
@@ -57,7 +57,7 @@
     } catch (_) {}
   }
 
-  window.BIAIFPerf = {
+  window.MyFbPerf = {
     mark: mark, measure: measure, snapshot: snapshot, observeWebVitals: observeWebVitals,
   };
 })(window);

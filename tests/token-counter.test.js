@@ -6,13 +6,13 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 
 beforeAll(() => {
-  // The module hangs off window.BIAIFRender — stub the ctx + namespace
+  // The module hangs off window.MyFbRender — stub the ctx + namespace
   // so it can attach without exploding.
-  window.BIAIFRender = { ctx: { STATE: {} } };
+  window.MyFbRender = { ctx: { STATE: {} } };
   loadAddonScript('sidepanel/render/token-counter.js');
 });
 
-const est = (s) => window.BIAIFRender.tokenCounter._estimate(s);
+const est = (s) => window.MyFbRender.tokenCounter._estimate(s);
 
 describe('token-counter._estimate', () => {
   it('returns 0 for empty / nullish input', () => {
@@ -59,7 +59,7 @@ describe('token-counter._estimate', () => {
 });
 
 describe('token-counter._kindFor', () => {
-  const kindFor = (n) => window.BIAIFRender.tokenCounter._kindFor(n);
+  const kindFor = (n) => window.MyFbRender.tokenCounter._kindFor(n);
   it('< 4k → neutral', () => expect(kindFor(100)).toBe('neutral'));
   it('< 32k → info', () => expect(kindFor(5000)).toBe('info'));
   it('< 100k → warn', () => expect(kindFor(50000)).toBe('warn'));

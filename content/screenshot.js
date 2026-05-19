@@ -1,5 +1,5 @@
 /**
- * BIAIF Screenshot — outils étendus depuis Blazing Toolkit.
+ * MyFb Screenshot — outils étendus depuis Blazing Toolkit.
  *
  * Quatre modes de capture :
  *   - capture()              : viewport visible (rapide)
@@ -49,7 +49,7 @@
         this.emit('success', { dataUrl });
         return dataUrl;
       } catch (e) {
-        console.warn('[BIAIF] capture viewport KO :', e.message);
+        console.warn('[MyFb] capture viewport KO :', e.message);
         this.emit('error', { error: e.message });
         return this.fallbackCapture();
       } finally {
@@ -88,7 +88,7 @@
       try {
         return await this.cropAroundElement(fullDataUrl, element);
       } catch (e) {
-        console.warn('[BIAIF] crop KO, on renvoie le viewport entier :', e.message);
+        console.warn('[MyFb] crop KO, on renvoie le viewport entier :', e.message);
         return fullDataUrl;
       }
     },
@@ -198,7 +198,7 @@
           this.emit('error', { error: 'cancelled', cancelled: true });
           return null;
         }
-        console.warn('[BIAIF] full-page KO :', e.message);
+        console.warn('[MyFb] full-page KO :', e.message);
         this.emit('error', { error: e.message });
         return this.fallbackCapture();
       } finally {
@@ -277,7 +277,7 @@
         this.emit('success', { dataUrl: finalDataUrl, mode: 'element-stitch' });
         return finalDataUrl;
       } catch (e) {
-        console.warn('[BIAIF] element-stitch KO :', e.message);
+        console.warn('[MyFb] element-stitch KO :', e.message);
         this.emit('error', { error: e.message });
         return this.fallbackCapture();
       } finally {
@@ -296,7 +296,7 @@
     sendProgress(current, total, label) {
       try {
         chrome.runtime.sendMessage({
-          type: window.BIAIF.MSG.CAPTURE_PROGRESS,
+          type: window.MyFb.MSG.CAPTURE_PROGRESS,
           current: current,
           total: total,
           label: label || ('Section ' + current + '/' + total),
@@ -306,7 +306,7 @@
 
     requestCapture() {
       return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: window.BIAIF.MSG.CAPTURE_TAB }, (resp) => {
+        chrome.runtime.sendMessage({ type: window.MyFb.MSG.CAPTURE_TAB }, (resp) => {
           if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
           if (!resp || resp.error) return reject(new Error(resp?.error || 'capture failed'));
           resolve(resp.dataUrl);
@@ -461,12 +461,12 @@
     openElementPicker({ onPick, onCancel } = {}) {
       this.closePickers();
       const overlay = document.createElement('div');
-      overlay.id = 'biaif-shot-element-overlay';
+      overlay.id = 'myfb-shot-element-overlay';
       Object.assign(overlay.style, {
         position: 'fixed', inset: '0', zIndex: '2147483646', cursor: 'crosshair',
       });
       const hl = document.createElement('div');
-      hl.id = 'biaif-shot-highlight';
+      hl.id = 'myfb-shot-highlight';
       Object.assign(hl.style, {
         position: 'fixed', border: '3px solid #2bd4d9',
         background: 'rgba(43,212,217,0.10)', pointerEvents: 'none',
@@ -521,7 +521,7 @@
     openSelectionOverlay({ onSelect, onCancel } = {}) {
       this.closePickers();
       const overlay = document.createElement('div');
-      overlay.id = 'biaif-shot-selection-overlay';
+      overlay.id = 'myfb-shot-selection-overlay';
       Object.assign(overlay.style, {
         position: 'fixed', inset: '0', background: 'rgba(0,0,0,0.30)',
         cursor: 'crosshair', zIndex: '2147483647',
@@ -587,7 +587,7 @@
     },
 
     closePickers() {
-      ['biaif-shot-element-overlay', 'biaif-shot-selection-overlay', 'biaif-shot-highlight']
+      ['myfb-shot-element-overlay', 'myfb-shot-selection-overlay', 'myfb-shot-highlight']
         .forEach((id) => { const e = document.getElementById(id); if (e) e.remove(); });
     },
 
@@ -596,10 +596,10 @@
     // -------------------------------------------------------------------
 
     showLoader(message = 'Capture en cours…', current = null, total = null, opts = {}) {
-      let loader = document.getElementById('biaif-screenshot-loader');
+      let loader = document.getElementById('myfb-screenshot-loader');
       if (!loader) {
         loader = document.createElement('div');
-        loader.id = 'biaif-screenshot-loader';
+        loader.id = 'myfb-screenshot-loader';
         Object.assign(loader.style, {
           position: 'fixed', inset: '0',
           background: 'rgba(15,23,42,0.85)',
@@ -616,7 +616,7 @@
       spinner.style.cssText =
         'width:46px;height:46px;border:4px solid rgba(255,255,255,0.1);' +
         'border-top-color:#2bd4d9;border-radius:50%;' +
-        'animation:biaif-spin 1s linear infinite;';
+        'animation:myfb-spin 1s linear infinite;';
       loader.appendChild(spinner);
 
       const msg = document.createElement('div');
@@ -659,19 +659,19 @@
 
       // Spin keyframes (static — innerHTML is safe here, no interpolation).
       const styleEl = document.createElement('style');
-      styleEl.textContent = '@keyframes biaif-spin{to{transform:rotate(360deg)}}';
+      styleEl.textContent = '@keyframes myfb-spin{to{transform:rotate(360deg)}}';
       loader.appendChild(styleEl);
 
       loader.style.display = 'flex';
     },
 
     hideLoader() {
-      const loader = document.getElementById('biaif-screenshot-loader');
+      const loader = document.getElementById('myfb-screenshot-loader');
       if (loader) loader.style.display = 'none';
     },
 
     removeLoader() {
-      const loader = document.getElementById('biaif-screenshot-loader');
+      const loader = document.getElementById('myfb-screenshot-loader');
       if (loader) loader.remove();
     },
 
@@ -686,11 +686,11 @@
       // candidats trouvés lors d'un walk peu profond (la plupart des nav
       // bars / cookie banners vivent à <= 6 niveaux du body).
       const style = document.createElement('style');
-      style.id = 'biaif-hide-fixed-style';
+      style.id = 'myfb-hide-fixed-style';
       style.textContent =
         '[style*="position: fixed"],[style*="position:fixed"],' +
         '[style*="position: sticky"],[style*="position:sticky"],' +
-        '.biaif-hidden-fixed{display:none !important}';
+        '.myfb-hidden-fixed{display:none !important}';
       (document.head || document.documentElement).appendChild(style);
 
       const hidden = [];
@@ -700,7 +700,7 @@
         for (const el of parent.children) {
           const cs = window.getComputedStyle(el);
           if (cs.position === 'fixed' || cs.position === 'sticky') {
-            el.classList.add('biaif-hidden-fixed');
+            el.classList.add('myfb-hidden-fixed');
             hidden.push(el);
             // pas de descente dans un sous-arbre déjà masqué
           } else {
@@ -712,28 +712,28 @@
 
       return () => {
         if (style.parentNode) style.remove();
-        hidden.forEach((el) => el.classList.remove('biaif-hidden-fixed'));
+        hidden.forEach((el) => el.classList.remove('myfb-hidden-fixed'));
       };
     },
 
     // Look up the picker overlay/tag inside the picker host's shadow root,
     // with a fallback to the legacy IDs on document for older builds.
     _pickerEls() {
-      const host = document.getElementById('biaif-picker-host');
+      const host = document.getElementById('myfb-picker-host');
       const root = host && host.shadowRoot;
       const fromShadow = root ? {
-        ov: root.getElementById('biaif-picker-overlay'),
-        tg: root.getElementById('biaif-picker-tag'),
+        ov: root.getElementById('myfb-picker-overlay'),
+        tg: root.getElementById('myfb-picker-tag'),
       } : null;
       if (fromShadow && fromShadow.ov) return fromShadow;
       return {
-        ov: document.getElementById('biaif-picker-overlay'),
-        tg: document.getElementById('biaif-picker-tag'),
+        ov: document.getElementById('myfb-picker-overlay'),
+        tg: document.getElementById('myfb-picker-tag'),
       };
     },
 
     hideWidget() {
-      const sb = document.getElementById('biaif-sidebar-host');
+      const sb = document.getElementById('myfb-sidebar-host');
       if (sb) sb.style.visibility = 'hidden';
       const { ov, tg } = this._pickerEls();
       if (ov) { ov.dataset.prevDisplay = ov.style.display; ov.style.display = 'none'; }
@@ -741,7 +741,7 @@
     },
 
     showWidget() {
-      const sb = document.getElementById('biaif-sidebar-host');
+      const sb = document.getElementById('myfb-sidebar-host');
       if (sb) sb.style.visibility = 'visible';
       const { ov, tg } = this._pickerEls();
       if (ov && ov.dataset.prevDisplay !== undefined) ov.style.display = ov.dataset.prevDisplay;
@@ -808,9 +808,9 @@
     },
 
     emit(name, detail = {}) {
-      document.dispatchEvent(new CustomEvent('biaif:screenshot-' + name, { bubbles: true, detail }));
+      document.dispatchEvent(new CustomEvent('myfb:screenshot-' + name, { bubbles: true, detail }));
     },
   };
 
-  window.BIAIFScreenshot = Screenshot;
+  window.MyFbScreenshot = Screenshot;
 })(window, document);

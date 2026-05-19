@@ -1,4 +1,4 @@
-# Contributing to BI Chrome AI Feedback
+# Contributing to My-Feedbacks
 
 Thanks for considering a contribution! This document covers everything
 you need to start hacking — repo layout, dev workflow, code style, and
@@ -56,7 +56,7 @@ To install the VS Code companion:
 cd vscode-extension
 npm install -g vsce            # one-time
 vsce package
-code --install-extension biaif-vscode-bridge-*.vsix
+code --install-extension my-feedbacks-vscode-bridge-*.vsix
 ```
 
 ---
@@ -71,14 +71,14 @@ code --install-extension biaif-vscode-bridge-*.vsix
 - Use `const` / `let` for new code. Existing `var` is tolerated; don't
   bulk-refactor without a reason.
 - Wrap every module in an IIFE: `(function (window) { ... })(window);`
-  and expose a single namespace under `window.BIAIF*`.
+  and expose a single namespace under `window.My-Feedbacks*`.
 - All async messaging through `chrome.runtime.sendMessage` /
   `chrome.tabs.sendMessage` should `.catch(() => {})` to avoid
   unhandled rejection warnings when the receiving end isn't ready —
-  but **log** the error via `BIAIF.log.warn` if it actually matters.
+  but **log** the error via `My-Feedbacks.log.warn` if it actually matters.
 - Reserve `console.log` / `console.warn` for the logger module
-  (`shared/logger.js`). Use `BIAIF.log.debug/info/warn/error` everywhere
-  else. Set `localStorage.BIAIF_LOG_LEVEL = 'debug'` in the side panel
+  (`shared/logger.js`). Use `My-Feedbacks.log.debug/info/warn/error` everywhere
+  else. Set `localStorage.My-Feedbacks_LOG_LEVEL = 'debug'` in the side panel
   (or content script) to enable verbose logs.
 
 ### XSS hygiene
@@ -159,19 +159,19 @@ Open the side panel, then:
 
 ```js
 // In the side panel devtools console:
-localStorage.BIAIF_LOG_LEVEL = 'debug';
+localStorage.My-Feedbacks_LOG_LEVEL = 'debug';
 location.reload();
 
-// Now BIAIF.log.debug(...) calls in any module are visible.
+// Now My-Feedbacks.log.debug(...) calls in any module are visible.
 ```
 
-For service-worker logs: `chrome://extensions/` → BIAIF → "service
+For service-worker logs: `chrome://extensions/` → My-Feedbacks → "service
 worker" link → opens devtools attached to the SW.
 
 For content-script logs: open devtools on the target tab. Content
 scripts share that tab's console.
 
-To inspect the Tiptap editor that BIAIF injects into on Claude.ai:
+To inspect the Tiptap editor that My-Feedbacks injects into on Claude.ai:
 
 ```js
 // In Claude.ai's devtools console:
@@ -199,7 +199,7 @@ Please include:
 1. Update `## [Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD` in
    `CHANGELOG.md`. Add a fresh empty `## [Unreleased]` above it.
 2. Bump `version` in `manifest.json`, `shared/constants.js`
-   (`BIAIF.VERSION`), and `vscode-extension/package.json`.
+   (`My-Feedbacks.VERSION`), and `vscode-extension/package.json`.
 3. Tag the commit: `git tag vX.Y.Z && git push --tags`.
 4. (Future) Build a `.crx` from `chrome://extensions/` "Pack
    extension".

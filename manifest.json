@@ -1,20 +1,32 @@
 {
   "manifest_version": 3,
-  "name": "BI Chrome AI Feedback",
-  "version": "0.5.0",
-  "description": "Capture des feedbacks visuels (sélecteur d'élément CSS) + vocaux (speech-to-text) pour les transmettre à une IA (Claude Code).",
+  "name": "My-Feedbacks",
+  "version": "2.0.0",
+  "description": "Local-first feedback bridge between developers and their clients. Capture visuel, vocal, erreurs JS — exporté vers Claude, ChatGPT, Cursor, VS Code Copilot, Aider.",
   "author": "Anthony Fantinati",
   "minimum_chrome_version": "114",
   "permissions": ["activeTab", "storage", "clipboardWrite", "sidePanel", "contextMenus"],
   "host_permissions": ["<all_urls>"],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://127.0.0.1:51473 http://127.0.0.1:51474 http://127.0.0.1:51475 http://127.0.0.1:51476 http://127.0.0.1:51477 http://127.0.0.1:51478 http://127.0.0.1:51479 http://127.0.0.1:51480 http://127.0.0.1:51481 http://127.0.0.1:51482 http://localhost:51473 http://localhost:51474 http://localhost:51475 http://localhost:51476 http://localhost:51477 http://localhost:51478 http://localhost:51479 http://localhost:51480 http://localhost:51481 http://localhost:51482; img-src 'self' data: blob:"
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com http://127.0.0.1:51473 http://127.0.0.1:51474 http://127.0.0.1:51475 http://127.0.0.1:51476 http://127.0.0.1:51477 http://127.0.0.1:51478 http://127.0.0.1:51479 http://127.0.0.1:51480 http://127.0.0.1:51481 http://127.0.0.1:51482 http://localhost:51473 http://localhost:51474 http://localhost:51475 http://localhost:51476 http://localhost:51477 http://localhost:51478 http://localhost:51479 http://localhost:51480 http://localhost:51481 http://localhost:51482; img-src 'self' data: blob:"
   },
   "background": {
     "service_worker": "background.js"
   },
+  "icons": {
+    "16":  "logos/logo-16x16.png",
+    "32":  "logos/logo-32x32.png",
+    "48":  "logos/logo-48x48.png",
+    "128": "logos/logo-128x128.png"
+  },
   "action": {
-    "default_title": "BI AI Feedback (Alt+Shift+F)"
+    "default_title": "My-Feedbacks (Alt+Shift+F)",
+    "default_icon": {
+      "16":  "logos/logo-16x16.png",
+      "32":  "logos/logo-32x32.png",
+      "48":  "logos/logo-48x48.png",
+      "128": "logos/logo-128x128.png"
+    }
   },
   "side_panel": {
     "default_path": "sidepanel.html"
@@ -24,7 +36,7 @@
       "matches": ["<all_urls>"],
       "run_at": "document_start",
       "world": "MAIN",
-      "js": ["content/page-error-monitor.js"]
+      "js": ["content/page-error-monitor.js", "content/network-monitor.js"]
     },
     {
       "matches": ["<all_urls>"],
@@ -45,6 +57,9 @@
         "content/element-selector.js",
         "content/screenshot.js",
         "content/screenshot-editor.js",
+        "content/ref-overlay.js",
+        "content/breadcrumbs.js",
+        "content/network-bridge.js",
         "content/main.js",
         "content/inject.js"
       ]
@@ -96,7 +111,7 @@
   "commands": {
     "toggle-sidebar": {
       "suggested_key": { "default": "Alt+Shift+F" },
-      "description": "Ouvrir le panneau latéral BIAIF"
+      "description": "Ouvrir le panneau latéral My-Feedbacks"
     },
     "toggle-picker": {
       "suggested_key": { "default": "Alt+Shift+E" },

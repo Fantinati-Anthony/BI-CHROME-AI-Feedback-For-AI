@@ -45,21 +45,21 @@
 .session-main.armed {
   background: linear-gradient(120deg, #ec4899 0%, #8b5cf6 35%, #4f46e5 70%, #06b6d4 100%);
   background-size: 220% 220%;
-  animation: ai-gradient 4s ease-in-out infinite, biaif-master-pulse 2s ease-in-out infinite;
+  animation: ai-gradient 4s ease-in-out infinite, myfb-master-pulse 2s ease-in-out infinite;
 }
 
-@keyframes biaif-master-pulse {
+@keyframes myfb-master-pulse {
   0%, 100% { box-shadow: 0 0 28px rgba(236,72,153,0.45), 0 0 56px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.2); transform: scale(1); }
   50%      { box-shadow: 0 0 44px rgba(236,72,153,0.75), 0 0 80px rgba(139,92,246,0.55), inset 0 1px 0 rgba(255,255,255,0.25); transform: scale(1.06); }
 }
 
-@keyframes biaif-sessionbar-pulse {
+@keyframes myfb-sessionbar-pulse {
   0%, 100% { box-shadow: none; }
   50%      { box-shadow: 0 0 18px rgba(236,72,153,0.28), 0 0 36px rgba(139,92,246,0.18); }
 }
-.biaif-root.is-armed .session-bar {
+.myfb-root.is-armed .session-bar {
   border-radius: 10px;
-  /* animation: biaif-sessionbar-pulse 2.2s ease-in-out infinite; — pulse moved off .session-bar */
+  /* animation: myfb-sessionbar-pulse 2.2s ease-in-out infinite; — pulse moved off .session-bar */
 }
 
 @keyframes ai-gradient {
@@ -177,9 +177,9 @@
      col 2 (center) — new-conv + master + disarm  (session-bar, was col 1)
      col 3 (right)  — sort + font (on cog hover) + cog (+ optional logs)    */
 .topbar-row {
-  --topbar-h: 36px;
+  --topbar-h: 30px;
   position: relative;
-  z-index: 801; /* above .biaif-compose-drawer (800) so button pulses /
+  z-index: 801; /* above .myfb-compose-drawer (800) so button pulses /
                    shadows that extend below the topbar aren't clipped
                    by the drawer's opaque background */
   display: grid;
@@ -236,11 +236,11 @@
 /* Light pulse on the disarm ✕ — a subtle "you can quit here" hint that
    stays discreet (1.4s slow breath, 8% scale max). Auto-disabled by the
    global prefers-reduced-motion rule in base.css. */
-@keyframes biaif-disarm-pulse {
+@keyframes myfb-disarm-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255,69,58,0.0), 0 0 10px rgba(255,69,58,0.30); transform: scale(1); }
   50%      { box-shadow: 0 0 0 4px rgba(255,69,58,0.18), 0 0 16px rgba(255,69,58,0.55); transform: scale(1.04); }
 }
-.session-disarm { animation: biaif-disarm-pulse 1.6s ease-in-out infinite; }
+.session-disarm { animation: myfb-disarm-pulse 1.6s ease-in-out infinite; }
 
 /* Expandable search input */
 .topbar-search-input {
@@ -322,15 +322,15 @@
   background: var(--accent-blue-50);
 }
 
-.biaif-buffer-preview {
+.myfb-buffer-preview {
   font-size: 11px; color: var(--text-muted); font-style: italic;
   padding: 4px 0;
 }
-.biaif-buffer-preview.armed { color: var(--accent-blue); }
-.biaif-buffer-preview[hidden] { display: none; }
+.myfb-buffer-preview.armed { color: var(--accent-blue); }
+.myfb-buffer-preview[hidden] { display: none; }
 
 /* ============== Quick Tools row (Micro / Sélecteur / Capture) ============== */
-.biaif-quick-tools {
+.myfb-quick-tools {
   display: flex; flex-direction: column; gap: 6px;
 }
 .quick-tools-row { display: flex; gap: 8px; }

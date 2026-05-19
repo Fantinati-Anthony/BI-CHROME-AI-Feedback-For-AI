@@ -1,5 +1,5 @@
 /**
- * BIAIF DB Profiles UI
+ * MyFb DB Profiles UI
  *
  * Renders the "Bases de données" settings section: list of profiles,
  * CRUD form, and the actions :
@@ -7,18 +7,18 @@
  *   - 📋 Coller dans le segment (drops schemaMd into the current demande)
  *   - ✏ Éditer le schéma manuellement
  *
- * Persists through window.BIAIFStorage.persist using the same STATE
+ * Persists through window.MyFbStorage.persist using the same STATE
  * object as the rest of the app. Auto-injection on segment start is
  * stubbed for now — the user pastes manually via the 📋 button.
  *
- * Public API: BIAIFDbProfilesUi.init() — wires the panel after DOM ready.
+ * Public API: MyFbDbProfilesUi.init() — wires the panel after DOM ready.
  */
 (function (window) {
   'use strict';
 
   var STATE = null;
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
-  var DOM   = (window.BIAIF && window.BIAIF.dom)   || {};
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
+  var DOM   = (window.MyFb && window.MyFb.dom)   || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
   function esc(s) { return DOM.esc ? DOM.esc(s) : String(s == null ? '' : s); }
   function toast(msg, kind, ms) {
@@ -44,7 +44,7 @@
   }
 
   function _persist() {
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
   }
 
   // ── Secret encryption helpers ────────────────────────────────────────
@@ -53,7 +53,7 @@
   // It's wrapped in AES-GCM via a non-extractable key kept in IndexedDB
   // (see sidepanel/db-secret-crypto.js). The form exposes the plaintext
   // only when the user clicks "Éditer" — round-tripping through decrypt().
-  function _crypto() { return window.BIAIFDbSecretCrypto; }
+  function _crypto() { return window.MyFbDbSecretCrypto; }
 
   async function _readSecret(p) {
     if (!p) return '';
@@ -282,7 +282,7 @@
     toast(_t('db.refresh_start', 'Récupération du schéma…'), 'info', 1500);
     try {
       var secret = await _readSecret(p);
-      var md = await window.BIAIFDbBridge.fetchSchemaMd({ bridgeUrl: p.bridgeUrl, bridgeSecret: secret });
+      var md = await window.MyFbDbBridge.fetchSchemaMd({ bridgeUrl: p.bridgeUrl, bridgeSecret: secret });
       p.schemaMd = md;
       p.lastRefreshTs = Date.now();
       p.updatedTs = Date.now();
@@ -306,11 +306,11 @@
     var sep = (editor.textContent || '').trim() ? '\n\n' : '';
     var block = sep + '```\n' + (p.label ? '# ' + p.label + '\n' : '') + p.schemaMd + '\n```\n';
     editor.appendChild(document.createTextNode(block));
-    if (window.BIAIFSession && window.BIAIFSession.syncCurrentDemandeFromEditor) {
-      window.BIAIFSession.syncCurrentDemandeFromEditor();
+    if (window.MyFbSession && window.MyFbSession.syncCurrentDemandeFromEditor) {
+      window.MyFbSession.syncCurrentDemandeFromEditor();
     }
-    if (window.BIAIFRenderer && window.BIAIFRenderer.renderDemandeEditor) {
-      window.BIAIFRenderer.renderDemandeEditor();
+    if (window.MyFbRenderer && window.MyFbRenderer.renderDemandeEditor) {
+      window.MyFbRenderer.renderDemandeEditor();
     }
     _persist();
     toast(_t('db.paste_ok', 'Schéma inséré'), 'success', 1500);
@@ -346,7 +346,7 @@
   }
 
   async function init(state) {
-    STATE = state || (window.BIAIFRender && window.BIAIFRender.ctx && window.BIAIFRender.ctx.STATE);
+    STATE = state || (window.MyFbRender && window.MyFbRender.ctx && window.MyFbRender.ctx.STATE);
     if (!STATE) return;
     if (!Array.isArray(STATE.dbProfiles)) STATE.dbProfiles = [];
     _bind();
@@ -356,7 +356,7 @@
     } catch (_) {}
   }
 
-  window.BIAIFDbProfilesUi = {
+  window.MyFbDbProfilesUi = {
     init:   init,
     render: _render,
   };

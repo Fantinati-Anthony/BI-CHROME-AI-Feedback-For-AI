@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * BIAIF dist bundler.
+ * MyFb dist bundler.
  *
  * The addon ships as IIFE modules referenced by individual `<script>`
  * tags in `sidepanel.html`. For distribution (Web Store) we concat them
  * into single bundles and let esbuild minify the output. The IIFE
- * pattern already attaches everything to `window.BIAIF*`, so order +
+ * pattern already attaches everything to `window.MyFb*`, so order +
  * minification is enough — no source changes required.
  *
  *   npm run build         # one-shot
@@ -88,7 +88,7 @@ async function buildBundle(name, sources) {
 }
 
 async function buildAll() {
-  console.log('[biaif] Building bundles…');
+  console.log('[myfb] Building bundles…');
 
   // sidepanel = all <script src=...> in sidepanel.html in declared order
   const sidepanelScripts = await readScriptOrder(
@@ -116,11 +116,11 @@ async function buildAll() {
     console.log('  → dist/background.bundle.js  (' + ((await stat(path.join(DIST, 'background.bundle.js'))).size / 1024).toFixed(1) + ' KB)');
   }
 
-  console.log('[biaif] Done.');
+  console.log('[myfb] Done.');
 }
 
 async function watch() {
-  console.log('[biaif] Watching… (Ctrl+C to exit)');
+  console.log('[myfb] Watching… (Ctrl+C to exit)');
   await buildAll();
   const watchers = [];
   for (const dir of ['sidepanel', 'shared', 'background']) {
@@ -129,7 +129,7 @@ async function watch() {
     watchers.push((async () => {
       const w = fsWatch(abs, { recursive: true });
       for await (const _evt of w) {
-        try { await buildAll(); } catch (e) { console.error('[biaif] build error:', e.message); }
+        try { await buildAll(); } catch (e) { console.error('[myfb] build error:', e.message); }
       }
     })());
   }
@@ -138,6 +138,6 @@ async function watch() {
 
 const isWatch = process.argv.includes('--watch');
 (isWatch ? watch() : buildAll()).catch((e) => {
-  console.error('[biaif] FAILED:', e);
+  console.error('[myfb] FAILED:', e);
   process.exit(1);
 });

@@ -1,5 +1,5 @@
 /**
- * BIAIF Bindings — Tab lifecycle
+ * MyFb Bindings — Tab lifecycle
  *
  * - chrome.tabs.onActivated / onUpdated listeners
  * - "Tab not ready" detection (content script not injected yet → reload modal)
@@ -8,9 +8,9 @@
  */
 (function (window) {
   'use strict';
-  window.BIAIFBindings = window.BIAIFBindings || {};
-  var ctx = window.BIAIFBindings.ctx;
-  var H   = window.BIAIFBindings.helpers;
+  window.MyFbBindings = window.MyFbBindings || {};
+  var ctx = window.MyFbBindings.ctx;
+  var H   = window.MyFbBindings.helpers;
 
   async function _waitForTabReady(ms) {
     var deadline = Date.now() + ms;
@@ -77,7 +77,7 @@
         if (!tab || !tab.active) return;
         if (info.status === 'loading') {
           STATE.consoleErrors = [];
-          window.BIAIFRenderer.updateErrorsBadges();
+          window.MyFbRenderer.updateErrorsBadges();
         } else if (info.status === 'complete') {
           checkActiveTabReady();
           H.refreshErrorsFromActiveTab();
@@ -92,7 +92,7 @@
     });
   }
 
-  window.BIAIFBindings.tabs = {
+  window.MyFbBindings.tabs = {
     bind:                   bind,
     onTabSwitch:            onTabSwitch,
     checkActiveTabReady:    checkActiveTabReady,

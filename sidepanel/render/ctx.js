@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * BIAIF Render Context
+ * MyFb Render Context
  *
  * Single source of truth for the mutable context shared across every
  * `sidepanel/render/*.js` module:
@@ -11,12 +11,12 @@
  *   - archiveTimer                            — module-level setInterval handle
  *
  * Modules **read** from ctx; only sidepanel.js writes to STATE/REFS through
- * BIAIFRenderer.init(). The drag/segDrag/archiveTimer fields are owned by
+ * MyFbRenderer.init(). The drag/segDrag/archiveTimer fields are owned by
  * the renderer modules themselves but live here so they can be shared.
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
+  window.MyFbRender = window.MyFbRender || {};
   var ctx = {
     STATE:        null,
     REFS:         null,
@@ -33,5 +33,5 @@
   ctx.S = function () { return ctx.STATE; };
   ctx.R = function () { return ctx.REFS;  };
 
-  window.BIAIFRender.ctx = ctx;
+  window.MyFbRender.ctx = ctx;
 })(window);

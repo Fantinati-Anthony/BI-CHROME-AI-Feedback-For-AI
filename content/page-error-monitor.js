@@ -1,26 +1,30 @@
 /**
- * BIAIF Page Error Monitor
+ * MyFb Page Error Monitor
  *
  * Injecté dans le MAIN world de la page au plus tôt (document_start).
- * - Override console.error / console.warn pour capter ce qui apparaît
- *   dans l'onglet "Erreurs" / "Avertissements" des DevTools.
+ * - Override console.error pour capter ce qui apparaît dans l'onglet
+ *   "Erreurs" des DevTools.
  * - Capture les exceptions non gérées (window.onerror) et les rejets
  *   de promesse non gérés (unhandledrejection).
- * - Dispatch un CustomEvent "__biaif_page_error__" sur window que le
+ * - Dispatch un CustomEvent "__myfb_page_error__" sur window que le
  *   content script bridge (isolated world) intercepte et forwarde au
  *   side panel via chrome.runtime.sendMessage.
  *
  * NB : on ne peut pas appeler chrome.* depuis le MAIN world, d'où le
  * bridge.
+ *
+ * console.warn n'est PAS interceptée : error-bridge.js filtre déjà les
+ * warnings et un wrapper sur console.warn ferait apparaître chaque
+ * warning de la page (LinkedIn, Notion…) dans le panneau Erreurs de
+ * l'extension à cause de la frame extension dans la stack.
  */
 
 (function () {
-  if (window.__BIAIF_PAGE_MONITOR__) return;
-  window.__BIAIF_PAGE_MONITOR__ = true;
+  if (window.__MYFB_PAGE_MONITOR__) return;
+  window.__MYFB_PAGE_MONITOR__ = true;
 
   const orig = {
     error: console.error.bind(console),
-    warn:  console.warn.bind(console),
   };
 
   function stringifyArg(a) {
@@ -34,7 +38,7 @@
 
   function fire(detail) {
     try {
-      window.dispatchEvent(new CustomEvent('__biaif_page_error__', { detail }));
+      window.dispatchEvent(new CustomEvent('__myfb_page_error__', { detail }));
     } catch (_) {}
   }
 
@@ -42,14 +46,6 @@
     orig.error.apply(console, args);
     fire({
       kind: 'console.error',
-      msg: args.map(stringifyArg).join(' '),
-    });
-  };
-
-  console.warn = function (...args) {
-    orig.warn.apply(console, args);
-    fire({
-      kind: 'console.warn',
       msg: args.map(stringifyArg).join(' '),
     });
   };

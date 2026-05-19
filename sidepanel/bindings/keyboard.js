@@ -1,5 +1,5 @@
 /**
- * BIAIF Bindings — Keyboard
+ * MyFb Bindings — Keyboard
  *
  * Global keydown shortcuts:
  *   Ctrl/Cmd+Z          → undo
@@ -11,7 +11,7 @@
  *   Esc                 → contextual close
  *
  * Mode-aware shortcuts (mic + picker), governed by STATE.shortcutMode:
- *   Alt+Shift+M         → toggle/hold/smart mic     (uses BIAIFSpeech.toggle/start/stop)
+ *   Alt+Shift+M         → toggle/hold/smart mic     (uses MyFbSpeech.toggle/start/stop)
  *   Alt+Shift+E         → toggle/hold/smart picker  (uses PICKER_TOGGLE message)
  *
  * Mode semantics:
@@ -26,9 +26,9 @@
  */
 (function (window) {
   'use strict';
-  window.BIAIFBindings = window.BIAIFBindings || {};
-  var ctx = window.BIAIFBindings.ctx;
-  var H   = window.BIAIFBindings.helpers;
+  window.MyFbBindings = window.MyFbBindings || {};
+  var ctx = window.MyFbBindings.ctx;
+  var H   = window.MyFbBindings.helpers;
 
   var SMART_THRESHOLD_MS = 250;
 
@@ -41,7 +41,7 @@
   }
 
   function _toggleMic() {
-    if (window.BIAIFSpeech && window.BIAIFSpeech.toggleMic) window.BIAIFSpeech.toggleMic();
+    if (window.MyFbSpeech && window.MyFbSpeech.toggleMic) window.MyFbSpeech.toggleMic();
   }
   function _togglePicker() {
     H.sendBg && H.sendBg({ type: H.msgKey('PICKER_TOGGLE') });
@@ -89,7 +89,7 @@
       // Cmd+S — save current demande if armed, or save edit
       if (meta && (e.key === 's' || e.key === 'S') && !e.shiftKey) {
         e.preventDefault();
-        if (ctx.STATE.armed && window.BIAIFSession) window.BIAIFSession.finalizeDemande(false);
+        if (ctx.STATE.armed && window.MyFbSession) window.MyFbSession.finalizeDemande(false);
         return;
       }
 
@@ -107,7 +107,7 @@
       if (e.key === 'Escape') {
         var sub = document.getElementById('capture-subline');
         if (sub && !sub.hasAttribute('hidden')) { H.closeCaptureSubline(); return; }
-        if (ctx.STATE.editingDemandeIdx !== null) { window.BIAIFSession.exitEditMode(); return; }
+        if (ctx.STATE.editingDemandeIdx !== null) { window.MyFbSession.exitEditMode(); return; }
         var pop = ctx.REFS.settingsPopover;
         if (pop && !pop.hasAttribute('hidden')) { pop.setAttribute('hidden', ''); return; }
       }
@@ -135,5 +135,5 @@
     });
   }
 
-  window.BIAIFBindings.keyboard = { bind: bind };
+  window.MyFbBindings.keyboard = { bind: bind };
 })(window);

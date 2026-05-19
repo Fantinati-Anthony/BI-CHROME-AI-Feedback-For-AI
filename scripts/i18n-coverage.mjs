@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * BIAIF — i18n coverage audit
+ * MyFb — i18n coverage audit
  *
  * Scans shared/i18n.js and reports:
  *   1. keys with a missing locale (any of fr/en/es/de/it/pt/nl)
@@ -121,8 +121,8 @@ async function main() {
 
   // ── Report ───────────────────────────────────────────────────────
   let fail = false;
-  console.log('[biaif i18n] dictionary keys:', declared.size);
-  console.log('[biaif i18n] referenced keys:', flatUsed.size + pluralUsed.size);
+  console.log('[myfb i18n] dictionary keys:', declared.size);
+  console.log('[myfb i18n] referenced keys:', flatUsed.size + pluralUsed.size);
 
   if (missingLocales.length) {
     fail = true;
@@ -155,4 +155,4 @@ async function main() {
   process.exit(fail ? 1 : 0);
 }
 
-main().catch((e) => { console.error('[biaif i18n] FAILED:', e); process.exit(2); });
+main().catch((e) => { console.error('[myfb i18n] FAILED:', e); process.exit(2); });

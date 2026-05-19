@@ -1,13 +1,13 @@
 /**
- * BIAIF Inject
+ * MyFb Inject
  * Injects prompt text and images into Claude.ai's Tiptap/ProseMirror editor.
  * Simulates what happens when you drag-and-drop files — one element at a time.
  */
 (function () {
   'use strict';
 
-  if (window.__BIAIF_INJECT__) return;
-  window.__BIAIF_INJECT__ = true;
+  if (window.__MYFB_INJECT__) return;
+  window.__MYFB_INJECT__ = true;
 
   // Wrap chrome.runtime.sendMessage so a synchronous "Extension context
   // invalidated" throw (after a reload) doesn't leak into the host page.
@@ -29,7 +29,7 @@
   ];
 
   function _editorSelectors() {
-    var utils = window.BIAIF && window.BIAIF.utils;
+    var utils = window.MyFb && window.MyFb.utils;
     var adapter = utils && utils.findAiAdapter ? utils.findAiAdapter(location.hostname) : null;
     if (adapter && adapter.editor && adapter.editor.length) return adapter.editor;
     return FALLBACK_EDITORS;
@@ -79,12 +79,12 @@
       resp = await fetch(dataUrl);
       blob = await resp.blob();
     } catch (e) {
-      console.warn('[BIAIF] inject: fetch dataUrl failed', e && e.message);
+      console.warn('[MyFb] inject: fetch dataUrl failed', e && e.message);
       return false;
     }
 
     var ext  = blob.type === 'image/jpeg' ? 'jpg' : 'png';
-    file = new File([blob], 'biaif-capture.' + ext, { type: blob.type || 'image/png' });
+    file = new File([blob], 'myfb-capture.' + ext, { type: blob.type || 'image/png' });
 
     editor.focus();
     await sleep(60);
@@ -101,7 +101,7 @@
       await sleep(280);
       return true;
     } catch (e) {
-      console.warn('[BIAIF] inject: DragEvent failed', e && e.message);
+      console.warn('[MyFb] inject: DragEvent failed', e && e.message);
     }
 
     // Approach 2: write to clipboard then paste event
@@ -114,7 +114,7 @@
       await sleep(200);
       return true;
     } catch (e) {
-      console.warn('[BIAIF] inject: clipboard paste failed', e && e.message);
+      console.warn('[MyFb] inject: clipboard paste failed', e && e.message);
     }
 
     return false;
@@ -127,7 +127,7 @@
   // Submit button helpers
   // -----------------------------------------------------------------------
   var SUBMIT_SELECTORS = (function () {
-    var utils   = window.BIAIF && window.BIAIF.utils;
+    var utils   = window.MyFb && window.MyFb.utils;
     var adapter = utils && utils.findAiAdapter ? utils.findAiAdapter(location.hostname) : null;
     return (adapter && adapter.submitBtn) || [];
   })();
@@ -168,7 +168,7 @@
   }
 
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
-    if (!msg || msg.type !== window.BIAIF.MSG.INJECT_TO_EDITOR) return;
+    if (!msg || msg.type !== window.MyFb.MSG.INJECT_TO_EDITOR) return;
     if (sender.id && sender.id !== chrome.runtime.id) return;
 
     (async function () {
@@ -183,7 +183,7 @@
         await injectText(editor, msg.text);
         done++;
         _safeSend({
-          type: window.BIAIF.MSG.CAPTURE_PROGRESS,
+          type: window.MyFb.MSG.CAPTURE_PROGRESS,
           current: done, total: total, label: 'Texte injecté…',
         });
         await sleep(200);
@@ -195,7 +195,7 @@
         await injectImage(editor, images[i]);
         done++;
         _safeSend({
-          type: window.BIAIF.MSG.CAPTURE_PROGRESS,
+          type: window.MyFb.MSG.CAPTURE_PROGRESS,
           current: done, total: total, label: 'Image ' + (i + 1) + '/' + images.length + ' injectée…',
         });
         await sleep(150);

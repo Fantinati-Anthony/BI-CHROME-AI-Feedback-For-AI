@@ -1,11 +1,11 @@
 /*
- * BIAIF Side Panel — stylesheet entry point.
+ * MyFb Side Panel — stylesheet entry point.
  *
  * Split into themed files under sidepanel/css/. Each file owns one
  * concern; the public order matters because cascade rules apply
  * top-to-bottom.
  *
- *   base       — design tokens (:root vars), reset, scrollbar, .biaif-root
+ *   base       — design tokens (:root vars), reset, scrollbar, .myfb-root
  *                state classes (armed / editing / empty), hero animations
  *   session    — session bar (Démarrer / Suivant / Stop) + quick-tools
  *                row (mic / picker / capture)
@@ -36,4 +36,14 @@
 @import url('sidepanel/css/tag-picker.css');
 @import url('sidepanel/css/templates-modal.css');
 @import url('sidepanel/css/var-prompt.css');
+@import url('sidepanel/css/onboarding.css');
+@import url('sidepanel/css/overlay-toggle.css');
+@import url('sidepanel/css/ai-ui.css');
+@import url('sidepanel/css/settings-ui.css');
+@import url('sidepanel/css/export-picker.css');
+@import url('sidepanel/css/triage-ui.css');
+@import url('sidepanel/css/triage-filter.css');
+@import url('sidepanel/css/pairing-ui.css');
+@import url('sidepanel/css/privacy-controls.css');
+@import url('sidepanel/css/quick-tools-config.css');
 @import url('sidepanel/css/db-profiles.css');

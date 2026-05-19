@@ -1,5 +1,5 @@
 /**
- * BIAIF Render — Conversation group
+ * MyFb Render — Conversation group
  *
  * Groups segments sharing a `conversationUrl` into a single card. Done
  * segments inside a group fold into a collapsible "N archivés" sub-section
@@ -11,9 +11,9 @@
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
-  var DOM   = (window.BIAIF && window.BIAIF.dom)   || {};
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  window.MyFbRender = window.MyFbRender || {};
+  var DOM   = (window.MyFb && window.MyFb.dom)   || {};
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   var esc   = DOM.esc || function (s) { return String(s == null ? '' : s); };
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
@@ -38,8 +38,8 @@
   }
 
   function _buildRepoBadges(items) {
-    var ICONS = window.BIAIFRender.icons;
-    var ctx   = window.BIAIFRender.ctx;
+    var ICONS = window.MyFbRender.icons;
+    var ctx   = window.MyFbRender.ctx;
     var STATE = (ctx && ctx.STATE) || {};
     var ids   = _collectRepoIds(items);
     if (!ids.length) return '';
@@ -82,12 +82,12 @@
   }
 
   function buildElement(group) {
-    var Card  = window.BIAIFRender.segmentCard;
-    var Arch  = window.BIAIFRender.archiveZone;
-    var ICONS = window.BIAIFRender.icons;
+    var Card  = window.MyFbRender.segmentCard;
+    var Arch  = window.MyFbRender.archiveZone;
+    var ICONS = window.MyFbRender.icons;
 
     var wrap = document.createElement('div');
-    wrap.className = 'biaif-conv-group';
+    wrap.className = 'myfb-conv-group';
 
     var convShort = group.conversationUrl;
     try { convShort = new URL(group.conversationUrl).hostname; } catch (_) {}
@@ -97,12 +97,12 @@
     var total       = group.items.length;
 
     var header = document.createElement('div');
-    header.className = 'biaif-conv-header';
+    header.className = 'myfb-conv-header';
     header.innerHTML =
-      ICONS.chat(10).replace('aria-hidden="true"', 'class="biaif-conv-icon" aria-hidden="true"') +
-      '<a class="biaif-conv-url" href="' + esc(group.conversationUrl) + '" target="_blank" rel="noopener" title="' +
+      ICONS.chat(10).replace('aria-hidden="true"', 'class="myfb-conv-icon" aria-hidden="true"') +
+      '<a class="myfb-conv-url" href="' + esc(group.conversationUrl) + '" target="_blank" rel="noopener" title="' +
       esc(group.conversationUrl) + '">' + esc(convShort) + '</a>' +
-      '<span class="biaif-conv-count">' + total + ' segment' + (total > 1 ? 's' : '') + '</span>' +
+      '<span class="myfb-conv-count">' + total + ' segment' + (total > 1 ? 's' : '') + '</span>' +
       _buildRepoBadges(group.items);
     wrap.appendChild(header);
 
@@ -110,22 +110,22 @@
 
     if (doneItems.length) {
       var subsegWrap = document.createElement('div');
-      subsegWrap.className = 'biaif-conv-done-wrap';
+      subsegWrap.className = 'myfb-conv-done-wrap';
 
       var ts        = Arch.latestTs(doneItems);
       var relT      = Arch.relTime(ts);
       var doneLabel = doneItems.length + ' archivé' + (doneItems.length > 1 ? 's' : '');
       var subsegToggle = document.createElement('button');
       subsegToggle.type      = 'button';
-      subsegToggle.className = 'biaif-conv-done-toggle';
+      subsegToggle.className = 'myfb-conv-done-toggle';
       subsegToggle.setAttribute('aria-expanded', 'false');
       subsegToggle.innerHTML =
-        ICONS.chevronDn(10).replace('aria-hidden="true"', 'class="biaif-conv-done-chevron" aria-hidden="true"') +
-        '<span class="biaif-conv-done-label">' + esc(doneLabel) + '</span>' +
-        (relT ? '<span class="biaif-conv-done-ts">' + esc(_t('archive.updated', 'MAJ il y a ' + relT, { t: relT })) + '</span>' : '');
+        ICONS.chevronDn(10).replace('aria-hidden="true"', 'class="myfb-conv-done-chevron" aria-hidden="true"') +
+        '<span class="myfb-conv-done-label">' + esc(doneLabel) + '</span>' +
+        (relT ? '<span class="myfb-conv-done-ts">' + esc(_t('archive.updated', 'MAJ il y a ' + relT, { t: relT })) + '</span>' : '');
 
       var subsegBody = document.createElement('div');
-      subsegBody.className = 'biaif-conv-done-body';
+      subsegBody.className = 'myfb-conv-done-body';
       doneItems.forEach(function (item) { subsegBody.appendChild(Card.build(item.dem, item.origIndex)); });
 
       subsegToggle.addEventListener('click', function () {
@@ -140,7 +140,7 @@
     return wrap;
   }
 
-  window.BIAIFRender.convGroups = {
+  window.MyFbRender.convGroups = {
     build:        build,
     buildElement: buildElement,
   };

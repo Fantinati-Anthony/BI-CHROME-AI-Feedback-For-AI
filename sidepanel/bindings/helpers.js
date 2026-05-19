@@ -1,5 +1,5 @@
 /**
- * BIAIF Bindings — Helpers
+ * MyFb Bindings — Helpers
  *
  * Small UI helpers + high-level actions that are called from multiple
  * binding files (events, messages, keyboard, tabs). Grouped here so the
@@ -17,17 +17,17 @@
  */
 (function (window) {
   'use strict';
-  window.BIAIFBindings = window.BIAIFBindings || {};
-  var ctx   = window.BIAIFBindings.ctx;
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  window.MyFbBindings = window.MyFbBindings || {};
+  var ctx   = window.MyFbBindings.ctx;
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
   // ── Messaging primitives ───────────────────────────────────────────
   function sendBg(payload) { return chrome.runtime.sendMessage(payload).catch(function () { return null; }); }
   function msgKey(key) {
     return UTILS.msgKey ? UTILS.msgKey(key)
-      : (window.BIAIF && window.BIAIF.MSG && window.BIAIF.MSG[key])
-        || ('biaif:' + key.toLowerCase().replace(/_/g, '-'));
+      : (window.MyFb && window.MyFb.MSG && window.MyFb.MSG[key])
+        || ('myfb:' + key.toLowerCase().replace(/_/g, '-'));
   }
   function decodeContentScriptError(err) {
     return UTILS.decodeErr ? UTILS.decodeErr(err)
@@ -160,7 +160,7 @@
     if (!err || !err.key) return;
     if (STATE.consoleErrors.find(function (e) { return e.key === err.key; })) return;
     STATE.consoleErrors.push(err);
-    window.BIAIFRenderer.updateErrorsBadges();
+    window.MyFbRenderer.updateErrorsBadges();
   }
 
   async function refreshErrorsFromActiveTab() {
@@ -173,29 +173,29 @@
       try { resp = await chrome.tabs.sendMessage(tab.id, { type: msgKey('GET_ERRORS') }); } catch (_) {}
       STATE.consoleErrors = [];
       if (resp && Array.isArray(resp.errors)) resp.errors.forEach(onConsoleError);
-      else window.BIAIFRenderer.updateErrorsBadges();
+      else window.MyFbRenderer.updateErrorsBadges();
     } catch (_) {}
   }
 
   function addAllConsoleErrors() {
     var STATE = ctx.STATE;
     if (!STATE.consoleErrors.length) {
-      window.BIAIFToast.show(_t('toast.no_errors', 'Aucune erreur capturée.'), 'info');
+      window.MyFbToast.show(_t('toast.no_errors', 'Aucune erreur capturée.'), 'info');
       return;
     }
     var count = STATE.consoleErrors.length;
     for (var i = 0; i < STATE.consoleErrors.length; i++) {
       var err = STATE.consoleErrors[i];
-      window.BIAIFSession.addRefToTarget({
+      window.MyFbSession.addRefToTarget({
         type: 'error', msg: err.msg || '', file: err.file || null,
         line: err.line || null, col: err.col || null, stack: err.stack || null,
         url: err.url || null, ts: err.ts || Date.now(),
       });
     }
     STATE.consoleErrors = [];
-    window.BIAIFRenderer.updateErrorsBadges();
-    var tn = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
-    window.BIAIFToast.show(
+    window.MyFbRenderer.updateErrorsBadges();
+    var tn = (window.MyFb && window.MyFb.utils && window.MyFb.utils.tn) || _t;
+    window.MyFbToast.show(
       tn('toast.errors_added', count, count + ' erreur(s) ajoutée(s)', { n: count }),
       'success');
   }
@@ -218,18 +218,18 @@
       if (!file.type.startsWith('image/')) continue;
       try {
         var dataUrl = await readFileAsDataUrl(file);
-        if (window.BIAIFImaging) {
-          try { dataUrl = await window.BIAIFImaging.compressDataUrl(dataUrl); } catch (_) {}
+        if (window.MyFbImaging) {
+          try { dataUrl = await window.MyFbImaging.compressDataUrl(dataUrl); } catch (_) {}
         }
-        window.BIAIFSession.addRefToTarget({
+        window.MyFbSession.addRefToTarget({
           type: 'screenshot', mode: 'fichier', dataUrl: dataUrl,
           fileName: file.name, ts: Date.now(),
         });
         count++;
-      } catch (e) { console.warn('[BIAIF] file read failed', e && e.message); }
+      } catch (e) { console.warn('[MyFb] file read failed', e && e.message); }
     }
-    var tnImg = (window.BIAIF && window.BIAIF.utils && window.BIAIF.utils.tn) || _t;
-    if (count) window.BIAIFToast.show(
+    var tnImg = (window.MyFb && window.MyFb.utils && window.MyFb.utils.tn) || _t;
+    if (count) window.MyFbToast.show(
       tnImg('toast.images_added', count, count + ' image(s) ajoutée(s)', { n: count }),
       'success');
   }
@@ -237,14 +237,14 @@
   // ── Context-menu handlers (text/image grabbed from any web page) ──
   function addTextFromContext(text, pageUrl) {
     if (!text) return;
-    window.BIAIFSession.addTextToTarget('« ' + text + ' »');
+    window.MyFbSession.addTextToTarget('« ' + text + ' »');
     if (pageUrl) ctx.STATE.currentDemande.pageUrl = pageUrl;
-    window.BIAIFToast.show(_t('toast.text_selection_added', 'Texte ajouté.'), 'success');
+    window.MyFbToast.show(_t('toast.text_selection_added', 'Texte ajouté.'), 'success');
   }
 
   async function addImageFromContext(srcUrl, pageUrl) {
     if (!srcUrl) return;
-    window.BIAIFToast.show(_t('toast.image_downloading', 'Téléchargement…'), 'info', 2000);
+    window.MyFbToast.show(_t('toast.image_downloading', 'Téléchargement…'), 'info', 2000);
     var dataUrl = null;
     try {
       var resp = await fetch(srcUrl);
@@ -255,16 +255,16 @@
         r.onerror = rej;
         r.readAsDataURL(blob);
       });
-      if (dataUrl && window.BIAIFImaging) {
-        try { dataUrl = await window.BIAIFImaging.compressDataUrl(dataUrl); } catch (_) {}
+      if (dataUrl && window.MyFbImaging) {
+        try { dataUrl = await window.MyFbImaging.compressDataUrl(dataUrl); } catch (_) {}
       }
     } catch (_) {}
-    window.BIAIFSession.addRefToTarget({
+    window.MyFbSession.addRefToTarget({
       type: 'screenshot', mode: dataUrl ? 'image' : 'image-url',
       dataUrl: dataUrl, srcUrl: srcUrl, url: pageUrl || null, ts: Date.now(),
     });
     if (pageUrl) ctx.STATE.currentDemande.pageUrl = pageUrl;
-    window.BIAIFToast.show(
+    window.MyFbToast.show(
       _t(dataUrl ? 'toast.image_added' : 'toast.image_added_url', 'Image ajoutée.'),
       'success');
   }
@@ -274,23 +274,23 @@
     var STATE = ctx.STATE, REFS = ctx.REFS;
     if (!STATE.demandes.length && !(STATE.currentDemande.text || '').trim() && !STATE.currentDemande.refs.length) return;
     // Snapshot BEFORE wiping so the toast's "Annuler" can restore it.
-    if (window.BIAIFUndo) window.BIAIFUndo.push({
+    if (window.MyFbUndo) window.MyFbUndo.push({
       demandes:       JSON.parse(JSON.stringify(STATE.demandes)),
       currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)),
     });
-    if (STATE.editingDemandeIdx !== null) window.BIAIFSession.exitEditMode({ silent: true });
+    if (STATE.editingDemandeIdx !== null) window.MyFbSession.exitEditMode({ silent: true });
     STATE.demandes       = [];
     STATE.currentDemande = { text: '', refs: [], pageUrl: null };
     STATE.currentInterim = '';
     STATE.lastShot       = null;
     STATE.lastShotMode   = null;
     if (REFS.demandeEditor) REFS.demandeEditor.innerHTML = '';
-    window.BIAIFSpeech.clearInterimGhost();
-    window.BIAIFRenderer.renderDemandeRefsStrip();
-    window.BIAIFRenderer.renderSegments();
-    window.BIAIFRenderer.updateArmedUi();
-    window.BIAIFStorage.persist(STATE, { skipUndo: true });
-    window.BIAIFToast.showAction(
+    window.MyFbSpeech.clearInterimGhost();
+    window.MyFbRenderer.renderDemandeRefsStrip();
+    window.MyFbRenderer.renderSegments();
+    window.MyFbRenderer.updateArmedUi();
+    window.MyFbStorage.persist(STATE, { skipUndo: true });
+    window.MyFbToast.showAction(
       _t('toast.cleared', 'Tout effacé.'),
       _t('toast.undo_action', 'Annuler'),
       performUndo,
@@ -303,10 +303,10 @@
     var STATE = ctx.STATE;
     STATE.demandes       = snapshot.demandes;
     STATE.currentDemande = snapshot.currentDemande;
-    window.BIAIFRenderer.renderDemandeEditor();
-    window.BIAIFRenderer.renderSegments();
-    window.BIAIFRenderer.updateArmedUi();
-    window.BIAIFStorage.persist(STATE, { skipUndo: true });
+    window.MyFbRenderer.renderDemandeEditor();
+    window.MyFbRenderer.renderSegments();
+    window.MyFbRenderer.updateArmedUi();
+    window.MyFbStorage.persist(STATE, { skipUndo: true });
   }
 
   function _currentSnapshot() {
@@ -315,28 +315,28 @@
   }
 
   function performUndo() {
-    if (!window.BIAIFUndo.canUndo()) {
-      window.BIAIFToast.show(_t('toast.nothing_to_undo', 'Rien à annuler.'), 'info', 1500);
+    if (!window.MyFbUndo.canUndo()) {
+      window.MyFbToast.show(_t('toast.nothing_to_undo', 'Rien à annuler.'), 'info', 1500);
       return;
     }
-    var snapshot = window.BIAIFUndo.pop(_currentSnapshot());
+    var snapshot = window.MyFbUndo.pop(_currentSnapshot());
     if (!snapshot) return;
     _applySnapshot(snapshot);
-    window.BIAIFToast.show(_t('toast.undone', 'Action annulée.'), 'success', 2000);
+    window.MyFbToast.show(_t('toast.undone', 'Action annulée.'), 'success', 2000);
   }
 
   function performRedo() {
-    if (!window.BIAIFUndo.canRedo()) {
-      window.BIAIFToast.show(_t('toast.nothing_to_redo', 'Rien à rétablir.'), 'info', 1500);
+    if (!window.MyFbUndo.canRedo()) {
+      window.MyFbToast.show(_t('toast.nothing_to_redo', 'Rien à rétablir.'), 'info', 1500);
       return;
     }
-    var snapshot = window.BIAIFUndo.popRedo();
+    var snapshot = window.MyFbUndo.popRedo();
     if (!snapshot) return;
     _applySnapshot(snapshot);
-    window.BIAIFToast.show(_t('toast.redone', 'Action rétablie.'), 'success', 2000);
+    window.MyFbToast.show(_t('toast.redone', 'Action rétablie.'), 'success', 2000);
   }
 
-  window.BIAIFBindings.helpers = {
+  window.MyFbBindings.helpers = {
     sendBg:                   sendBg,
     msgKey:                   msgKey,
     decodeContentScriptError: decodeContentScriptError,

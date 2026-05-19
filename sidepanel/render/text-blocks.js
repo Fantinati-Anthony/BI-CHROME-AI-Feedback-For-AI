@@ -1,5 +1,5 @@
 /**
- * BIAIF Render — Text-block chips
+ * MyFb Render — Text-block chips
  *
  * Renders bare text nodes inside `.demande-editor` / `.demande-text`
  * as draggable pill chips (`.text-chip`). Clicking a chip makes it
@@ -11,16 +11,16 @@
  * Reorder:            HTML5 drag-and-drop within the same container
  *
  * Usage:
- *   BIAIFRender.textBlocks.attach(textEl, function onSync() { … });
+ *   MyFbRender.textBlocks.attach(textEl, function onSync() { … });
  *
  * Idempotent — safe to call after every render(). Listeners are only
  * installed once per element; the onSync callback is refreshed each time.
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
+  window.MyFbRender = window.MyFbRender || {};
 
-  var SLOT_KEY         = '__biaif_tchip_slot__';
+  var SLOT_KEY         = '__myfb_tchip_slot__';
   var _globalDragBound = false;
   var _globalClickBound = false;
   var _activeChip      = null;   // chip currently in edit mode
@@ -115,7 +115,7 @@
     if (_globalDragBound) return;
     _globalDragBound = true;
 
-    var ctx = function () { return window.BIAIFRender.ctx; };
+    var ctx = function () { return window.MyFbRender.ctx; };
 
     document.addEventListener('dragover', function (e) {
       var c = ctx();
@@ -211,13 +211,13 @@
     textEl.addEventListener('dragstart', function (e) {
       var chip = e.target.closest && e.target.closest('.text-chip');
       if (!chip || !textEl.contains(chip)) return;
-      var c = window.BIAIFRender.ctx;
+      var c = window.MyFbRender.ctx;
       if (c) { c.DRAG.textChip = chip; c.DRAG.textSourceContainer = textEl; }
       e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', '__biaif_text_chip__'); } catch (_) {}
+      try { e.dataTransfer.setData('text/plain', '__myfb_text_chip__'); } catch (_) {}
       chip.classList.add('is-dragging');
     });
   }
 
-  window.BIAIFRender.textBlocks = { attach: attach };
+  window.MyFbRender.textBlocks = { attach: attach };
 })(window);

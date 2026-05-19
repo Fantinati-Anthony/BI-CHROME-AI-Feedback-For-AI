@@ -1,5 +1,5 @@
 /**
- * BIAIF Service Worker — chrome.commands hotkey routing
+ * MyFb Service Worker — chrome.commands hotkey routing
  *
  *   Alt+Shift+F → toggle-sidebar  (open the side panel for the active tab)
  *   Alt+Shift+E → toggle-picker   (relayed to the active tab content)

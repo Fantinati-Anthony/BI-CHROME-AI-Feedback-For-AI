@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * BIAIF Scrub
+ * MyFb Scrub
  *
  * Privacy filter — masks PII / secrets in user-supplied text BEFORE it
  * lands in storage or in an export. Patterns:
@@ -15,14 +15,14 @@
  * Toggle via STATE.privacyScrub (default true). Designed to be cheap:
  * each pattern is a single regex pass. Luhn check filters CC false-positives.
  *
- *   BIAIFScrub.scrubText(s)           → cleaned string
- *   BIAIFScrub.scrubRef(ref)          → mutates ref text fields
- *   BIAIFScrub.scrubDemande(d)        → mutates d.text + every ref
- *   BIAIFScrub.isEnabled(STATE)       → respects STATE.privacyScrub flag
+ *   MyFbScrub.scrubText(s)           → cleaned string
+ *   MyFbScrub.scrubRef(ref)          → mutates ref text fields
+ *   MyFbScrub.scrubDemande(d)        → mutates d.text + every ref
+ *   MyFbScrub.isEnabled(STATE)       → respects STATE.privacyScrub flag
  */
 (function (root) {
   'use strict';
-  root.BIAIF = root.BIAIF || {};
+  root.MyFb = root.MyFb || {};
 
   // -- Patterns -------------------------------------------------------
   var EMAIL_RE  = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
@@ -86,7 +86,7 @@
     isEnabled:    isEnabled,
     _luhnOk:      _luhnOk,
   };
-  root.BIAIFScrub = api;
+  root.MyFbScrub = api;
   // Soft ESM: expose as CommonJS export when running in Node (Vitest)
   // — no-op in browsers, lets tests do `import` via vite-node.
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

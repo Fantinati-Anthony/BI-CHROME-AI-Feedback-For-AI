@@ -1,5 +1,5 @@
 /**
- * BIAIF Speech
+ * MyFb Speech
  * SpeechRecognition lifecycle, mic test, device enumeration.
  * Runs exclusively in the side panel context (not in any content script).
  */
@@ -100,7 +100,7 @@
       micTestHandle = { stream: stream, ctx: ctx, analyser: analyser, data: data, raf: 0 };
       if (REFS.micMeter)    REFS.micMeter.hidden = false;
       if (REFS.micTestBtn)  REFS.micTestBtn.textContent = _t('mic.test_btn_stop', '⏹ Stop test');
-      if (window.BIAIFToast) window.BIAIFToast.show(_t('mic.test_running', 'Test micro en cours — parle pour voir le niveau.'), 'info');
+      if (window.MyFbToast) window.MyFbToast.show(_t('mic.test_running', 'Test micro en cours — parle pour voir le niveau.'), 'info');
 
       refreshMicDevices(false);
       (function tick() {
@@ -117,7 +117,7 @@
                 e && e.name === 'NotFoundError'    ? 'micro introuvable' :
                 e && e.name === 'NotReadableError' ? 'micro déjà utilisé' :
                 (e && e.message || String(e));
-      if (window.BIAIFToast) window.BIAIFToast.show(_t('mic.test_fail', 'Test micro KO : ' + msg, { err: msg }), 'error');
+      if (window.MyFbToast) window.MyFbToast.show(_t('mic.test_fail', 'Test micro KO : ' + msg, { err: msg }), 'error');
     }
   }
 
@@ -163,7 +163,7 @@
       });
       if ([].some.call(sel.options, function (o) { return o.value === previous; })) sel.value = previous;
     } catch (e) {
-      console.warn('[BIAIF Speech] enumerateDevices failed', e && e.message);
+      console.warn('[MyFb Speech] enumerateDevices failed', e && e.message);
     }
   }
 
@@ -192,8 +192,8 @@
   // Error handling
   // -----------------------------------------------------------------------
   function _t(key, fallback, vars) {
-    if (window.BIAIFi18n && window.BIAIFi18n.t) {
-      var v = window.BIAIFi18n.t(key, vars);
+    if (window.MyFbI18n && window.MyFbI18n.t) {
+      var v = window.MyFbI18n.t(key, vars);
       if (v && v !== key) return v;
     }
     return fallback || key;
@@ -283,8 +283,8 @@
     if (isPermDenied) {
       // Explicit, actionable guidance — show longer (8s) and open the relevant
       // Chrome settings page so the user can flip the permission immediately.
-      if (window.BIAIFToast) {
-        window.BIAIFToast.show(
+      if (window.MyFbToast) {
+        window.MyFbToast.show(
           _t('mic.permission_denied_help', 'Micro bloqué. Onglet Réglages ouvert : autorisez le micro puis recliquez sur ▶.'),
           'error', 8000,
         );
@@ -292,7 +292,7 @@
       try { chrome.tabs.create({ url: 'chrome://settings/content/siteDetails?site=chrome-extension%3A%2F%2F' + chrome.runtime.id }); } catch (_) {}
       return;
     }
-    if (window.BIAIFToast) window.BIAIFToast.show(_t('mic.error_prefix', 'Micro : ' + voiceErrorFr(code), { err: voiceErrorFr(code) }), 'error');
+    if (window.MyFbToast) window.MyFbToast.show(_t('mic.error_prefix', 'Micro : ' + voiceErrorFr(code), { err: voiceErrorFr(code) }), 'error');
   }
 
   function _startWatchdog() {
@@ -301,8 +301,8 @@
     srWatchdog = setInterval(function () {
       if (!STATE.micActive) { _stopWatchdog(); return; }
       var idle = Date.now() - (MIC.lastEventAt || 0);
-      if (idle > 12000 && window.BIAIFToast) {
-        window.BIAIFToast.show(_t('mic.idle_warning', 'Aucun signal audio depuis 12 s — vérifiez le micro par défaut dans Chrome.'), 'error', 5000);
+      if (idle > 12000 && window.MyFbToast) {
+        window.MyFbToast.show(_t('mic.idle_warning', 'Aucun signal audio depuis 12 s — vérifiez le micro par défaut dans Chrome.'), 'error', 5000);
       }
     }, 3000);
   }
@@ -340,9 +340,9 @@
   function _appendVoiceToEditor(text) {
     var ed = REFS.demandeEditor;
     if (!ed || !text) return;
-    if (window.BIAIFSession) window.BIAIFSession.insertTextAtSelection(ed, text);
-    if (window.BIAIFSession) window.BIAIFSession.syncCurrentDemandeFromEditor();
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    if (window.MyFbSession) window.MyFbSession.insertTextAtSelection(ed, text);
+    if (window.MyFbSession) window.MyFbSession.syncCurrentDemandeFromEditor();
+    if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
   }
 
   function _appendVoiceToDemande(idx, text) {
@@ -350,19 +350,19 @@
     if (!dem || !text) return;
     var textEl = document.querySelector('.demande-text[data-i="' + idx + '"]');
     if (textEl) {
-      if (window.BIAIFSession) window.BIAIFSession.insertTextAtSelection(textEl, text);
-      if (window.BIAIFSession) window.BIAIFSession.syncDemandeFromTextEl(textEl, dem);
+      if (window.MyFbSession) window.MyFbSession.insertTextAtSelection(textEl, text);
+      if (window.MyFbSession) window.MyFbSession.syncDemandeFromTextEl(textEl, dem);
     } else {
       var trimmed = text.replace(/^\s+|\s+$/g, '');
       var cur     = dem.text || '';
       var sep     = cur && !/\s$/.test(cur) ? ' ' : '';
       dem.text    = (cur + sep + trimmed + ' ').replace(/\s{2,}/g, ' ').replace(/\s+$/, ' ');
-      if (window.BIAIFRenderer) window.BIAIFRenderer.renderSegments();
+      if (window.MyFbRenderer) window.MyFbRenderer.renderSegments();
     }
-    if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+    if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
   }
 
-  window.BIAIFSpeech = {
+  window.MyFbSpeech = {
     init:                init,
     isMicSupported:      isMicSupported,
     ensureMicPermission: ensureMicPermission,

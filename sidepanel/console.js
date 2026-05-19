@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * BIAIF Console Panel
+ * MyFb Console Panel
  * Intercepts console.log/warn/error and mirrors them to the in-panel log viewer.
  * Uses a queue so entries captured before DOMContentLoaded are not lost.
  */

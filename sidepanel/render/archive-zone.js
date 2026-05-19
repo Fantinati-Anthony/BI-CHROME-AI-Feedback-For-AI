@@ -1,17 +1,17 @@
 /**
- * BIAIF Render — Archive zone
+ * MyFb Render — Archive zone
  *
  * Collapsible "X archivée(s) — MAJ il y a Yt" zone shown at the bottom of
  * the segments list for done segments that don't belong to a conversation
  * group. Carries a single shared interval timer that refreshes the
- * relative timestamp every BIAIF.config.ui.ARCHIVE_REFRESH_MS.
+ * relative timestamp every MyFb.config.ui.ARCHIVE_REFRESH_MS.
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
-  var ctx   = window.BIAIFRender.ctx;
-  var CFG   = (window.BIAIF && window.BIAIF.config && window.BIAIF.config.ui) || {};
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  window.MyFbRender = window.MyFbRender || {};
+  var ctx   = window.MyFbRender.ctx;
+  var CFG   = (window.MyFb && window.MyFb.config && window.MyFb.config.ui) || {};
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
   function relTime(ts) {
@@ -33,33 +33,33 @@
 
   function build(archived) {
     var STATE = ctx.STATE;
-    var Card  = window.BIAIFRender.segmentCard;
+    var Card  = window.MyFbRender.segmentCard;
     var zone = document.createElement('div');
-    zone.className = 'biaif-archive-zone' + (STATE.archiveExpanded ? ' is-expanded' : '');
+    zone.className = 'myfb-archive-zone' + (STATE.archiveExpanded ? ' is-expanded' : '');
 
     var ts   = latestTs(archived);
     var relT = relTime(ts);
     var updLabel = relT ? _t('archive.updated', 'MAJ il y a ' + relT, { t: relT }) : '';
 
-    var ICONS = window.BIAIFRender.icons;
+    var ICONS = window.MyFbRender.icons;
     var header = document.createElement('button');
     header.type = 'button';
-    header.className = 'biaif-archive-header';
+    header.className = 'myfb-archive-header';
     header.setAttribute('aria-expanded', STATE.archiveExpanded ? 'true' : 'false');
     header.innerHTML =
-      ICONS.chevronDn(12).replace('width="12" height="12"', 'class="biaif-archive-chevron" width="12" height="12"') +
-      '<span class="biaif-archive-label">' + _t('archive.toggle', '{n} archivée(s)', { n: archived.length }) + '</span>' +
-      (updLabel ? '<span class="biaif-archive-updated">' + updLabel + '</span>' : '');
+      ICONS.chevronDn(12).replace('width="12" height="12"', 'class="myfb-archive-chevron" width="12" height="12"') +
+      '<span class="myfb-archive-label">' + _t('archive.toggle', '{n} archivée(s)', { n: archived.length }) + '</span>' +
+      (updLabel ? '<span class="myfb-archive-updated">' + updLabel + '</span>' : '');
 
     header.addEventListener('click', function () {
       STATE.archiveExpanded = !STATE.archiveExpanded;
       zone.classList.toggle('is-expanded', STATE.archiveExpanded);
       header.setAttribute('aria-expanded', STATE.archiveExpanded ? 'true' : 'false');
-      if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
+      if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
     });
 
     var body = document.createElement('div');
-    body.className = 'biaif-archive-body';
+    body.className = 'myfb-archive-body';
 
     archived.forEach(function (item) { body.appendChild(Card.build(item.dem, item.origIndex)); });
 
@@ -71,10 +71,10 @@
     // sidepanel lifetime).
     if (!ctx.archiveTimer) {
       ctx.archiveTimer = setInterval(function () {
-        document.querySelectorAll('.biaif-archive-updated').forEach(function (el) {
-          var zone2 = el.closest('.biaif-archive-zone');
+        document.querySelectorAll('.myfb-archive-updated').forEach(function (el) {
+          var zone2 = el.closest('.myfb-archive-zone');
           if (!zone2) return;
-          var cards = zone2.querySelectorAll('.biaif-segment');
+          var cards = zone2.querySelectorAll('.myfb-segment');
           var latest = 0;
           cards.forEach(function (card) {
             var idx = Number(card.dataset.i);
@@ -93,7 +93,7 @@
     return zone;
   }
 
-  window.BIAIFRender.archiveZone = {
+  window.MyFbRender.archiveZone = {
     build:    build,
     relTime:  relTime,
     latestTs: latestTs,

@@ -1,5 +1,5 @@
 /**
- * BIAIF Render — Segments orchestrator
+ * MyFb Render — Segments orchestrator
  *
  * Top-level renderer: filters STATE.demandes against the active search +
  * filter chips, sorts, groups by conversation, and appends to REFS.segments.
@@ -13,10 +13,10 @@
  */
 (function (window) {
   'use strict';
-  window.BIAIFRender = window.BIAIFRender || {};
-  var ctx   = window.BIAIFRender.ctx;
-  var DOM   = (window.BIAIF && window.BIAIF.dom)   || {};
-  var UTILS = (window.BIAIF && window.BIAIF.utils) || {};
+  window.MyFbRender = window.MyFbRender || {};
+  var ctx   = window.MyFbRender.ctx;
+  var DOM   = (window.MyFb && window.MyFb.dom)   || {};
+  var UTILS = (window.MyFb && window.MyFb.utils) || {};
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
   function _matchesText(dem, q) {
@@ -69,7 +69,7 @@
     var REFS = ctx.REFS, STATE = ctx.STATE;
     if (!REFS.segments) return;
 
-    var R  = window.BIAIFRender;
+    var R  = window.MyFbRender;
 
     REFS.segments.innerHTML = '';
     if (REFS.segmentsCount) REFS.segmentsCount.textContent = String(STATE.demandes.length);
@@ -141,8 +141,8 @@
   function ensureDelegatedHandlers() {
     if (_delegatedBound) return;
     _delegatedBound = true;
-    var wrap = document.querySelector('.biaif-segments') || document.body;
-    var ALL = (window.BIAIF && window.BIAIF.ALL_BUTTONS) || [];
+    var wrap = document.querySelector('.myfb-segments') || document.body;
+    var ALL = (window.MyFb && window.MyFb.ALL_BUTTONS) || [];
     var FN_BY_SLUG = ALL.reduce(function (acc, def) {
       if (def.exportFn) acc['seg-' + def.slug] = def.exportFn;
       return acc;
@@ -151,7 +151,7 @@
     wrap.addEventListener('click', function (e) {
       var actEl = e.target.closest && e.target.closest('[data-act]');
       if (!actEl) return;
-      var card = actEl.closest('.biaif-segment');
+      var card = actEl.closest('.myfb-segment');
       if (!card) return;
       var idx  = Number(card.dataset.i);
       if (Number.isNaN(idx)) return;
@@ -159,26 +159,30 @@
 
       if (act === 'seg-edit' || actEl.classList.contains('seg-edit-btn')) {
         e.stopPropagation();
-        if (!window.BIAIFSession) return;
-        if (ctx.STATE.editingDemandeIdx === idx) window.BIAIFSession.exitEditMode();
-        else window.BIAIFSession.enterEditMode(idx);
+        if (!window.MyFbSession) return;
+        if (ctx.STATE.editingDemandeIdx === idx) window.MyFbSession.exitEditMode();
+        else window.MyFbSession.enterEditMode(idx);
         return;
       }
       if (actEl.classList.contains('seg-del')) {
         e.stopPropagation();
         var STATE = ctx.STATE;
-        if (STATE.editingDemandeIdx === idx && window.BIAIFSession) window.BIAIFSession.exitEditMode({ silent: true });
+        if (STATE.editingDemandeIdx === idx && window.MyFbSession) window.MyFbSession.exitEditMode({ silent: true });
         if (typeof STATE.editingDemandeIdx === 'number' && STATE.editingDemandeIdx > idx) STATE.editingDemandeIdx--;
+        if (window.MyFbUndo) window.MyFbUndo.push({
+          demandes:       JSON.parse(JSON.stringify(STATE.demandes)),
+          currentDemande: JSON.parse(JSON.stringify(STATE.currentDemande)),
+        });
         STATE.demandes.splice(idx, 1);
         render();
-        if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
-        if (window.BIAIFToast && window.BIAIFToast.showAction) {
-          window.BIAIFToast.showAction(
+        if (window.MyFbStorage) window.MyFbStorage.persist(STATE, { skipUndo: true });
+        if (window.MyFbToast && window.MyFbToast.showAction) {
+          window.MyFbToast.showAction(
             _t('toast.demande_deleted', 'Demande #' + (idx + 1) + ' supprimée.', { n: idx + 1 }),
             _t('toast.undo_action', 'Annuler'),
             function () {
-              if (window.BIAIFBindings && window.BIAIFBindings.helpers) {
-                window.BIAIFBindings.helpers.performUndo();
+              if (window.MyFbBindings && window.MyFbBindings.helpers) {
+                window.MyFbBindings.helpers.performUndo();
               }
             },
             { duration: 6000 }
@@ -209,8 +213,8 @@
         e.stopPropagation();
         var stT = ctx.STATE;
         if (!stT.demandes[idx]) return;
-        if (window.BIAIFTagPicker) {
-          window.BIAIFTagPicker.open(idx, stT);
+        if (window.MyFbTagPicker) {
+          window.MyFbTagPicker.open(idx, stT);
         }
         return;
       }
@@ -218,7 +222,7 @@
       var exportFnName = FN_BY_SLUG[act];
       if (exportFnName) {
         e.stopPropagation();
-        var fn = window.BIAIFExport && window.BIAIFExport[exportFnName];
+        var fn = window.MyFbExport && window.MyFbExport[exportFnName];
         if (typeof fn === 'function') fn(idx);
       }
     });
@@ -228,7 +232,7 @@
       var del = e.target.closest && e.target.closest('[data-tag-del]');
       if (!del) return;
       e.stopPropagation();
-      var card = del.closest('.biaif-segment');
+      var card = del.closest('.myfb-segment');
       if (!card) return;
       var idx = Number(card.dataset.i);
       if (Number.isNaN(idx)) return;
@@ -240,12 +244,12 @@
       // If we just removed the active filter target, clear the filter too.
       if (st.tagFilter === tag) st.tagFilter = '';
       render();
-      if (window.BIAIFStorage) window.BIAIFStorage.persist(st);
+      if (window.MyFbStorage) window.MyFbStorage.persist(st);
     });
 
     // ── Drag-drop merge / reorder (delegated, was per-card before) ───
     function _idxFor(target) {
-      var card = target.closest && target.closest('.biaif-segment');
+      var card = target.closest && target.closest('.myfb-segment');
       if (!card) return -1;
       var i = Number(card.dataset.i);
       return Number.isNaN(i) ? -1 : i;
@@ -258,7 +262,7 @@
       return 'merge';
     }
     function _clearAll() {
-      document.querySelectorAll('.biaif-segment.is-drop-target, .biaif-segment.is-drop-before, .biaif-segment.is-drop-after')
+      document.querySelectorAll('.myfb-segment.is-drop-target, .myfb-segment.is-drop-before, .myfb-segment.is-drop-after')
         .forEach(function (c) { c.classList.remove('is-drop-target', 'is-drop-before', 'is-drop-after'); });
     }
 
@@ -270,20 +274,20 @@
       if (idx < 0) return;
       e.stopPropagation();
       e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', '__biaif_segment__'); } catch (_) {}
+      try { e.dataTransfer.setData('text/plain', '__myfb_segment__'); } catch (_) {}
       ctx.SEG_DRAG.sourceIdx = idx;
-      var card = handle.closest('.biaif-segment');
+      var card = handle.closest('.myfb-segment');
       if (card) card.classList.add('is-dragging-seg');
     });
     wrap.addEventListener('dragend', function () {
       ctx.SEG_DRAG.sourceIdx = -1;
-      document.querySelectorAll('.biaif-segment.is-dragging-seg').forEach(function (c) {
+      document.querySelectorAll('.myfb-segment.is-dragging-seg').forEach(function (c) {
         c.classList.remove('is-dragging-seg');
       });
       _clearAll();
     });
     wrap.addEventListener('dragover', function (e) {
-      var card = e.target.closest && e.target.closest('.biaif-segment');
+      var card = e.target.closest && e.target.closest('.myfb-segment');
       if (!card || ctx.SEG_DRAG.sourceIdx < 0) return;
       var idx = Number(card.dataset.i);
       if (idx === ctx.SEG_DRAG.sourceIdx) return;
@@ -294,13 +298,13 @@
       card.classList.add(mode === 'merge' ? 'is-drop-target' : (mode === 'before' ? 'is-drop-before' : 'is-drop-after'));
     });
     wrap.addEventListener('dragleave', function (e) {
-      var card = e.target.closest && e.target.closest('.biaif-segment');
+      var card = e.target.closest && e.target.closest('.myfb-segment');
       if (!card) return;
       if (e.relatedTarget && card.contains(e.relatedTarget)) return;
       card.classList.remove('is-drop-target', 'is-drop-before', 'is-drop-after');
     });
     wrap.addEventListener('drop', function (e) {
-      var card = e.target.closest && e.target.closest('.biaif-segment');
+      var card = e.target.closest && e.target.closest('.myfb-segment');
       if (!card || ctx.SEG_DRAG.sourceIdx < 0) return;
       var idx = Number(card.dataset.i);
       if (idx === ctx.SEG_DRAG.sourceIdx) return;
@@ -308,9 +312,9 @@
       var src  = ctx.SEG_DRAG.sourceIdx; ctx.SEG_DRAG.sourceIdx = -1;
       var mode = ctx.SEG_DRAG.dropMode || 'merge';
       ctx.SEG_DRAG.dropMode = null;
-      if (!window.BIAIFSession) return;
-      if (mode === 'merge') window.BIAIFSession.mergeDemandes(src, idx);
-      else                  window.BIAIFSession.reorderDemande(src, mode === 'before' ? idx : idx + 1);
+      if (!window.MyFbSession) return;
+      if (mode === 'merge') window.MyFbSession.mergeDemandes(src, idx);
+      else                  window.MyFbSession.reorderDemande(src, mode === 'before' ? idx : idx + 1);
     });
 
     // Alt+↑/↓ on the focused drag handle merges with neighbours.
@@ -323,7 +327,7 @@
       var dst = e.key === 'ArrowUp' ? idx - 1 : idx + 1;
       if (idx < 0 || dst < 0 || dst >= ctx.STATE.demandes.length) return;
       e.preventDefault();
-      if (window.BIAIFSession) window.BIAIFSession.mergeDemandes(idx, dst);
+      if (window.MyFbSession) window.MyFbSession.mergeDemandes(idx, dst);
     });
   }
 
@@ -331,7 +335,7 @@
   var _origRender = render;
   render = function () { _origRender(); ensureDelegatedHandlers(); };
 
-  window.BIAIFRender.segments = {
+  window.MyFbRender.segments = {
     render:    render,
     setFilter: setFilter,
     filter:    filter,
