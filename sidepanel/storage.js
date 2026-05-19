@@ -361,6 +361,16 @@
         }) });
       });
     }
+    // v2.4 — give the user a way to drop DB profiles from a share-friendly
+    // bundle. The secret envelope is encrypted with a non-extractable key
+    // that lives in IndexedDB → on a different machine it cannot be
+    // decrypted anyway. But the schemaMd may still leak proprietary
+    // database column names ; an admin sharing a bundle for support
+    // probably doesn't want that to travel either.
+    if (opts.stripDbProfiles && bundle.data.dbProfiles) {
+      bundle.data._dbProfilesStripped = bundle.data.dbProfiles.length;
+      bundle.data.dbProfiles = [];
+    }
     var json = JSON.stringify(bundle, null, 2);
     var blob = new Blob([json], { type: 'application/json' });
     var url  = URL.createObjectURL(blob);
