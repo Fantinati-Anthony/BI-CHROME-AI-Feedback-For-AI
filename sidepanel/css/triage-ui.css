@@ -10,7 +10,11 @@
   border-bottom: 1px dashed rgba(255,255,255,0.05);
 }
 
-/* Status chip */
+/* Status chip — anchor for the dropdown picker (position:relative). */
+.myfb-triage-status,
+.myfb-triage-priority {
+  position: relative;
+}
 .myfb-triage-status {
   display: inline-flex;
   align-items: center;
@@ -26,6 +30,60 @@
   transition: filter 140ms;
 }
 .myfb-triage-status:hover { filter: brightness(1.2); }
+.myfb-triage-caret {
+  font-size: 9px; margin-left: 1px; opacity: 0.6;
+}
+
+/* ── Dropdown picker (v2.6) ─────────────────────────────────── */
+.myfb-triage-picker {
+  position: absolute;
+  top: calc(100% + 4px); left: 0;
+  z-index: 100;
+  display: flex; flex-direction: column;
+  min-width: 140px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  animation: myfb-triage-picker-in 0.12s ease-out;
+}
+@keyframes myfb-triage-picker-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.myfb-triage-picker-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 6px 10px;
+  background: transparent; border: 0;
+  color: var(--text-main); font: inherit; font-size: 11px; font-weight: 500;
+  text-align: left; cursor: pointer; border-radius: 5px;
+  transition: background 0.1s, transform 0.06s;
+}
+.myfb-triage-picker-item:hover     { background: var(--bg-card-hover); }
+.myfb-triage-picker-item:active    { transform: scale(0.98); }
+.myfb-triage-picker-item.is-current {
+  background: rgba(45, 212, 217, 0.08);
+  font-weight: 700;
+}
+.myfb-triage-picker-item .myfb-triage-check {
+  margin-left: auto; color: var(--accent-blue); font-weight: 700;
+}
+.myfb-triage-picker-item .myfb-triage-prio-dot { font-size: 9px; }
+/* Status colors inside picker */
+.myfb-triage-picker-item.myfb-triage-status-new      { color: #94a3b8; }
+.myfb-triage-picker-item.myfb-triage-status-new      .myfb-triage-dot { background: #94a3b8; }
+.myfb-triage-picker-item.myfb-triage-status-accepted { color: #fbbf24; }
+.myfb-triage-picker-item.myfb-triage-status-accepted .myfb-triage-dot { background: #fbbf24; }
+.myfb-triage-picker-item.myfb-triage-status-rejected { color: #f87171; }
+.myfb-triage-picker-item.myfb-triage-status-rejected .myfb-triage-dot { background: #f87171; }
+.myfb-triage-picker-item.myfb-triage-status-shipped  { color: #4ade80; }
+.myfb-triage-picker-item.myfb-triage-status-shipped  .myfb-triage-dot { background: #4ade80; }
+/* Priority colors inside picker */
+.myfb-triage-picker-item.myfb-triage-priority-low      { color: #94a3b8; }
+.myfb-triage-picker-item.myfb-triage-priority-medium   { color: #fbbf24; }
+.myfb-triage-picker-item.myfb-triage-priority-high     { color: #fb923c; }
+.myfb-triage-picker-item.myfb-triage-priority-critical { color: #ef4444; }
 .myfb-triage-dot {
   display: inline-block;
   width: 6px; height: 6px; border-radius: 50%;
