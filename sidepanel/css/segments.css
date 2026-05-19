@@ -137,7 +137,7 @@
 /* ── User-defined tag chips ──────────────────────────────────────── */
 /*  --st-bg / --st-bd / --st-tx are set per chip by segment-card.js
  *  (DOM API — CSP forbids inline style="" via innerHTML). Fallback amber
- *  applies if BIAIFTagPicker isn't loaded yet at first render. */
+ *  applies if MyFbTagPicker isn't loaded yet at first render. */
 .seg-tag-chip {
   --st-bg: rgba(245,158,11,.08);
   --st-bd: rgba(245,158,11,.35);
