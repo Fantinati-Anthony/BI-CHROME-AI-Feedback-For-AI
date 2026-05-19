@@ -28,14 +28,20 @@
     span.dataset.ref = String(absIdx);
     if (opts.demKey !== undefined) span.dataset.demKey = String(opts.demKey);
 
-    var isShot = ref && ref.type === 'screenshot';
-    var isErr  = ref && ref.type === 'error';
-    if (isErr) span.classList.add('ref-chip--error');
+    var isShot  = ref && ref.type === 'screenshot';
+    var isErr   = ref && ref.type === 'error';
+    var isVideo = ref && ref.type === 'video';
+    if (isErr)   span.classList.add('ref-chip--error');
+    if (isVideo) span.classList.add('ref-chip--video');
 
     var ICONS = window.MyFbRender.icons;
-    var icon  = isShot ? ICONS.image() : isErr ? ICONS.alert() : ICONS.arrow();
+    var icon  = isShot ? ICONS.image()
+              : isVideo ? (ICONS.video ? ICONS.video() : ICONS.image())
+              : isErr ? ICONS.alert() : ICONS.arrow();
 
-    var labelKind = isShot ? 'capture' : isErr ? 'erreur' : 'élément';
+    var labelKind = isShot ? 'capture'
+                  : isVideo ? 'vidéo'
+                  : isErr ? 'erreur' : 'élément';
     var num       = opts.displayNum || (absIdx + 1);
 
     var domainBadge = '';
@@ -84,6 +90,37 @@
       btn.className = 'ref-details-btn'; btn.type = 'button'; btn.dataset.editType = 'screenshot';
       btn.textContent = '✏ Re-annoter';
       details.appendChild(btn);
+    } else if (isVideo) {
+      // ── Video ref ─────────────────────────────────────────────
+      // Inline <video> element with controls so the user can scrub.
+      // Source comes either from inline dataUrl (small) or from a
+      // blob resolved via MyFbBlobStore (large recordings live in
+      // IndexedDB to dodge the 10 MB chrome.storage quota).
+      var v = document.createElement('video');
+      v.className     = 'ref-details-video';
+      v.controls      = true;
+      v.preload       = 'metadata';
+      v.setAttribute('playsinline', '');
+      v.setAttribute('aria-label', 'vidéo #' + num);
+      if (ref.dataUrl) {
+        v.src = ref.dataUrl;
+      } else if (ref.blobId && window.MyFbBlobStore && window.MyFbBlobStore.get) {
+        window.MyFbBlobStore.get(ref.blobId).then(function (u) { if (u) v.src = u; }).catch(function () {});
+      }
+      details.appendChild(v);
+      var vmeta = document.createElement('span');
+      vmeta.className = 'ref-details-meta';
+      var sizeLabel = '';
+      if (typeof ref.sizeBytes === 'number' && ref.sizeBytes > 0) {
+        sizeLabel = ref.sizeBytes < 1048576
+          ? Math.round(ref.sizeBytes / 1024) + ' Ko'
+          : (ref.sizeBytes / 1048576).toFixed(1) + ' Mo';
+      }
+      vmeta.innerHTML =
+        (ref.mime     ? '<span class="t-key">type</span> ' + esc(ref.mime)     + '<br>' : '') +
+        (sizeLabel    ? '<span class="t-key">taille</span> ' + esc(sizeLabel) + '<br>' : '') +
+        (ref.fileName ? '<span class="t-key">fichier</span> ' + esc(ref.fileName)      : '');
+      details.appendChild(vmeta);
     } else if (isErr) {
       var lines = [];
       if (ref.msg)  lines.push('<span class="t-key">message</span> ' + esc(ref.msg));
