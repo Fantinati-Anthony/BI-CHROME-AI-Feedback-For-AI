@@ -1,0 +1,67 @@
+# My-Feedbacks Bridge — Compose stack
+#
+# One-shot deployment with the bridge + a fresh MySQL for testing, OR
+# the bridge alone pointing at an existing remote DB.
+#
+# Quick start (bridge + MySQL bundled for local testing) :
+#
+#   cd bridge/
+#   docker compose up -d
+#   open http://localhost:8080/myfb-bridge.php
+#   # → setup wizard. Host = "db", port = 3306, db/user/pass from below.
+#
+# Production-ish (bridge alone pointing at YOUR existing MySQL) :
+#
+#   docker compose up -d bridge
+#   open https://your-host/myfb-bridge.php
+#   # → setup wizard, point at your existing DB.
+
+services:
+  bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: myfb-bridge:latest
+    container_name: myfb-bridge
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      # Persists secret + audit + nonces across container restarts.
+      # The Dockerfile symlinks data/* to /var/www/html/* so the wizard
+      # writes here and never touches the image itself.
+      - ./data:/var/www/html/data
+    healthcheck:
+      # Bridge serves a plaintext one-liner on GET when configured ;
+      # before config it serves the setup HTML (also 200 OK). Either way
+      # an HTTP 200 means the container is responsive.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/myfb-bridge.php || exit 1"]
+      interval: 30s
+      timeout:  3s
+      retries:  3
+    depends_on:
+      db:
+        condition: service_healthy
+    # If you DON'T want the bundled MySQL, remove `depends_on` above and
+    # comment out the `db:` service below — the bridge will then talk to
+    # whatever DB you wire via the setup wizard.
+
+  db:
+    image: mysql:8.0
+    container_name: myfb-bridge-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpw_change_me
+      MYSQL_DATABASE:      demo
+      MYSQL_USER:          myfb_readonly
+      MYSQL_PASSWORD:      readonly_change_me
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -prootpw_change_me --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mysql-data:
