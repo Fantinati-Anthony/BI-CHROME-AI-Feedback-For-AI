@@ -135,8 +135,19 @@
       if (!STATE.currentDemande) STATE.currentDemande = { text: '', refs: [], pageUrl: null };
       if (!Array.isArray(STATE.currentDemande.refs)) STATE.currentDemande.refs = [];
       STATE.currentDemande.refs.push(ref);
-      if (window.MyFbStorage && window.MyFbStorage.persist) window.MyFbStorage.persist(STATE);
-      if (window.MyFbRenderer && window.MyFbRenderer.renderDemandeRefsStrip) window.MyFbRenderer.renderDemandeRefsStrip();
+      var absIdx = STATE.currentDemande.refs.length - 1;
+      // appendChipToEditor inserts the chip element into the contenteditable
+      // editor AND calls syncCurrentDemandeFromEditor which writes the
+      // matching `{{ref:N}}` marker into STATE.currentDemande.text. Without
+      // this, the next `input` event on the editor rebuilds the refs array
+      // from DOM chips alone — and silently drops the video.
+      if (window.MyFbRenderer && window.MyFbRenderer.appendChipToEditor) {
+        window.MyFbRenderer.appendChipToEditor(absIdx, ref);
+      } else {
+        // Fallback when the renderer isn't wired yet (e.g. very early boot)
+        if (window.MyFbStorage && window.MyFbStorage.persist) window.MyFbStorage.persist(STATE);
+        if (window.MyFbRenderer && window.MyFbRenderer.renderDemandeRefsStrip) window.MyFbRenderer.renderDemandeRefsStrip();
+      }
       _toast(t('video.saved', 'Vidéo ajoutée à la demande (' + _humanSize(blob.size) + ').'), 'success', 3000);
     }).catch(function (err) {
       _toast(t('video.persist_failed', 'Sauvegarde KO : ' + (err && err.message)), 'error', 4000);
