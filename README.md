@@ -8,7 +8,7 @@
 
 [![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/manifest-v3-green.svg)](manifest.json)
-[![Version](https://img.shields.io/badge/version-1.0.0-cyan.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.4.0-cyan.svg)](manifest.json)
 ![Languages](https://img.shields.io/badge/i18n-7%20langs-orange.svg)
 
 Extension Chrome (Manifest V3) qui permet de pointer des éléments d'une page,
@@ -29,11 +29,12 @@ auquel envoyer tes données. Tu choisis ton canal :
 |---|---|---|---|
 | **Solo** | aucun | local (IndexedDB) | gratuit |
 | **Shared Folder** | un dossier Drive/Dropbox/OneDrive partagé | local + dossier partagé | gratuit |
-| **Self-hosted** | binaire PHP open-source sur ton serveur | ton serveur | gratuit |
 | **My-Feedbacks Cloud** | compte sur my-feedbacks.com | nos serveurs EU | payant (service géré) |
 
-L'extension est **open-source MIT**. Le serveur self-hosted est
-**open-source AGPL-3.0**. Le cloud officiel est un service géré payant.
+> Le **bridge BDD** (v2.4) est un **add-on transversal** disponible à tous les tiers : un fichier PHP open-source à déposer chez toi qui expose le schéma de ta BDD à l'extension. Les données BDD ne passent jamais par my-feedbacks.com — direct extension ↔ ton serveur. Voir [`bridge/README.md`](bridge/README.md).
+
+L'extension est **open-source MIT** ; le bridge PHP également. Le site
+my-feedbacks.com (back-office, billing, dashboard) est un service géré.
 
 ---
 
@@ -88,12 +89,25 @@ Au premier lancement, un **wizard** te demande :
 - **Triage suggéré** par IA (statut + priorité + tags)
 - **Export one-click** vers Claude.ai, ChatGPT, Cursor, VS Code Copilot, Aider, Cody
 - **Templates** de prompts partageables
+- **Contexte BDD** (v2.4) — fournit à l'IA le schéma + un échantillon de
+  données de tes BDD. Deux modes :
+  - **Collé** : tu colles un markdown statique (sortie p.ex. du widget
+    dashboard WordPress de ton site).
+  - **Bridge HTTP** : dépose `bridge/myfb-bridge.php` à la racine de ton
+    site, le setup wizard intégré génère le secret HMAC et écrit la config.
+    L'extension appelle le bridge à la demande (`🔄 Rafraîchir`) ou injecte
+    automatiquement le schéma au démarrage de session (`autoInject`).
+  - Sécurité : HMAC-SHA256 signé côté extension (clé AES-GCM-256
+    non-extractable en IndexedDB), opérations whitelistées côté PHP
+    (`meta` / `tables` / `describe` / `sample` / `count` / `schema_md`),
+    aucun SQL libre, allow/deny patterns par table.
 
 ### Sync
 - **Solo** : tout local, zéro infra
 - **Shared Folder** : sync via dossier cloud (Drive, Dropbox, OneDrive, LAN)
-- **Self-hosted** : serveur PHP/MySQL open-source
 - **Cloud** : my-feedbacks.com (multi-tenant, dashboard, webhooks, billing)
+
+> Note v2.4 : la BDD passe par un endpoint companion open source (`bridge/myfb-bridge.php`) déposé sur **ton** site — pas via un serveur tiers. Voir [`bridge/README.md`](bridge/README.md).
 
 ### Privacy
 - **E2E encryption** opt-in (Web Crypto API)
@@ -169,7 +183,10 @@ tests/          vitest + jsdom
 - ✅ **v1.0.0** — Foundation : rebrand, event sourcing core, tier Solo
 - ✅ **v1.1 → v1.7** — UX V4 complete : onboarding wizard, page overlays, triage workflow, comments, breadcrumbs, network capture, shared-folder transport, AI client + 9 export targets, ship-ready packaging
 - ✅ **v1.8 → v1.17** — Visible UI on top : AI buttons on cards, Settings (device/sync/links/data), sync engine, export picker, triage chips/filter, GDPR controls, pairing codes + handler
-- 🟡 **v2.0** — Tier 3 (self-hosted PHP/MySQL server, open-source AGPL) + Tier 4 (my-feedbacks.com cloud + dashboard + billing on o2switch)
+- ✅ **v2.0** — Final v1 polish : legacy ↔ event store bridges, E2E crypto foundation, telemetry opt-in, privacy controls UI
+- ✅ **v2.1 → v2.3** — Logos pack, video recorder in Capture submenu, per-tool visibility config, rich segment conversation (mentions/target/propose-edit)
+- ✅ **v2.4** — DB context for AI : profile cards, PHP bridge with HMAC + setup wizard, AES-GCM secret encryption, auto-injection at session start
+- 🟡 **v3.0** — Cloud tier (my-feedbacks.com on o2switch, multi-tenant + dashboard + Stripe billing) + DB relay éphémère pour les comptes payants
 
 ---
 
