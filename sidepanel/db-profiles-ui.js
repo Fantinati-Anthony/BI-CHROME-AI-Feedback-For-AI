@@ -47,6 +47,48 @@
     if (window.BIAIFStorage) window.BIAIFStorage.persist(STATE);
   }
 
+  // ── Secret encryption helpers ────────────────────────────────────────
+  //
+  // A profile's HMAC secret never lives in plain text inside chrome.storage.
+  // It's wrapped in AES-GCM via a non-extractable key kept in IndexedDB
+  // (see sidepanel/db-secret-crypto.js). The form exposes the plaintext
+  // only when the user clicks "Éditer" — round-tripping through decrypt().
+  function _crypto() { return window.BIAIFDbSecretCrypto; }
+
+  async function _readSecret(p) {
+    if (!p) return '';
+    if (p.bridgeSecret && !p.bridgeSecretEnc) return p.bridgeSecret; // pre-migration
+    if (!_crypto() || !p.bridgeSecretEnc) return '';
+    try { return await _crypto().decrypt(p.bridgeSecretEnc); }
+    catch (e) { return ''; }
+  }
+
+  async function _writeSecret(p, plaintext) {
+    if (!p) return;
+    var c = _crypto();
+    if (!c) { p.bridgeSecret = plaintext; return; } // graceful fallback
+    if (!plaintext) { delete p.bridgeSecret; delete p.bridgeSecretEnc; return; }
+    p.bridgeSecretEnc = await c.encrypt(plaintext);
+    delete p.bridgeSecret;
+  }
+
+  /**
+   * One-shot migration on init: encrypt any profile that still has a
+   * plaintext `bridgeSecret` from before this module existed.
+   */
+  async function _migrateLegacySecrets() {
+    var c = _crypto(); if (!c) return;
+    var dirty = false;
+    var profiles = STATE.dbProfiles || [];
+    for (var i = 0; i < profiles.length; i++) {
+      var p = profiles[i];
+      if (p && p.bridgeSecret && !p.bridgeSecretEnc) {
+        try { await _writeSecret(p, p.bridgeSecret); dirty = true; } catch (_) {}
+      }
+    }
+    if (dirty) _persist();
+  }
+
   // -----------------------------------------------------------------------
   // List rendering
   // -----------------------------------------------------------------------
@@ -108,12 +150,13 @@
   // -----------------------------------------------------------------------
   // Form (create / edit)
   // -----------------------------------------------------------------------
-  function _openForm(profile) {
+  async function _openForm(profile) {
     var form = document.getElementById('db-profile-form');
     var holder = document.getElementById('db-profile-form-holder');
     if (!form || !holder) return;
     var p = profile || {};
     var isNew = !profile;
+    var secretPlain = profile ? await _readSecret(profile) : '';
 
     holder.style.display = 'block';
     form.innerHTML =
@@ -150,7 +193,7 @@
           '<input type="url" name="bridgeUrl" value="' + esc(p.bridgeUrl || '') +
             '" placeholder="https://example.com/myfb-bridge.php" /></label>' +
         '<label class="dbp-field"><span>' + esc(_t('db.field_secret', 'Secret HMAC')) + '</span>' +
-          '<input type="password" name="bridgeSecret" value="' + esc(p.bridgeSecret || '') +
+          '<input type="password" name="bridgeSecret" value="' + esc(secretPlain) +
             '" placeholder="' + esc(_t('db.secret_placeholder', 'Hex 64 chars — copié depuis le fichier PHP')) + '" /></label>' +
         '<p class="dbp-hint">' + esc(_t('db.bridge_hint',
           'Dépose myfb-bridge.php à la racine de ton site, génère un secret (openssl rand -hex 32) et colle-le ici. Voir bridge/README.md.')) + '</p>' +
@@ -191,31 +234,33 @@
     if (form) form.innerHTML = '';
   }
 
-  function _handleSubmit(e) {
+  async function _handleSubmit(e) {
     e.preventDefault();
     var form = e.target;
     var fd = new FormData(form);
     var id = fd.get('id') || _uuid();
     var existing = _findProfile(id);
     var profile = existing || { id: id, ts: Date.now() };
-    profile.label        = String(fd.get('label') || '').trim().slice(0, 60);
-    profile.engine       = String(fd.get('engine') || 'mysql');
-    profile.mode         = String(fd.get('mode') || 'paste');
-    profile.host         = String(fd.get('host') || '').trim().slice(0, 200);
+    profile.label    = String(fd.get('label') || '').trim().slice(0, 60);
+    profile.engine   = String(fd.get('engine') || 'mysql');
+    profile.mode     = String(fd.get('mode') || 'paste');
+    profile.host     = String(fd.get('host') || '').trim().slice(0, 200);
     var port = parseInt(fd.get('port'), 10);
-    profile.port         = (port && port > 0 && port < 65536) ? port : null;
-    profile.database     = String(fd.get('database') || '').trim().slice(0, 120);
-    profile.prefix       = String(fd.get('prefix') || '').trim().slice(0, 40);
-    profile.bridgeUrl    = String(fd.get('bridgeUrl') || '').trim();
-    profile.bridgeSecret = String(fd.get('bridgeSecret') || '').trim();
-    profile.schemaMd     = String(fd.get('schemaMd') || '');
-    profile.notes        = String(fd.get('notes') || '');
-    profile.autoInject   = !!fd.get('autoInject');
-    profile.updatedTs    = Date.now();
+    profile.port     = (port && port > 0 && port < 65536) ? port : null;
+    profile.database = String(fd.get('database') || '').trim().slice(0, 120);
+    profile.prefix   = String(fd.get('prefix') || '').trim().slice(0, 40);
+    profile.bridgeUrl = String(fd.get('bridgeUrl') || '').trim();
+    var secretPlain  = String(fd.get('bridgeSecret') || '').trim();
+    profile.schemaMd = String(fd.get('schemaMd') || '');
+    profile.notes    = String(fd.get('notes') || '');
+    profile.autoInject = !!fd.get('autoInject');
+    profile.updatedTs  = Date.now();
     if (!profile.label) { toast(_t('db.err_label', 'Libellé obligatoire'), 'error'); return; }
-    if (profile.mode === 'bridge' && (!profile.bridgeUrl || !profile.bridgeSecret)) {
+    if (profile.mode === 'bridge' && (!profile.bridgeUrl || !secretPlain)) {
       toast(_t('db.err_bridge_cred', 'URL et secret du bridge obligatoires en mode bridge'), 'error'); return;
     }
+    try { await _writeSecret(profile, secretPlain); }
+    catch (e) { toast(_t('db.err_crypto', 'Chiffrement du secret KO : ' + (e.message || e)), 'error'); return; }
     if (!existing) {
       STATE.dbProfiles = (STATE.dbProfiles || []).concat([profile]);
     }
@@ -236,7 +281,8 @@
     }
     toast(_t('db.refresh_start', 'Récupération du schéma…'), 'info', 1500);
     try {
-      var md = await window.BIAIFDbBridge.fetchSchemaMd(p);
+      var secret = await _readSecret(p);
+      var md = await window.BIAIFDbBridge.fetchSchemaMd({ bridgeUrl: p.bridgeUrl, bridgeSecret: secret });
       p.schemaMd = md;
       p.lastRefreshTs = Date.now();
       p.updatedTs = Date.now();
@@ -299,12 +345,15 @@
     });
   }
 
-  function init(state) {
+  async function init(state) {
     STATE = state || (window.BIAIFRender && window.BIAIFRender.ctx && window.BIAIFRender.ctx.STATE);
     if (!STATE) return;
     if (!Array.isArray(STATE.dbProfiles)) STATE.dbProfiles = [];
     _bind();
     _render();
+    try {
+      if (_crypto()) { await _crypto().ready(); await _migrateLegacySecrets(); _render(); }
+    } catch (_) {}
   }
 
   window.BIAIFDbProfilesUi = {
