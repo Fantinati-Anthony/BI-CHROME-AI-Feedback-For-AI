@@ -34,19 +34,27 @@
   font-size: 9px; margin-left: 1px; opacity: 0.6;
 }
 
-/* ── Dropdown picker (v2.6) ─────────────────────────────────── */
+/* ── Dropdown picker (v2.6, portalled into body) ──────────────
+   The picker is appended to document.body to escape segment-card
+   overflow:hidden and per-card stacking contexts. Position (top/left)
+   is set inline by triage-ui.js using getBoundingClientRect of the
+   anchor + page scroll offsets. */
 .myfb-triage-picker {
   position: absolute;
-  top: calc(100% + 4px); left: 0;
-  z-index: 100;
+  z-index: 9999;
   display: flex; flex-direction: column;
-  min-width: 140px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
+  min-width: 160px;
+  background: #1a2235;                      /* explicit opaque — fallback below */
+  background: var(--bg-card, #1a2235);
+  border: 1px solid #334155;
+  border: 1px solid var(--border-card, #334155);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
   padding: 4px;
   animation: myfb-triage-picker-in 0.12s ease-out;
+  /* Defensive: kill anything that could cause translucency. */
+  opacity: 1;
+  backdrop-filter: none;
 }
 @keyframes myfb-triage-picker-in {
   from { opacity: 0; transform: translateY(-4px); }

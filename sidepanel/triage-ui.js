@@ -105,10 +105,22 @@
 
   // ── Dropdown popover (status / priority) ─────────────────────────────
   //
-  // Spawned at click on the chip. Positioned relative to the chip via
-  // absolute coordinates (the chip becomes position:relative via CSS).
-  // Click outside or escape closes it ; selecting an option fires the
-  // corresponding setter then re-renders the row.
+  // The popover is portalled into document.body — not nested inside the
+  // anchor button — to escape three failure modes :
+  //   1. Segment cards have overflow:hidden for their rounded corners,
+  //      which would clip an absolutely-positioned child popover.
+  //   2. Lower segment cards can create their own stacking context
+  //      (border-radius + transform etc.), making a z-index:100 on a
+  //      higher card's popover useless against them.
+  //   3. Long lists of segments push the anchor off-screen on scroll ;
+  //      portalling lets us recompute position cheaply.
+  //
+  // Position is calculated from the anchor's getBoundingClientRect() and
+  // page scroll offsets. We close on scroll / resize / click-outside /
+  // Escape to avoid the popover drifting away from its anchor.
+  var _openPickerEl = null;
+  var _openAnchor   = null;
+
   function _openPicker(anchor, kind, id) {
     _closePicker();
     var T = window.MyFbTriage;
@@ -131,13 +143,35 @@
         (v === current ? '<span class="myfb-triage-check" aria-hidden="true">✓</span>' : '') +
       '</button>';
     }).join('');
-    anchor.appendChild(pop);
-    // Close on ESC
-    document.addEventListener('keydown', _onPickerKey);
+    document.body.appendChild(pop);
+    _openPickerEl = pop;
+    _openAnchor   = anchor;
+    _positionPicker();
+    document.addEventListener('keydown',  _onPickerKey);
+    document.addEventListener('scroll',   _closePicker, true);
+    window.addEventListener('resize',     _closePicker);
   }
+
+  function _positionPicker() {
+    if (!_openPickerEl || !_openAnchor) return;
+    var r = _openAnchor.getBoundingClientRect();
+    var top  = r.bottom + window.scrollY + 4;
+    var left = r.left   + window.scrollX;
+    // Keep it inside the viewport horizontally — flip-right if it would
+    // overflow the window.
+    var maxLeft = window.innerWidth - 180 + window.scrollX;
+    if (left > maxLeft) left = Math.max(window.scrollX + 4, maxLeft);
+    _openPickerEl.style.top  = top  + 'px';
+    _openPickerEl.style.left = left + 'px';
+  }
+
   function _closePicker() {
-    document.querySelectorAll('.myfb-triage-picker').forEach(function (p) { p.remove(); });
+    if (_openPickerEl && _openPickerEl.parentNode) _openPickerEl.parentNode.removeChild(_openPickerEl);
+    _openPickerEl = null;
+    _openAnchor   = null;
     document.removeEventListener('keydown', _onPickerKey);
+    document.removeEventListener('scroll',  _closePicker, true);
+    window.removeEventListener('resize',    _closePicker);
   }
   function _onPickerKey(e) {
     if (e.key === 'Escape') { e.preventDefault(); _closePicker(); }
@@ -187,14 +221,12 @@
 
     if (act === 'status-open') {
       e.stopPropagation();
-      // Toggle if same anchor already open
-      var existing = btn.querySelector('.myfb-triage-picker');
-      if (existing) { _closePicker(); return; }
+      // Toggle if the picker is already open for this anchor.
+      if (_openAnchor === btn) { _closePicker(); return; }
       _openPicker(btn, 'status', id);
     } else if (act === 'priority-open') {
       e.stopPropagation();
-      var existingP = btn.querySelector('.myfb-triage-picker');
-      if (existingP) { _closePicker(); return; }
+      if (_openAnchor === btn) { _closePicker(); return; }
       _openPicker(btn, 'priority', id);
     } else if (act === 'status-pick') {
       e.stopPropagation();
