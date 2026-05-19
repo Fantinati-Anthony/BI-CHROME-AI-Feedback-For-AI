@@ -46,6 +46,42 @@
     return _hex(sig);
   }
 
+  // Minimum bridge protocol version this client speaks. Bumped when
+  // the client requires a new response field. Bridges older than this
+  // produce a clear "upgrade myfb-bridge.php" error rather than a
+  // mysterious schema mismatch downstream.
+  var MIN_BRIDGE_VERSION = '1.1.0';
+
+  // Compares two semver-ish strings. Returns -1 / 0 / 1.
+  function _cmpVer(a, b) {
+    var pa = String(a || '0').split('.').map(function (x) { return parseInt(x, 10) || 0; });
+    var pb = String(b || '0').split('.').map(function (x) { return parseInt(x, 10) || 0; });
+    for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
+      var va = pa[i] || 0, vb = pb[i] || 0;
+      if (va < vb) return -1;
+      if (va > vb) return  1;
+    }
+    return 0;
+  }
+
+  // Maps HTTP status + raw error string to a user-actionable message.
+  // Keep messages short — they end up in toasts and the form status row.
+  function _humanizeError(httpStatus, raw) {
+    raw = String(raw || '').toLowerCase();
+    if (httpStatus === 0)   return 'Bridge inaccessible (réseau / DNS / CORS)';
+    if (httpStatus === 404) return 'Endpoint introuvable — vérifie l\'URL du bridge';
+    if (httpStatus === 401) {
+      if (raw.indexOf('replay') >= 0) return 'Nonce déjà utilisé — horloge décalée ?';
+      if (raw.indexOf('stale')  >= 0) return 'Horloge client/serveur décalée (> 60s)';
+      if (raw.indexOf('nonce')  >= 0) return 'Nonce invalide';
+      return 'Signature HMAC invalide — secret incorrect ?';
+    }
+    if (httpStatus === 403) return 'Table non exposée par la config du bridge';
+    if (httpStatus === 405) return 'Méthode HTTP refusée — bridge mal configuré';
+    if (httpStatus >= 500)  return 'Erreur interne du bridge — vérifie audit.log';
+    return raw || ('Erreur HTTP ' + httpStatus);
+  }
+
   /**
    * Calls the bridge endpoint via the background service worker
    * (sidepanel CSP forbids direct fetch to arbitrary hosts).
@@ -70,10 +106,29 @@
         resolve(r || { error: 'no response' });
       });
     });
-    if (!resp || resp.error) throw new Error(resp && resp.error || 'fetch failed');
-    if (!resp.body || resp.body.ok !== true) {
-      throw new Error((resp.body && resp.body.error) || 'bridge returned an error');
+
+    // SW-level failure (CORS, DNS, etc.) — body is null
+    if (!resp || resp.error) {
+      throw new Error(_humanizeError(0, resp && resp.error));
     }
+    // HTTP error or malformed JSON
+    if (!resp.body || typeof resp.body !== 'object') {
+      throw new Error(_humanizeError(resp.status || 0, resp.raw || 'malformed response'));
+    }
+    // Application-level error (bridge returned ok:false)
+    if (resp.body.ok !== true) {
+      throw new Error(_humanizeError(resp.status || 0, resp.body.error || 'bridge error'));
+    }
+
+    // Version check — protect downstream against missing fields a newer
+    // op might require. Allows the bridge to be NEWER than the client
+    // (forward-compat) but not OLDER than MIN_BRIDGE_VERSION.
+    var bv = resp.body.version;
+    if (bv && _cmpVer(bv, MIN_BRIDGE_VERSION) < 0) {
+      throw new Error('Bridge trop ancien (' + bv + ' < ' + MIN_BRIDGE_VERSION +
+                      ') — mets à jour myfb-bridge.php');
+    }
+
     return resp.body.data;
   }
 
@@ -84,9 +139,12 @@
   }
 
   window.MyFbDbBridge = {
-    call:          call,
-    fetchSchemaMd: fetchSchemaMd,
-    signRequest:   signRequest,
-    _canonArgs:    _canonArgs,
+    call:               call,
+    fetchSchemaMd:      fetchSchemaMd,
+    signRequest:        signRequest,
+    MIN_BRIDGE_VERSION: MIN_BRIDGE_VERSION,
+    _canonArgs:         _canonArgs,
+    _cmpVer:            _cmpVer,
+    _humanizeError:     _humanizeError,
   };
 })(window);
