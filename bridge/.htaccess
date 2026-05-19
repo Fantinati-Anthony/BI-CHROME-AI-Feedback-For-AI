@@ -1,0 +1,36 @@
+# My-Feedbacks Bridge — Apache hardening
+#
+# Drop this file next to `myfb-bridge.php`. It protects the sibling
+# config / audit / nonce files from being served as static text,
+# which would leak credentials and history.
+#
+# Tested with Apache 2.4 (Require directive). For Apache 2.2 swap
+# the `Require all denied` for `Order Deny,Allow` + `Deny from all`.
+
+<Files "myfb-bridge.config.php">
+  Require all denied
+</Files>
+
+<Files "myfb-bridge.audit.log">
+  Require all denied
+</Files>
+
+<Files "myfb-bridge.nonces">
+  Require all denied
+</Files>
+
+<Files "myfb-bridge.nonces.tmp">
+  Require all denied
+</Files>
+
+# Optional: force HTTPS — uncomment if your host has TLS already.
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^myfb-bridge\.php$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Optional: rate-limit failed-auth bursts (requires mod_evasive).
+# <IfModule mod_evasive20.c>
+#   DOSPageCount 5
+#   DOSPageInterval 1
+#   DOSBlockingPeriod 60
+# </IfModule>

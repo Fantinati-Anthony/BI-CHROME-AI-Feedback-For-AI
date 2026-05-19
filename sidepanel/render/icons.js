@@ -43,6 +43,7 @@
     image:     '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/>',
     alert:     '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/>' +
                '<line x1="12" x2="12.01" y1="16" y2="16"/>',
+    filter:    '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
   };
 
   window.MyFbRender.icons = {
@@ -60,5 +61,6 @@
     arrow:     function (size) { return _svg(size || 11, P.arrow); },
     image:     function (size) { return _svg(size || 11, P.image); },
     alert:     function (size) { return _svg(size || 11, P.alert); },
+    filter:    function (size) { return _svg(size || 10, P.filter); },
   };
 })(window);

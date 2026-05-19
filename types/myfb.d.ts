@@ -74,11 +74,37 @@ interface MyFbAiAdapter {
 }
 
 /** Permissive shape for the loosely-typed STATE object. */
+/** v2.4 — one persisted DB profile card. The HMAC secret is stored as
+ *  an AES-GCM envelope (see MyFbDbSecretCrypto). Legacy fields
+ *  `bridgeSecret` (plaintext) are auto-migrated on load. */
+interface MyFbDbProfile {
+  id: string;
+  label: string;
+  engine: 'mysql' | 'postgres' | 'sqlite' | 'mongo' | 'other';
+  mode: 'paste' | 'bridge';
+  host?: string;
+  port?: number | null;
+  database?: string;
+  prefix?: string;
+  schemaMd: string;
+  notes?: string;
+  autoInject?: boolean;
+  bridgeUrl?: string;
+  bridgeSecret?: string;                  // legacy — migrated to bridgeSecretEnc
+  bridgeSecretEnc?: { iv: string; ct: string };
+  linkedRepoId?: string | null;
+  linkedDomain?: string | null;
+  lastRefreshTs?: number;
+  ts: number;
+  updatedTs?: number;
+}
+
 interface MyFbState {
   [key: string]: any;
   demandes: MyFbDemande[];
   currentDemande: MyFbCurrentDemande;
   templates: MyFbTemplate[];
+  dbProfiles?: MyFbDbProfile[];
   visibleButtons: Record<string, boolean>;
 }
 
@@ -160,6 +186,23 @@ declare global {
     MyFbPrivacyControls?: { [k: string]: any };
     MyFbVideoRecorder?: { [k: string]: any };
     MyFbQuickToolsConfig?: { [k: string]: any };
+    /** v2.4 — DB context for AI (see bridge/myfb-bridge.php) */
+    MyFbDbBridge?: {
+      call(profile: { bridgeUrl: string; bridgeSecret: string }, op: string, args?: Record<string, unknown>): Promise<unknown>;
+      fetchSchemaMd(profile: { bridgeUrl: string; bridgeSecret: string }): Promise<string>;
+      signRequest(secret: string, ts: number, nonce: string, op: string, args: Record<string, unknown>): Promise<string>;
+      _canonArgs(args: unknown): string;
+    };
+    MyFbDbProfilesUi?: {
+      init(state?: MyFbState): Promise<void> | void;
+      render(): void;
+    };
+    MyFbDbSecretCrypto?: {
+      encrypt(plaintext: string): Promise<{ iv: string; ct: string }>;
+      decrypt(envelope: { iv: string; ct: string }): Promise<string>;
+      ready(): Promise<boolean>;
+      isEnvelope(v: unknown): boolean;
+    };
     MyFbNetworkBridge?: { [k: string]: any };
     MyFbIntentParser?: { [k: string]: any };
     MyFbLog?:      (level: string, ...args: any[]) => void;

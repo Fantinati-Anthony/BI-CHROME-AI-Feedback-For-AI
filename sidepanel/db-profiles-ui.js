@@ -398,8 +398,41 @@
     }
   }
 
+  // ── Auto-injection (v2.4) ───────────────────────────────────────────
+  //
+  // Called from MyFbSession.startSession() when the user arms a fresh
+  // session. Concatenates the schemaMd of every profile flagged
+  // `autoInject: true` and prepends it to STATE.currentDemande.text
+  // wrapped in a sentinel block so it can be detected on subsequent
+  // arms (avoid double-injection on the same draft).
+  var INJECT_BEGIN = '<!-- myfb-db-context -->';
+  var INJECT_END   = '<!-- /myfb-db-context -->';
+
+  function _autoInjectFor(state) {
+    if (!state || !state.currentDemande) return false;
+    var profiles = (state.dbProfiles || []).filter(function (p) {
+      return p && p.autoInject && (p.schemaMd || '').trim();
+    });
+    if (!profiles.length) return false;
+    var draft = state.currentDemande;
+    if (typeof draft.text === 'string' && draft.text.indexOf(INJECT_BEGIN) >= 0) return false;
+    if ((draft.text || '').trim() || (draft.refs || []).length) return false;
+    var block = INJECT_BEGIN + '\n';
+    profiles.forEach(function (p) {
+      block += '```\n# ' + (p.label || 'BDD') + '\n' + p.schemaMd + '\n```\n';
+    });
+    block += INJECT_END + '\n\n';
+    draft.text = block + (draft.text || '');
+    if (window.MyFbRenderer && window.MyFbRenderer.renderDemandeEditor) {
+      window.MyFbRenderer.renderDemandeEditor();
+    }
+    if (window.MyFbStorage) window.MyFbStorage.persist(state);
+    return true;
+  }
+
   window.MyFbDbProfilesUi = {
-    init:   init,
-    render: _render,
+    init:                 init,
+    render:               _render,
+    autoInjectForSession: _autoInjectFor,
   };
 })(window);
