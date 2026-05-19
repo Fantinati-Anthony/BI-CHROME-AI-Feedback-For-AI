@@ -463,5 +463,5 @@
     _overlay = null;
   }
 
-  window.MyFbTagPicker = { open: open, close: close };
+  window.MyFbTagPicker = { open: open, close: close, hue: _hue, chipVars: _chipVars };
 })(window);

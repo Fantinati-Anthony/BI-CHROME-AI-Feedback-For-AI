@@ -118,19 +118,19 @@
 .myfb-status[data-kind="error"]   { color: var(--danger);  border-color: rgba(255, 69, 58, 0.3); cursor: pointer; }
 .myfb-status[data-kind="success"] { color: var(--success); border-color: rgba(48, 209, 88, 0.3); }
 
-/* ============== Tool button "Erreurs" (badge dynamique) ============== */
-.tool-btn--errors svg { color: var(--text-muted); }
-.tool-btn--errors.has-errors svg { color: var(--danger); }
-.tool-badge {
-  display: inline-block;
-  margin-left: 4px; padding: 0 6px;
-  background: var(--border-card); color: var(--text-muted);
-  border-radius: var(--radius-pill);
-  font-size: 9px; font-weight: 700;
-  font-family: 'Inter', monospace; line-height: 1.4;
-}
-.tool-btn--errors.has-errors .tool-badge {
+/* ============== Tool button "Erreurs" (badge dynamique) ==============
+   Le badge remplace désormais l'icône SVG : pastille ronde de taille
+   icône, rouge avec le nombre d'erreurs au centre. Le bouton est masqué
+   (hidden) tant qu'il n'y a aucune erreur. */
+.tool-btn--errors[hidden] { display: none !important; }
+.tool-btn--errors .tool-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  padding: 0;
   background: var(--danger); color: #fff;
+  border-radius: 50%;
+  font-size: 11px; font-weight: 700;
+  font-family: 'Inter', sans-serif; line-height: 1;
   animation: badge-pulse 1.6s ease-in-out infinite;
 }
 @keyframes badge-pulse {

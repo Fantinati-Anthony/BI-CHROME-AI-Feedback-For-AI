@@ -61,6 +61,7 @@
     currentDemande:         { text: '', refs: [], pageUrl: null },
     demandes:               [],
     templates:              [],
+    dbProfiles:             [],
 
     // 3) SETTINGS — user preferences (persisted)
     lang:                   'fr-FR',
@@ -96,7 +97,7 @@
               'dictationTarget','modalTarget','consoleErrors','editingDemandeIdx',
               'searchQuery','pendingConversationUrl','pendingRepoId','lastShot',
               'lastShotMode','conversationFilter','repoFilter','domainFilter','pageFilter','tagFilter'],
-    data:    ['currentDemande','demandes','templates'],
+    data:    ['currentDemande','demandes','templates','dbProfiles'],
     settings:['lang','uiLang','micDeviceId','sortOrder','segFontSize','segTextLines','saveStaysArmed','shortcutMode',
               'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage',
               'hideAiTextarea','autoSubmitAfterInject','archiveExpanded',
@@ -261,6 +262,11 @@
     // v2.2: Per-tool visibility config (Settings → Outils rapides).
     if (window.MyFbQuickToolsConfig) {
       window.MyFbQuickToolsConfig.init();
+    }
+
+    // v2.4: DB profiles UI — wires the "Bases de données" settings section.
+    if (window.MyFbDbProfilesUi) {
+      window.MyFbDbProfilesUi.init(STATE);
     }
   });
 })();

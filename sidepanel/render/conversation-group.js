@@ -17,6 +17,44 @@
   var esc   = DOM.esc || function (s) { return String(s == null ? '' : s); };
   function _t(k, fb, vars) { return UTILS.t ? UTILS.t(k, fb, vars) : (fb || k); }
 
+  // Collect every repoId referenced by a group of segments, looking at
+  // both `dem.repoId` (segment-level) and `dem.refs[].repoId` (per-ref).
+  // Preserves first-occurrence order so the layout is stable across
+  // re-renders.
+  function _collectRepoIds(items) {
+    var seen = Object.create(null);
+    var out  = [];
+    items.forEach(function (it) {
+      var dem = it.dem || {};
+      var candidates = [dem.repoId];
+      (dem.refs || []).forEach(function (r) { candidates.push(r && r.repoId); });
+      candidates.forEach(function (rid) {
+        if (!rid || seen[rid]) return;
+        seen[rid] = true;
+        out.push(rid);
+      });
+    });
+    return out;
+  }
+
+  function _buildRepoBadges(items) {
+    var ICONS = window.MyFbRender.icons;
+    var ctx   = window.MyFbRender.ctx;
+    var STATE = (ctx && ctx.STATE) || {};
+    var ids   = _collectRepoIds(items);
+    if (!ids.length) return '';
+    var html = ids.map(function (rid) {
+      var active = STATE.repoFilter === rid;
+      return '<button class="seg-filter-badge seg-filter-badge--repo' +
+        (active ? ' is-active' : '') +
+        '" data-fk="repoFilter" data-fv="' + esc(rid) +
+        '" title="' + esc(_t('seg.filter_repo_tip', 'Filtrer par repo : ' + rid, { repo: rid })) +
+        '" type="button">' +
+        ICONS.repo(9) + esc(rid) + '</button>';
+    }).join('');
+    return '<div class="biaif-conv-repos">' + html + '</div>';
+  }
+
   // Group display items by conversationUrl (first occurrence preserves order).
   // Returns array of { conversationUrl, items, isGroup }.
   function build(display) {
@@ -64,7 +102,8 @@
       ICONS.chat(10).replace('aria-hidden="true"', 'class="myfb-conv-icon" aria-hidden="true"') +
       '<a class="myfb-conv-url" href="' + esc(group.conversationUrl) + '" target="_blank" rel="noopener" title="' +
       esc(group.conversationUrl) + '">' + esc(convShort) + '</a>' +
-      '<span class="myfb-conv-count">' + total + ' segment' + (total > 1 ? 's' : '') + '</span>';
+      '<span class="myfb-conv-count">' + total + ' segment' + (total > 1 ? 's' : '') + '</span>' +
+      _buildRepoBadges(group.items);
     wrap.appendChild(header);
 
     activeItems.forEach(function (item) { wrap.appendChild(Card.build(item.dem, item.origIndex)); });
