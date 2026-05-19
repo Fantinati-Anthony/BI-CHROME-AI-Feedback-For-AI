@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "My-Feedbacks",
-  "version": "2.0.0",
+  "version": "2.4.0",
   "description": "Local-first feedback bridge between developers and their clients. Capture visuel, vocal, erreurs JS — exporté vers Claude, ChatGPT, Cursor, VS Code Copilot, Aider.",
   "author": "Anthony Fantinati",
   "minimum_chrome_version": "114",
