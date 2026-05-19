@@ -76,31 +76,71 @@
     if (!T) { holder.textContent = ''; return; }
     var status   = T.getStatus(id)   || 'new';
     var priority = T.getPriority(id) || 'medium';
-    var tags     = T.getTags(id)     || [];
     var comments = T.listComments(id);
     var sLab = STATUS_LABELS[status];
     var pLab = PRIO_LABELS[priority];
 
+    // v2.6 — status/priority are now dropdowns (click → popover with the
+    // 4 options). Tags moved out of this row since they're already shown
+    // in the .seg-meta-tags row above with a proper color-coded picker.
     holder.innerHTML =
-      '<button type="button" class="myfb-triage-status myfb-triage-status-' + sLab.cls + '" data-myfb-act="status-cycle" data-id="' + _escAttr(id) + '" title="' + t('triage.click_to_cycle', 'Cliquer pour changer') + '">' +
+      '<button type="button" class="myfb-triage-status myfb-triage-status-' + sLab.cls +
+        '" data-myfb-act="status-open" data-id="' + _escAttr(id) +
+        '" title="' + t('triage.click_to_pick', 'Choisir un statut') + '" aria-haspopup="true">' +
         '<span class="myfb-triage-dot"></span>' +
         '<span>' + _esc(t(sLab.i18n, sLab.label)) + '</span>' +
+        '<span class="myfb-triage-caret" aria-hidden="true">▾</span>' +
       '</button>' +
-      '<button type="button" class="myfb-triage-priority myfb-triage-priority-' + pLab.cls + '" data-myfb-act="priority-cycle" data-id="' + _escAttr(id) + '" title="' + t(pLab.i18n, pLab.label) + '">' +
-        '⬤' +
+      '<button type="button" class="myfb-triage-priority myfb-triage-priority-' + pLab.cls +
+        '" data-myfb-act="priority-open" data-id="' + _escAttr(id) +
+        '" title="' + t('triage.click_to_pick_prio', 'Choisir une priorité') + '" aria-haspopup="true">' +
+        '⬤<span class="myfb-triage-priority-label">' + _esc(t(pLab.i18n, pLab.label)) + '</span>' +
+        '<span class="myfb-triage-caret" aria-hidden="true">▾</span>' +
       '</button>' +
-      '<div class="myfb-triage-tags">' +
-        tags.map(function (tg) {
-          return '<span class="myfb-triage-tag">#' + _esc(tg) +
-                 '<button type="button" class="myfb-triage-tag-x" data-myfb-act="tag-remove" data-id="' + _escAttr(id) + '" data-tag="' + _escAttr(tg) + '" aria-label="' + t('triage.remove_tag', 'Retirer') + '">×</button>' +
-                 '</span>';
-        }).join('') +
-        '<button type="button" class="myfb-triage-add-tag" data-myfb-act="tag-add" data-id="' + _escAttr(id) + '" title="' + t('triage.add_tag', 'Ajouter un tag') + '">+</button>' +
-      '</div>' +
       '<button type="button" class="myfb-triage-comments" data-myfb-act="comments-toggle" data-id="' + _escAttr(id) + '" title="' + t('triage.comments', 'Commentaires') + '">' +
         '💬 ' + comments.length +
       '</button>' +
       '<div class="myfb-triage-comments-thread" data-myfb-thread="' + _escAttr(id) + '" hidden></div>';
+  }
+
+  // ── Dropdown popover (status / priority) ─────────────────────────────
+  //
+  // Spawned at click on the chip. Positioned relative to the chip via
+  // absolute coordinates (the chip becomes position:relative via CSS).
+  // Click outside or escape closes it ; selecting an option fires the
+  // corresponding setter then re-renders the row.
+  function _openPicker(anchor, kind, id) {
+    _closePicker();
+    var T = window.MyFbTriage;
+    if (!T) return;
+    var values = kind === 'status' ? T.STATUSES : T.PRIORITIES;
+    var labels = kind === 'status' ? STATUS_LABELS : PRIO_LABELS;
+    var current = kind === 'status' ? (T.getStatus(id) || 'new') : (T.getPriority(id) || 'medium');
+    var pop = document.createElement('div');
+    pop.className = 'myfb-triage-picker myfb-triage-picker--' + kind;
+    pop.setAttribute('role', 'menu');
+    pop.dataset.anchorId = id;
+    pop.dataset.kind     = kind;
+    pop.innerHTML = values.map(function (v) {
+      var lab = labels[v];
+      return '<button type="button" class="myfb-triage-picker-item myfb-triage-' + kind + '-' + lab.cls +
+        (v === current ? ' is-current' : '') +
+        '" data-myfb-act="' + kind + '-pick" data-id="' + _escAttr(id) + '" data-value="' + _escAttr(v) + '" role="menuitem">' +
+        (kind === 'status' ? '<span class="myfb-triage-dot"></span>' : '<span class="myfb-triage-prio-dot">⬤</span>') +
+        '<span>' + _esc(t(lab.i18n, lab.label)) + '</span>' +
+        (v === current ? '<span class="myfb-triage-check" aria-hidden="true">✓</span>' : '') +
+      '</button>';
+    }).join('');
+    anchor.appendChild(pop);
+    // Close on ESC
+    document.addEventListener('keydown', _onPickerKey);
+  }
+  function _closePicker() {
+    document.querySelectorAll('.myfb-triage-picker').forEach(function (p) { p.remove(); });
+    document.removeEventListener('keydown', _onPickerKey);
+  }
+  function _onPickerKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); _closePicker(); }
   }
 
   function _renderThread(id) {
@@ -134,31 +174,36 @@
 
   function _onDocClick(e) {
     var btn = e.target && e.target.closest && e.target.closest('[data-myfb-act]');
-    if (!btn) return;
+    if (!btn) {
+      // Click hors d'un bouton triage : ferme le popover ouvert si on a
+      // cliqué en dehors de lui.
+      if (e.target && e.target.closest && !e.target.closest('.myfb-triage-picker')) _closePicker();
+      return;
+    }
     var act = btn.getAttribute('data-myfb-act');
     var id  = btn.getAttribute('data-id');
     var T   = window.MyFbTriage;
     if (!T || !id) return;
 
-    if (act === 'status-cycle') {
+    if (act === 'status-open') {
       e.stopPropagation();
-      _cycle(T.STATUSES, T.getStatus(id) || 'new', function (next) {
-        T.setStatus(id, next).then(function () { _renderRow(id); }).catch(function () {});
-      });
-    } else if (act === 'priority-cycle') {
+      // Toggle if same anchor already open
+      var existing = btn.querySelector('.myfb-triage-picker');
+      if (existing) { _closePicker(); return; }
+      _openPicker(btn, 'status', id);
+    } else if (act === 'priority-open') {
       e.stopPropagation();
-      _cycle(T.PRIORITIES, T.getPriority(id) || 'medium', function (next) {
-        T.setPriority(id, next).then(function () { _renderRow(id); }).catch(function () {});
-      });
-    } else if (act === 'tag-add') {
+      var existingP = btn.querySelector('.myfb-triage-picker');
+      if (existingP) { _closePicker(); return; }
+      _openPicker(btn, 'priority', id);
+    } else if (act === 'status-pick') {
       e.stopPropagation();
-      var tg = prompt(t('triage.tag_prompt', 'Nouveau tag :'));
-      if (!tg) return;
-      T.addTag(id, tg).then(function () { _renderRow(id); }).catch(function () {});
-    } else if (act === 'tag-remove') {
+      var sVal = btn.getAttribute('data-value');
+      T.setStatus(id, sVal).then(function () { _renderRow(id); _closePicker(); }).catch(function () { _closePicker(); });
+    } else if (act === 'priority-pick') {
       e.stopPropagation();
-      var rm = btn.getAttribute('data-tag');
-      T.removeTag(id, rm).then(function () { _renderRow(id); }).catch(function () {});
+      var pVal = btn.getAttribute('data-value');
+      T.setPriority(id, pVal).then(function () { _renderRow(id); _closePicker(); }).catch(function () { _closePicker(); });
     } else if (act === 'comments-toggle') {
       e.stopPropagation();
       var thr = document.querySelector('[data-myfb-thread="' + _escAttr(id) + '"]');
