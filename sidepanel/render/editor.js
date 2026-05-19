@@ -77,10 +77,25 @@
       }
       var lbl = document.createElement('span');
       lbl.className = 'ref-mini-label';
-      lbl.textContent = ref.type === 'screenshot' ? (ref.mode || 'capture') : (ref.selector || ref.tag || '?');
+      lbl.textContent = _refMiniLabel(ref);
       mini.appendChild(lbl);
       strip.appendChild(mini);
     });
+  }
+
+  function _humanSize(b) {
+    if (typeof b !== 'number' || b <= 0) return '';
+    if (b < 1024)    return b + ' o';
+    if (b < 1048576) return Math.round(b / 1024) + ' Ko';
+    return (b / 1048576).toFixed(1) + ' Mo';
+  }
+  function _refMiniLabel(ref) {
+    if (!ref) return '?';
+    if (ref.type === 'screenshot') return ref.mode || 'capture';
+    if (ref.type === 'video')      return 'vidéo' + (ref.sizeBytes ? ' ' + _humanSize(ref.sizeBytes) : '');
+    if (ref.type === 'error')      return ref.message ? String(ref.message).slice(0, 32) : 'erreur';
+    if (ref.type === 'text')       return String(ref.snippet || ref.text || 'texte').slice(0, 32);
+    return ref.selector || ref.tag || '?';
   }
 
   function appendChip(absIdx, ref) {
