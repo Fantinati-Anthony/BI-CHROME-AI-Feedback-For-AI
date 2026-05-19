@@ -96,16 +96,31 @@
       // Source comes either from inline dataUrl (small) or from a
       // blob resolved via MyFbBlobStore (large recordings live in
       // IndexedDB to dodge the 10 MB chrome.storage quota).
+      //
+      // Both `ref.dataUrl` (after rehydrate) and BlobStore.get() return
+      // the same `dataUrl` field internally — but for videos that field
+      // actually holds a Blob (the recorder passes Blob to put() instead
+      // of a base64 string for memory efficiency). We detect Blob at
+      // render time and wrap via URL.createObjectURL() ; data-URL
+      // strings (screenshots) are passed through unchanged.
       var v = document.createElement('video');
       v.className     = 'ref-details-video';
       v.controls      = true;
       v.preload       = 'metadata';
       v.setAttribute('playsinline', '');
       v.setAttribute('aria-label', 'vidéo #' + num);
+      function _setVideoSrc(u) {
+        if (!u) return;
+        if (typeof Blob !== 'undefined' && u instanceof Blob) {
+          v.src = URL.createObjectURL(u);
+        } else {
+          v.src = u;
+        }
+      }
       if (ref.dataUrl) {
-        v.src = ref.dataUrl;
+        _setVideoSrc(ref.dataUrl);
       } else if (ref.blobId && window.MyFbBlobStore && window.MyFbBlobStore.get) {
-        window.MyFbBlobStore.get(ref.blobId).then(function (u) { if (u) v.src = u; }).catch(function () {});
+        window.MyFbBlobStore.get(ref.blobId).then(_setVideoSrc).catch(function () {});
       }
       details.appendChild(v);
       var vmeta = document.createElement('span');
