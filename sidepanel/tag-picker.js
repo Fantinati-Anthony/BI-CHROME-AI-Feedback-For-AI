@@ -303,5 +303,5 @@
     _overlay = null;
   }
 
-  window.BIAIFTagPicker = { open: open, close: close };
+  window.BIAIFTagPicker = { open: open, close: close, hue: _hue, chipVars: _chipVars };
 })(window);

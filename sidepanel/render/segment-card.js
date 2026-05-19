@@ -256,6 +256,24 @@
       dragHandle.draggable = true;
       dragHandle.setAttribute('tabindex', '0');
     }
+
+    // Tag chip colors — applied via DOM API because CSP `style-src 'self'`
+    // forbids inline `style=""` attributes set through innerHTML. The hue
+    // helper from BIAIFTagPicker derives a stable HSL triplet from the
+    // tag string, identical to what the tag-picker popover uses → both
+    // surfaces show the same color for the same tag.
+    var TagP = window.BIAIFTagPicker;
+    if (TagP && TagP.chipVars) {
+      var chips = card.querySelectorAll('.seg-tag-chip');
+      chips.forEach(function (chip) {
+        var tag = chip.getAttribute('data-fv');
+        if (!tag) return;
+        var v = TagP.chipVars(tag, chip.classList.contains('is-active'));
+        chip.style.setProperty('--st-bg', v.bg);
+        chip.style.setProperty('--st-bd', v.border);
+        chip.style.setProperty('--st-tx', v.text);
+      });
+    }
     return card;
   }
 

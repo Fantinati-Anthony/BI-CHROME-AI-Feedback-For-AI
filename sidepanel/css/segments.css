@@ -115,15 +115,23 @@
 .seg-filter-badge--domain { border-color: rgba(255,255,255,.12); }
 
 /* ── User-defined tag chips ──────────────────────────────────────── */
+/*  --st-bg / --st-bd / --st-tx are set per chip by segment-card.js
+ *  (DOM API — CSP forbids inline style="" via innerHTML). Fallback amber
+ *  applies if BIAIFTagPicker isn't loaded yet at first render. */
 .seg-tag-chip {
-  border-color: rgba(245,158,11,.35);
-  color: #f59e0b;
-  background: rgba(245,158,11,.08);
+  --st-bg: rgba(245,158,11,.08);
+  --st-bd: rgba(245,158,11,.35);
+  --st-tx: #f59e0b;
+  border-color: var(--st-bd);
+  color: var(--st-tx);
+  background: var(--st-bg);
   display: inline-flex; align-items: center; gap: 2px;
   position: relative;
 }
-.seg-tag-chip:hover { border-color: #f59e0b; background: rgba(245,158,11,.16); }
-.seg-tag-chip.is-active { border-color: #f59e0b; background: rgba(245,158,11,.22); color: #fbbf24; box-shadow: 0 0 6px rgba(245,158,11,.35); }
+.seg-tag-chip:hover { filter: brightness(1.15); }
+.seg-tag-chip.is-active {
+  box-shadow: 0 0 6px var(--st-bd);
+}
 .seg-tag-hash { opacity: 0.7; margin-right: 1px; }
 .seg-tag-del {
   display: inline-flex; align-items: center; justify-content: center;
