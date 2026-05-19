@@ -43,6 +43,26 @@
     return (STATE.dbProfiles || []).find(function (p) { return p.id === id; }) || null;
   }
 
+  /**
+   * Human-friendly relative duration since `ts` (epoch ms). At-a-glance
+   * "il y a 2 min" instead of a 20-char locale timestamp. Falls through
+   * to a short ISO date for entries older than a week.
+   */
+  function _relTime(ts, now) {
+    if (!ts || typeof ts !== 'number') return '';
+    var diff = Math.max(0, (now || Date.now()) - ts);
+    var s = Math.floor(diff / 1000);
+    if (s < 5)    return _t('reltime.now',       "à l'instant");
+    if (s < 60)   return _t('reltime.s',         'il y a {n} s',     { n: s });
+    var m = Math.floor(s / 60);
+    if (m < 60)   return _t('reltime.m',         'il y a {n} min',   { n: m });
+    var h = Math.floor(m / 60);
+    if (h < 24)   return _t('reltime.h',         'il y a {n} h',     { n: h });
+    var d = Math.floor(h / 24);
+    if (d < 7)    return _t('reltime.d',         'il y a {n} j',     { n: d });
+    return new Date(ts).toISOString().slice(0, 10);
+  }
+
   function _persist() {
     if (window.MyFbStorage) window.MyFbStorage.persist(STATE);
   }
@@ -111,7 +131,8 @@
       ? '<span class="dbp-mode dbp-mode--bridge">' + esc(_t('db.mode_bridge', 'Bridge')) + '</span>'
       : '<span class="dbp-mode dbp-mode--paste">' + esc(_t('db.mode_paste', 'Collé')) + '</span>';
     var lastRefresh = p.lastRefreshTs
-      ? esc(new Date(p.lastRefreshTs).toLocaleString())
+      ? '<span title="' + esc(new Date(p.lastRefreshTs).toLocaleString()) + '">' +
+          esc(_relTime(p.lastRefreshTs)) + '</span>'
       : esc(_t('db.never_refreshed', 'jamais rafraîchi'));
     var refreshBtn = p.mode === 'bridge'
       ? '<button type="button" class="dbp-btn" data-act="db-refresh" data-id="' + esc(p.id) + '" title="' +
@@ -357,7 +378,8 @@
   }
 
   window.MyFbDbProfilesUi = {
-    init:   init,
-    render: _render,
+    init:     init,
+    render:   _render,
+    _relTime: _relTime,
   };
 })(window);
