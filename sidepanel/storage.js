@@ -412,6 +412,18 @@
     if (!_isStr(t.body, 4000)) return false;
     return true;
   }
+  // v2.4 — keep the bundle round-trippable for DB profile cards.
+  // Same shape as the live STATE.dbProfiles entry but defensive : any
+  // field can be missing / wrong type and we just drop the offender,
+  // never the whole bundle.
+  var MAX_DB_PROFILES = 50;
+  function _validDbProfile(p) {
+    if (!p || typeof p !== 'object') return false;
+    if (!_isStr(p.id, 80)) return false;
+    if (!_isStr(p.label, 80)) return false;
+    return true;
+  }
+
   function _validateBundle(bundle) {
     if (!bundle || typeof bundle !== 'object') return { ok: false, error: 'not-an-object' };
     if (bundle._myfb !== 'export')              return { ok: false, error: 'wrong-magic' };
@@ -425,6 +437,10 @@
     if (d.templates !== undefined) {
       if (!Array.isArray(d.templates) || d.templates.length > MAX_TEMPLATES) return { ok: false, error: 'templates-shape' };
       if (!d.templates.every(_validTemplate))                                 return { ok: false, error: 'templates-invalid' };
+    }
+    if (d.dbProfiles !== undefined) {
+      if (!Array.isArray(d.dbProfiles) || d.dbProfiles.length > MAX_DB_PROFILES) return { ok: false, error: 'db-profiles-shape' };
+      if (!d.dbProfiles.every(_validDbProfile)) return { ok: false, error: 'db-profiles-invalid' };
     }
     return { ok: true };
   }
@@ -450,6 +466,7 @@
       if (Array.isArray(data.demandes))   STATE.demandes = (STATE.demandes || []).concat(data.demandes);
     }
     if (Array.isArray(data.templates))    STATE.templates = data.templates;
+    if (Array.isArray(data.dbProfiles))   STATE.dbProfiles = data.dbProfiles;
     // Whitelist of importable settings (no arbitrary keys)
     var SAFE_SETTINGS = ['lang','micDeviceId','sortOrder','segFontSize','visibleButtons','uiLang',
       'autoOpenOnKnownActive','autoOpenOnKnownDone','autoOpenOnAiPage','hideAiTextarea',
