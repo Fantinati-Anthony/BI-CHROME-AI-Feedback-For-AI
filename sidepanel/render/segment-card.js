@@ -106,7 +106,15 @@
         '" data-i="' + origIndexAttr +
         '" title="Filtrer par tag : ' + esc(safe) + '" type="button">' +
         '<span class="seg-tag-hash">#</span>' + esc(safe) +
-        '<span class="seg-tag-del" data-tag-del="' + esc(safe) + '" data-i="' + origIndexAttr + '" aria-label="Retirer ce tag">×</span>' +
+        '<span class="seg-tag-act seg-tag-act--filter" data-tag-filter="' + esc(safe) +
+          '" title="' + esc(_t('seg.tag.filter', 'Filtrer par ce tag')) +
+          '" aria-label="' + esc(_t('seg.tag.filter', 'Filtrer par ce tag')) + '">' + ICONS.filter(9) + '</span>' +
+        '<span class="seg-tag-act seg-tag-act--edit" data-tag-edit="' + esc(safe) +
+          '" title="' + esc(_t('seg.tag.rename', 'Renommer ce tag')) +
+          '" aria-label="' + esc(_t('seg.tag.rename', 'Renommer ce tag')) + '">' + ICONS.pencil(9) + '</span>' +
+        '<span class="seg-tag-act seg-tag-act--del seg-tag-del" data-tag-del="' + esc(safe) + '" data-i="' + origIndexAttr +
+          '" title="' + esc(_t('seg.tag.remove', 'Retirer ce tag')) +
+          '" aria-label="' + esc(_t('seg.tag.remove', 'Retirer ce tag')) + '">×</span>' +
         '</button>');
     });
     // "+" button to add a tag (visible on every card)

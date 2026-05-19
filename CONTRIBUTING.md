@@ -34,10 +34,77 @@ sidepanel/             Side panel modules
 sidepanel.{html,css,js}
 
 vscode-extension/      Companion VS Code extension (HTTP bridge)
+bridge/                Companion PHP file for the DB-context feature
+                       (myfb-bridge.php + deploy templates + docs)
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and module
 responsibilities.
+
+---
+
+## Contributing to `bridge/`
+
+The `myfb-bridge.php` single-file companion endpoint has its own
+release cycle, independent of the extension. Rules of the road :
+
+### Backward compatibility
+
+- **Never** change the request format (`{op, args, ts, nonce, sig}`)
+  in a way that requires a coordinated extension push. The protocol is
+  signed bytes — any change breaks every deployed bridge in the wild.
+- **New opt-in fields** in the response (`data.somethingNew`) are
+  fine and bump the MINOR version. The extension feature-detects.
+- **New ops** are fine — bumps MINOR. Older extensions just don't
+  call them.
+- **Breaking changes** (renamed fields, removed ops) bump MAJOR and
+  the extension's `MyFbDbBridge.MIN_BRIDGE_VERSION` must be updated.
+
+### Security checklist for every bridge PR
+
+- [ ] No raw user-supplied string ever reaches an SQL query — only
+      identifiers validated by the strict regex
+      `^[A-Za-z0-9_\$-]{1,64}$` and then backticked.
+- [ ] Every new op is whitelisted in the dispatch switch — no
+      `eval` of the `op` field, no dynamic dispatch by string.
+- [ ] HMAC verification stays `hash_equals()` — constant-time. Never
+      `===` or `strcmp()`.
+- [ ] Rate limit / payload size cap respected — body remains ≤ 32 KB
+      and the existing nonce store stays bounded.
+- [ ] Audit log line includes `op` + `result` only — never the
+      payload, never SQL, never row content.
+- [ ] PR description includes a *Threat-model delta* paragraph
+      explaining what new attacker capability the change opens up
+      (often: none, and that's fine — just say so).
+
+### Versioning
+
+Bump in two places when you ship a bridge release :
+
+1. `bridge/myfb-bridge.php` → `const MYFB_BRIDGE_VERSION = 'X.Y.Z'`
+2. `bridge/CHANGELOG.md` → new section at the top with the date
+
+If the bump requires extension changes (e.g. you added a response
+field the extension uses), also bump `MyFbDbBridge.MIN_BRIDGE_VERSION`
+in `sidepanel/db-bridge-client.js` so the extension warns users on
+the older bridge.
+
+### Testing
+
+- PHP : `php -l bridge/myfb-bridge.php` for syntax. There's no PHP
+  test suite ; logic that matters is mirrored in JS tests
+  (`tests/db-bridge-client.test.js` cross-checks the HMAC math
+  against `crypto.createHmac()` from Node).
+- For end-to-end : `cd bridge/ && docker compose up -d`, hit the
+  wizard, sign a `meta` call by hand (see `bridge/EXAMPLES.md`).
+
+### Deploy templates
+
+When adding a new web-server flavour (Caddy, Lighttpd, IIS, …) :
+
+- Drop a `bridge/<server>.conf.example` next to `nginx.conf.example`
+- Mention it in `bridge/README.md` Installation section
+- Update the Dockerfile if relevant
 
 ---
 

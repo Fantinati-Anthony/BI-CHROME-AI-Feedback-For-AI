@@ -71,3 +71,68 @@ describe('MyFbDbBridge._canonArgs', () => {
     expect(window.MyFbDbBridge._canonArgs({ a: 1 })).toBe('{"a":1}');
   });
 });
+
+describe('MyFbDbBridge._cmpVer', () => {
+  const cmp = (a, b) => window.MyFbDbBridge._cmpVer(a, b);
+  it('returns 0 for equal versions', () => {
+    expect(cmp('1.0.0', '1.0.0')).toBe(0);
+    expect(cmp('1.1.0', '1.1.0')).toBe(0);
+  });
+  it('returns -1 when first is older', () => {
+    expect(cmp('1.0.0', '1.1.0')).toBe(-1);
+    expect(cmp('1.0.9', '1.1.0')).toBe(-1);
+    expect(cmp('1.1.0', '2.0.0')).toBe(-1);
+  });
+  it('returns 1 when first is newer', () => {
+    expect(cmp('1.2.0', '1.1.0')).toBe(1);
+    expect(cmp('2.0.0', '1.9.9')).toBe(1);
+  });
+  it('handles missing minor/patch as 0', () => {
+    expect(cmp('1', '1.0.0')).toBe(0);
+    expect(cmp('1.0', '1.0.0')).toBe(0);
+    expect(cmp('2', '1.9')).toBe(1);
+  });
+  it('treats undefined/null as 0.0.0', () => {
+    expect(cmp(undefined, '0.0.0')).toBe(0);
+    expect(cmp(null,      '1.0.0')).toBe(-1);
+  });
+});
+
+describe('MyFbDbBridge._humanizeError', () => {
+  const h = (s, r) => window.MyFbDbBridge._humanizeError(s, r);
+  it('status 0 → network-level message', () => {
+    expect(h(0, 'NetworkError')).toMatch(/inaccessible/);
+  });
+  it('status 404 → endpoint introuvable', () => {
+    expect(h(404, 'not found')).toMatch(/introuvable/);
+  });
+  it('401 with "replay" → nonce déjà utilisé', () => {
+    expect(h(401, 'replay detected')).toMatch(/déjà utilisé/);
+  });
+  it('401 with "stale" → horloge décalée', () => {
+    expect(h(401, 'stale request')).toMatch(/décalée/);
+  });
+  it('401 with "nonce" → nonce invalide', () => {
+    expect(h(401, 'bad nonce')).toMatch(/Nonce invalide/);
+  });
+  it('401 generic → signature HMAC invalide', () => {
+    expect(h(401, 'bad signature')).toMatch(/Signature/);
+  });
+  it('403 → table non exposée', () => {
+    expect(h(403, 'table not exposed')).toMatch(/non exposée/);
+  });
+  it('5xx → erreur interne', () => {
+    expect(h(500, 'internal: SQL boom')).toMatch(/interne/);
+    expect(h(503, 'down')).toMatch(/interne/);
+  });
+  it('unknown status → falls back to raw', () => {
+    expect(h(418, 'i am a teapot')).toBe('i am a teapot');
+  });
+});
+
+describe('MyFbDbBridge.MIN_BRIDGE_VERSION', () => {
+  it('is a semver string', () => {
+    expect(typeof window.MyFbDbBridge.MIN_BRIDGE_VERSION).toBe('string');
+    expect(window.MyFbDbBridge.MIN_BRIDGE_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+});

@@ -141,7 +141,8 @@
   }
 
   window.MyFbRender.convGroups = {
-    build:        build,
-    buildElement: buildElement,
+    build:           build,
+    buildElement:    buildElement,
+    _collectRepoIds: _collectRepoIds,
   };
 })(window);

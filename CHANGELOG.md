@@ -2,6 +2,79 @@
 
 All notable changes to My-Feedbacks are documented here.
 
+## [2.4.0] — Database context + bridge HMAC
+
+The extension now feeds the AI with **database schemas** and sample data
+as additional context. Two modes :
+
+### Added — DB profiles (PRs #145, #147)
+
+- `sidepanel/db-profiles-ui.js` — new *Settings → Bases de données*
+  section. CRUD for DB profile cards :
+  - Mode `paste` : the admin pastes a static markdown (e.g. generated
+    by their existing WP dashboard widget).
+  - Mode `bridge` : the extension calls a companion endpoint that
+    returns a fresh markdown on demand.
+- `sidepanel/db-bridge-client.js` — HMAC-SHA256 request signer.
+  Routes the actual fetch through the background service worker
+  (sidepanel CSP forbids arbitrary connect-src).
+- `bridge/myfb-bridge.php` — single-file companion endpoint, drop
+  at the root of any LAMP/PHP host. Includes an **integrated setup
+  wizard** (auto-generates secret, tests DB connection, writes
+  config beside itself) so no manual file edit is needed.
+- 6 whitelisted operations only : `meta`, `tables`, `describe`,
+  `sample` (max 9 rows, mixed strategy), `count`, `schema_md`.
+  Zero free-form SQL accepted from the client. Tables filtered by
+  expose/deny glob patterns. Identifiers validated by strict regex
+  then backticked. PDO prepared statements throughout.
+
+### Added — AES-GCM secret encryption (PR #145)
+
+- `sidepanel/db-secret-crypto.js` — wraps WebCrypto to encrypt the
+  bridge HMAC secret before it lands in `chrome.storage.local`. The
+  master key is AES-GCM-256 with `extractable: false` so even a
+  script injected into the extension cannot `exportKey()` it.
+- One-shot migration on init : any plaintext `bridgeSecret` from
+  before this module is silently re-wrapped.
+- 7 vitest specs : roundtrip ASCII/UTF-8/hex, fresh IV per call,
+  rejection of tampered ciphertext (AES-GCM auth).
+
+### Added — repo aggregation on conversation header (PR #145)
+
+- `conversation-group.js` aggregates the union of `repoId` across
+  all segments in the group (incl. their refs) and renders one
+  GitHub badge per repo under the conversation URL. Click filters
+  by `STATE.repoFilter`.
+
+### Added — UX polish
+
+- **One-click annotate** (PR #145) : screenshot ref chips now show
+  a "✏" picto in the chip header to open the annotator in one
+  click, instead of requiring chip expansion first.
+- **Errors button redesign** (PR #145) : the alert SVG is replaced
+  by a round red pastille with the count centred ; the whole button
+  is hidden when count = 0.
+- **Tag chip color propagation** (PR #145, fixed PR #146) :
+  `.seg-filter-badge.seg-tag-chip` now consumes the same HSL hash
+  as `.myfb-tp-chip` in the picker popover, so the same tag has
+  the same color everywhere. Applied via DOM API to bypass the
+  CSP `style-src 'self'` restriction.
+- **Tag chip pictos** (PR #147) : in addition to the historical ✕
+  delete, a filter ⛯ (toggle filter) and a pen ✎ (rename tag
+  globally with duplicate collapse) appear on hover.
+- **Video ref label** (PR #147) : `ref-mini` for `type='video'`
+  now shows `"vidéo {size}"` instead of the fallback `"?"`.
+
+### Changed
+
+- `sidepanel.js` — `STATE.dbProfiles` array added to the persisted
+  `data` namespace, hydrated/persisted via `MyFbStorage`.
+- `shared/constants.js` — new MSG `DB_BRIDGE_CALL`.
+- `background/messages.js` — forwarder for `DB_BRIDGE_CALL` (the
+  sidepanel CSP cannot reach arbitrary HTTPS hosts directly).
+- `manifest.json` / `package.json` — version bumped to 2.4.0.
+
+
 ## [2.0.0] — Final Chrome Web Store-ready release
 
 Closes the gaps identified at the end of v1.x : the new event-sourced

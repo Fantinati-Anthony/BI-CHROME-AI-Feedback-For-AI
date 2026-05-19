@@ -247,6 +247,46 @@
       if (window.MyFbStorage) window.MyFbStorage.persist(st);
     });
 
+    // ── Tag filter picto (explicit) — sets STATE.tagFilter and re-renders.
+    // The chip itself already filters on full click, but the icon gives an
+    // unambiguous affordance and works even when the chip is small/cropped.
+    wrap.addEventListener('click', function (e) {
+      var fbtn = e.target.closest && e.target.closest('[data-tag-filter]');
+      if (!fbtn) return;
+      e.stopPropagation();
+      var st = ctx.STATE;
+      var tag = fbtn.dataset.tagFilter;
+      st.tagFilter = (st.tagFilter === tag) ? '' : tag;  // toggle
+      render();
+    });
+
+    // ── Tag rename (✎ picto) — propagates to every demande that has it.
+    wrap.addEventListener('click', function (e) {
+      var ebtn = e.target.closest && e.target.closest('[data-tag-edit]');
+      if (!ebtn) return;
+      e.stopPropagation();
+      var st = ctx.STATE;
+      var oldTag = ebtn.dataset.tagEdit;
+      var input  = window.prompt('Renommer le tag « ' + oldTag + ' » :', oldTag);
+      if (input == null) return;
+      var clean = String(input).trim().toLowerCase()
+        .replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '')
+        .replace(/-+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+      if (!clean || clean === oldTag) return;
+      var changed = 0;
+      (st.demandes || []).forEach(function (d) {
+        if (!d || !Array.isArray(d.tags)) return;
+        var i = d.tags.indexOf(oldTag);
+        if (i < 0) return;
+        if (d.tags.indexOf(clean) >= 0) d.tags.splice(i, 1);   // collapse duplicates
+        else                              d.tags[i] = clean;
+        changed++;
+      });
+      if (st.tagFilter === oldTag) st.tagFilter = clean;
+      if (changed && window.MyFbStorage) window.MyFbStorage.persist(st);
+      render();
+    });
+
     // ── Drag-drop merge / reorder (delegated, was per-card before) ───
     function _idxFor(target) {
       var card = target.closest && target.closest('.myfb-segment');

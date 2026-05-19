@@ -119,4 +119,43 @@ describe('MyFbStorage exportToFile / importBundle', () => {
     expect(r2.ok).toBe(false);
     expect(r3.ok).toBe(false);
   });
+
+  it('stripDbProfiles drops dbProfiles + records count (v2.4)', () => {
+    const state = makeState();
+    state.dbProfiles = [
+      { id: 'db-1', label: 'WP prod', schemaMd: 'PROPRIETARY SCHEMA HERE', mode: 'paste', ts: 1 },
+      { id: 'db-2', label: 'Stripe',  schemaMd: 'CUSTOMERS TABLE',         mode: 'paste', ts: 2 },
+    ];
+    HTMLAnchorElement.prototype.click = function () {};
+    URL.createObjectURL = () => 'blob:mock';
+
+    const bundle = window.MyFbStorage.exportToFile(state, { stripDbProfiles: true });
+    expect(bundle.data.dbProfiles).toEqual([]);
+    expect(bundle.data._dbProfilesStripped).toBe(2);
+  });
+
+  it('keeps dbProfiles when stripDbProfiles flag is OFF', () => {
+    const state = makeState();
+    state.dbProfiles = [{ id: 'db-1', label: 'X', mode: 'paste', schemaMd: 'S', ts: 1 }];
+    HTMLAnchorElement.prototype.click = function () {};
+    URL.createObjectURL = () => 'blob:mock';
+
+    const bundle = window.MyFbStorage.exportToFile(state, { stripDbProfiles: false });
+    expect(bundle.data.dbProfiles).toHaveLength(1);
+    expect(bundle.data.dbProfiles[0].schemaMd).toBe('S');
+    expect(bundle.data._dbProfilesStripped).toBeUndefined();
+  });
+
+  it('combines stripDataUrls + stripDbProfiles cleanly', () => {
+    const state = makeState();
+    state.dbProfiles = [{ id: 'd', label: 'X', mode: 'paste', schemaMd: 'S', ts: 1 }];
+    HTMLAnchorElement.prototype.click = function () {};
+    URL.createObjectURL = () => 'blob:mock';
+
+    const bundle = window.MyFbStorage.exportToFile(state, { stripDataUrls: true, stripDbProfiles: true });
+    expect(bundle.data.demandes[1].refs[0].dataUrl).toBe(null);   // image stripped
+    expect(bundle.data.demandes[1].refs[0]._stripped).toBe(true);
+    expect(bundle.data.dbProfiles).toEqual([]);                   // db stripped
+    expect(bundle.data._dbProfilesStripped).toBe(1);
+  });
 });

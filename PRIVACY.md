@@ -43,8 +43,29 @@ My-Feedbacks makes a network call ONLY when you trigger an explicit action :
 | "Summarize" / "Suggest triage" (Settings → AI configured) | https://api.anthropic.com/v1/messages | Your prompt + the API key YOU provided. No UUID / no device meta unless those are inside the prompt text you authored. |
 | "Send to VS Code" | http://127.0.0.1:51473 (local bridge) | The formatted prompt + screenshots, to your own machine only |
 | "Send via tier 2 shared folder" (v1.5+) | The folder YOU picked (Drive / Dropbox / OneDrive) | The event log JSONL line |
+| **"🔄 Rafraîchir" / "🔌 Tester" / autoInject (v2.4)** | The bridge URL YOU configured (`myfb-bridge.php` on YOUR server) | A signed HMAC POST. The body contains an op name, optional args (table name, limit), a timestamp + nonce — **never your prompt, never API keys, never PII**. Response is DB schema + sample rows that YOU exposed via the bridge's `expose` patterns. Data flow stays between YOUR browser and YOUR server — my-feedbacks.com is not involved. |
 
 That's the full list. No background pings, no version checks, no analytics, no error reporting to us.
+
+### v2.4 DB bridge — what stays where
+
+When you configure a "DB profile" in Settings → Bases de données :
+
+- The **HMAC secret** is encrypted with AES-GCM-256 using a
+  non-extractable WebCrypto key kept in your browser's IndexedDB.
+  It never leaves your machine in plaintext, including in
+  `chrome.storage` backups.
+- The **bridge URL** is stored as-is in `chrome.storage.local`. If
+  you sync your Chrome profile across devices, the URL syncs with
+  it (the secret does not, because the AES-GCM key is per-profile-
+  per-machine).
+- The **schema markdown** returned by the bridge is cached in
+  `chrome.storage.local` alongside the other profile fields. It
+  becomes part of the AI prompt you assemble — same privacy
+  posture as anything else you type in a feedback.
+- The **bridge** runs on YOUR server. We never receive any DB rows.
+  Its audit log (`myfb-bridge.audit.log`) records timestamp +
+  op-name + IP — no SQL, no payload.
 
 ## Build variants (`dist/`)
 

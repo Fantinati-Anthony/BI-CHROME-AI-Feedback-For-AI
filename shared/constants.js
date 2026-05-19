@@ -9,7 +9,7 @@
 
   root.MyFb = root.MyFb || {};
 
-  root.MyFb.VERSION = '0.5.0';
+  root.MyFb.VERSION = '2.4.0';
 
   root.MyFb.STORAGE_KEY = 'myfb:v1:state';
   root.MyFb.STORAGE_LEGACY_KEYS = ['myfb:legacy:dropped'];
