@@ -253,5 +253,14 @@
     if (window.MyFbPrivacyControls) {
       window.MyFbPrivacyControls.init();
     }
+
+    // v2.2: Video recorder (display capture → webm → ref).
+    if (window.MyFbVideoRecorder) {
+      window.MyFbVideoRecorder.init();
+    }
+    // v2.2: Per-tool visibility config (Settings → Outils rapides).
+    if (window.MyFbQuickToolsConfig) {
+      window.MyFbQuickToolsConfig.init();
+    }
   });
 })();
