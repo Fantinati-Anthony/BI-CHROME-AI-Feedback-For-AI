@@ -205,6 +205,13 @@ declare global {
     };
     MyFbNetworkBridge?: { [k: string]: any };
     MyFbIntentParser?: { [k: string]: any };
+    /** v2.5 — rich segment conversation (@-mentions / target / propose-edit) */
+    MyFbSegmentConversation?: {
+      init(): void;
+      _renderMentions(text: string, mentions?: string[]): string;
+      _peers(): Array<{ uuid: string; label: string; role: string }>;
+      _drafts: Record<string, { mentions: string[]; target: string | null; proposeText: string }>;
+    };
     MyFbLog?:      (level: string, ...args: any[]) => void;
   }
 
