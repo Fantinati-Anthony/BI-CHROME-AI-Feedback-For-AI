@@ -267,10 +267,10 @@
 
     // Tag chip colors — applied via DOM API because CSP `style-src 'self'`
     // forbids inline `style=""` attributes set through innerHTML. The hue
-    // helper from BIAIFTagPicker derives a stable HSL triplet from the
+    // helper from MyFbTagPicker derives a stable HSL triplet from the
     // tag string, identical to what the tag-picker popover uses → both
     // surfaces show the same color for the same tag.
-    var TagP = window.BIAIFTagPicker;
+    var TagP = window.MyFbTagPicker;
     if (TagP && TagP.chipVars) {
       var chips = card.querySelectorAll('.seg-tag-chip');
       chips.forEach(function (chip) {
