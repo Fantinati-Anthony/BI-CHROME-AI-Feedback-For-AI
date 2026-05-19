@@ -195,6 +195,12 @@
         '<label class="dbp-field"><span>' + esc(_t('db.field_secret', 'Secret HMAC')) + '</span>' +
           '<input type="password" name="bridgeSecret" value="' + esc(secretPlain) +
             '" placeholder="' + esc(_t('db.secret_placeholder', 'Hex 64 chars — copié depuis le fichier PHP')) + '" /></label>' +
+        '<div class="dbp-test-row">' +
+          '<button type="button" class="dbp-btn" data-act="db-test" title="' +
+            esc(_t('db.test_tip', 'Tester URL + secret sans enregistrer (appel meta)')) + '">🔌 ' +
+            esc(_t('db.test', 'Tester')) + '</button>' +
+          '<span class="dbp-test-status" data-test-status></span>' +
+        '</div>' +
         '<p class="dbp-hint">' + esc(_t('db.bridge_hint',
           'Dépose myfb-bridge.php à la racine de ton site, génère un secret (openssl rand -hex 32) et colle-le ici. Voir bridge/README.md.')) + '</p>' +
       '</div>' +
@@ -339,6 +345,7 @@
       else if (act === 'db-delete') { e.preventDefault(); _delete(t.dataset.id); }
       else if (act === 'db-refresh'){ e.preventDefault(); _refresh(t.dataset.id); }
       else if (act === 'db-paste')  { e.preventDefault(); _paste(t.dataset.id); }
+      else if (act === 'db-test')   { e.preventDefault(); _testFromForm(); }
     });
     document.addEventListener('submit', function (e) {
       if (e.target && e.target.id === 'db-profile-form') _handleSubmit(e);
@@ -354,6 +361,41 @@
     try {
       if (_crypto()) { await _crypto().ready(); await _migrateLegacySecrets(); _render(); }
     } catch (_) {}
+  }
+
+  // ── Test bridge from the open form ─────────────────────────────────
+  // Reads the live URL+Secret from the form (not from STATE — the user
+  // may be entering them for the first time and hasn't saved yet) and
+  // pings the `meta` op. Reports inline so the user knows their
+  // credentials work BEFORE clicking Save.
+  async function _testFromForm() {
+    var form = document.getElementById('db-profile-form');
+    if (!form) return;
+    var fd  = new FormData(form);
+    var url = String(fd.get('bridgeUrl') || '').trim();
+    var sec = String(fd.get('bridgeSecret') || '').trim();
+    var status = form.querySelector('[data-test-status]');
+    function show(kind, msg) {
+      if (!status) return;
+      status.className = 'dbp-test-status dbp-test-status--' + kind;
+      status.textContent = msg;
+    }
+    if (!url || !sec) {
+      show('err', _t('db.test_missing', '✗ URL et secret requis'));
+      return;
+    }
+    if (!window.MyFbDbBridge) {
+      show('err', _t('db.test_no_client', '✗ Bridge client indisponible'));
+      return;
+    }
+    show('info', _t('db.test_running', '⏳ Test en cours…'));
+    try {
+      var data = await window.MyFbDbBridge.call({ bridgeUrl: url, bridgeSecret: sec }, 'meta');
+      var n = (data && data.tableCount) || 0;
+      show('ok', _t('db.test_ok', '✓ Connexion OK — {n} table(s) exposée(s)', { n: n }));
+    } catch (e) {
+      show('err', _t('db.test_fail', '✗ ' + (e && e.message || 'échec'), { err: e && e.message || 'échec' }));
+    }
   }
 
   window.MyFbDbProfilesUi = {
