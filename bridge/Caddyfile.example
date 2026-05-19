@@ -1,0 +1,37 @@
+# My-Feedbacks Bridge — Caddy 2 config
+#
+# Caddy auto-provisions TLS via Let's Encrypt, so this is the
+# shortest path to a production-grade bridge.
+#
+# Drop into your Caddyfile, swap `bridge.example.com` for your
+# hostname, then `sudo caddy reload --config /etc/caddy/Caddyfile`.
+
+bridge.example.com {
+	# Doc root that contains myfb-bridge.php (+ the .config.php /
+	# .audit.log / .nonces files written by the setup wizard).
+	root * /var/www/myfb-bridge
+	file_server
+
+	# ── Block direct read of runtime files ─────────────────────
+	# These contain the HMAC secret + DB credentials + audit log.
+	# Must NEVER be served as static text.
+	@runtime {
+		path /myfb-bridge.config.php /myfb-bridge.audit.log /myfb-bridge.nonces /myfb-bridge.nonces.tmp
+	}
+	respond @runtime "Not Found" 404
+
+	# ── Hand the bridge entrypoint to PHP-FPM ──────────────────
+	# Adjust the socket / unix:/...  to match your php-fpm pool.
+	@bridge {
+		path /myfb-bridge.php
+	}
+	php_fastcgi @bridge unix//run/php/php8.2-fpm.sock {
+		# 10s is plenty: meta < 100 ms, schema_md ≤ 2s on cold caches.
+		read_timeout 10s
+	}
+
+	# ── Lock everything else down (optional) ───────────────────
+	# If this vhost only hosts the bridge and no other files, you
+	# can refuse the rest of the namespace :
+	# respond 404
+}

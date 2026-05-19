@@ -154,3 +154,64 @@ describe('importBundle — merge mode', () => {
     expect(STATE.demandes[1].text).toBe('imported');
   });
 });
+
+describe('importBundle — dbProfiles (v2.4)', () => {
+  const valid = { id: 'db-1', label: 'WP prod', mode: 'paste', schemaMd: '#schema', ts: 1 };
+
+  it('imports valid dbProfiles into STATE', () => {
+    const STATE = makeState();
+    const bundle = { _myfb: 'export', _version: 1, data: { dbProfiles: [valid] } };
+    const r = window.MyFbStorage.importBundle(STATE, bundle);
+    expect(r.ok).toBe(true);
+    expect(STATE.dbProfiles).toEqual([valid]);
+  });
+
+  it('replaces an existing dbProfiles array (default mode)', () => {
+    const STATE = makeState();
+    STATE.dbProfiles = [{ id: 'db-old', label: 'Old', ts: 0 }];
+    const bundle = { _myfb: 'export', _version: 1, data: { dbProfiles: [valid] } };
+    window.MyFbStorage.importBundle(STATE, bundle);
+    expect(STATE.dbProfiles).toEqual([valid]);
+  });
+
+  it('rejects when dbProfiles is not an array', () => {
+    const r = window.MyFbStorage.importBundle(makeState(),
+      { _myfb: 'export', _version: 1, data: { dbProfiles: 'not-an-array' } });
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('db-profiles-shape');
+  });
+
+  it('rejects when a profile lacks id or label', () => {
+    const r = window.MyFbStorage.importBundle(makeState(),
+      { _myfb: 'export', _version: 1, data: { dbProfiles: [{ label: 'no-id' }] } });
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('db-profiles-invalid');
+  });
+
+  it('rejects when the array exceeds MAX_DB_PROFILES (50)', () => {
+    const many = Array.from({ length: 51 }, (_, i) => ({ id: 'db-' + i, label: 'L' + i, ts: 1 }));
+    const r = window.MyFbStorage.importBundle(makeState(),
+      { _myfb: 'export', _version: 1, data: { dbProfiles: many } });
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('db-profiles-shape');
+  });
+
+  it('accepts the bundle when dbProfiles is missing (backwards-compat with pre-2.4 exports)', () => {
+    const STATE = makeState();
+    STATE.dbProfiles = [{ id: 'kept', label: 'kept', ts: 1 }];
+    const bundle = { _myfb: 'export', _version: 1, data: { demandes: [] } };
+    const r = window.MyFbStorage.importBundle(STATE, bundle);
+    expect(r.ok).toBe(true);
+    // No dbProfiles in the bundle → existing STATE.dbProfiles preserved
+    expect(STATE.dbProfiles).toEqual([{ id: 'kept', label: 'kept', ts: 1 }]);
+  });
+
+  it('preserves encrypted secret envelope through import', () => {
+    const enc = { iv: 'AAA', ct: 'BBB' };
+    const p   = Object.assign({}, valid, { bridgeSecretEnc: enc });
+    const STATE = makeState();
+    window.MyFbStorage.importBundle(STATE,
+      { _myfb: 'export', _version: 1, data: { dbProfiles: [p] } });
+    expect(STATE.dbProfiles[0].bridgeSecretEnc).toEqual(enc);
+  });
+});

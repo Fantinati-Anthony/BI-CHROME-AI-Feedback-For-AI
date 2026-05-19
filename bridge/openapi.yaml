@@ -1,0 +1,182 @@
+openapi: 3.1.0
+info:
+  title: My-Feedbacks DB Bridge
+  version: "1.1.0"
+  description: |
+    Single-file PHP companion that exposes a tightly-restricted subset of
+    a database to the My-Feedbacks Chrome extension. Aucun SQL libre n'est
+    jamais accepté ; les opérations sont whitelistées et authentifiées par
+    une signature HMAC-SHA256 incluant un timestamp et un nonce
+    anti-rejeu.
+
+    Spec utile pour : générer un client SDK, écrire des tests d'API,
+    intégrer le bridge dans une pipeline de monitoring (Datadog,
+    Prometheus exporter custom).
+
+  contact:
+    name: My-Feedbacks
+    url: https://my-feedbacks.com
+  license:
+    name: MIT
+
+servers:
+  - url: https://your-site.com
+    description: Your server (replace with the host that runs myfb-bridge.php)
+
+paths:
+  /myfb-bridge.php:
+    get:
+      summary: Setup wizard (HTML) or info page (plaintext)
+      description: |
+        Before first setup → renders the HTML form to generate the secret
+        and write `myfb-bridge.config.php`. After setup → returns a
+        single-line plaintext info page. **No credentials needed**.
+      responses:
+        "200":
+          description: HTML wizard or plaintext info
+          content:
+            text/html:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+                example: "My-Feedbacks Bridge v1.1.0 — configured, API only via POST."
+    post:
+      summary: Signed API call (all DB metadata operations)
+      description: |
+        Body MUST include a valid HMAC-SHA256 signature over
+        `{ts}.{nonce}.{op}.{canonArgs}` using the secret written by the
+        setup wizard. `canonArgs` follows PHP's `json_encode($args)` —
+        an empty assoc array serializes as `[]`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignedRequest'
+      responses:
+        "200":
+          description: Operation succeeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "400":
+          description: Bad request shape
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        "401":
+          description: Auth failure (bad sig / stale / replay)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        "403":
+          description: Table not exposed by the bridge config
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        "405":
+          description: Method not allowed
+        "500":
+          description: Internal error (PDO / disk / etc.)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+      headers:
+        X-Myfb-Bridge-Version:
+          description: Semver of the bridge (always returned)
+          schema:
+            type: string
+            example: "1.1.0"
+
+components:
+  schemas:
+    SignedRequest:
+      type: object
+      required: [op, ts, nonce, sig]
+      properties:
+        op:
+          type: string
+          description: Operation name (must be in the whitelist)
+          enum: [meta, tables, describe, sample, count, schema_md]
+        args:
+          type: object
+          description: Operation arguments (op-specific shape — see below)
+          default: {}
+        ts:
+          type: integer
+          description: Unix timestamp (seconds). Rejected if older or newer than ±60s.
+          example: 1716000000
+        nonce:
+          type: string
+          description: Random hex 32 chars. Must NOT be reused within the replay window (≈ 2 minutes).
+          minLength: 16
+          maxLength: 128
+          pattern: "^[0-9a-f]+$"
+        sig:
+          type: string
+          description: HMAC-SHA256(secret, "{ts}.{nonce}.{op}.{canonArgs}"), hex-encoded.
+          pattern: "^[0-9a-f]{64}$"
+
+    SuccessResponse:
+      type: object
+      required: [ok, data, version]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          description: Op-specific payload (see schema/op below)
+        version:
+          type: string
+          example: "1.1.0"
+
+    ErrorResponse:
+      type: object
+      required: [ok, error, version]
+      properties:
+        ok:
+          type: boolean
+          enum: [false]
+        error:
+          type: string
+          description: Short machine-readable error code (e.g. "bad signature", "replay detected", "table not exposed").
+        version:
+          type: string
+
+    MetaData:
+      type: object
+      properties:
+        driver:     { type: string,  example: "mysql" }
+        version:    { type: string,  example: "8.0.36" }
+        tableCount: { type: integer, example: 12 }
+        totalRows:  { type: integer, example: 4521 }
+        totalBytes: { type: number,  example: 2147483.5 }
+
+    TableInfo:
+      type: object
+      required: [name, rows, bytes, engine]
+      properties:
+        name:   { type: string, example: "wp_posts" }
+        rows:   { type: integer, example: 152 }
+        bytes:  { type: number,  example: 524288.0 }
+        engine: { type: string,  example: "InnoDB" }
+
+    Column:
+      type: object
+      required: [name, type, null, key, default, extra]
+      properties:
+        name:    { type: string, example: "ID" }
+        type:    { type: string, example: "bigint(20) unsigned" }
+        null:    { type: boolean, example: false }
+        key:     { type: string, example: "PRI" }
+        default: { type: [string, "null"], example: null }
+        extra:   { type: string, example: "auto_increment" }
+        comment: { type: string, example: "" }
+
+    SampleRows:
+      type: object
+      required: [rows, totalRows]
+      properties:
+        rows:
+          type: array
+          items: { type: object, additionalProperties: true }
+          description: 1..9 rows of the requested table (string values capped at 200 chars).
+        totalRows:
+          type: integer
+          description: Total row count in the table (not just the sample).

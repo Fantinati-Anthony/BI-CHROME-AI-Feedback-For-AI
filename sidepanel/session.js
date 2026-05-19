@@ -22,6 +22,12 @@
     if (REFS.stopBtn) REFS.stopBtn.hidden = false;
     _updateArmedUi();
     _startTimer();
+    // v2.4 — auto-inject schemas from DB profiles flagged `autoInject: true`
+    // before the user starts typing. No-op if the draft already has content
+    // or if no profile opts in.
+    if (window.MyFbDbProfilesUi && window.MyFbDbProfilesUi.autoInjectForSession) {
+      window.MyFbDbProfilesUi.autoInjectForSession(STATE);
+    }
     if (!STATE.pickerActive) {
       var resp = await _sendBg({ type: _MSG('PICKER_ENABLE') });
       if (resp && resp.error) _toast(_t('toast.picker_fail', 'Picker KO : ' + _decodeErr(resp.error), { err: _decodeErr(resp.error) }), 'error');

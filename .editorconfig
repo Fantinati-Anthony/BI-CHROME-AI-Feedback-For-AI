@@ -10,3 +10,23 @@ insert_final_newline = true
 
 [*.md]
 trim_trailing_whitespace = false
+
+# Language-specific overrides for the bridge SDK clients (v2.4).
+# Each language has a community standard formatter — keep their
+# conventions so `gofmt`, `black`, `prettier` don't fight us.
+
+[*.py]
+indent_size = 4
+
+[*.go]
+indent_style = tab
+indent_size = 4
+
+[*.{yaml,yml}]
+indent_size = 2
+
+[*.php]
+indent_size = 4
+
+[Makefile]
+indent_style = tab
