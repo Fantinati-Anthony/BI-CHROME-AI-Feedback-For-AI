@@ -197,6 +197,11 @@
     var isEditing = STATE.editingDemandeIdx === origIndex;
     if (isEditing) card.classList.add('is-editing');
     card.dataset.i = String(origIndex);
+    // v2.5 — triage-ui and segment-conversation both decorate cards by
+    // looking up `data-id` (the demande's event-store ID). Without this
+    // attribute the triage row (status / priority / tags / 💬 button) and
+    // the rich conversation thread silently skip every card.
+    if (dem && dem.id) card.dataset.id = dem.id;
 
     var ariaMerge = esc(_t('aria.merge_handle',
       'Glisser ou Alt+↑/↓ pour fusionner avec une demande voisine'));
