@@ -71,3 +71,18 @@
 .dbp-form-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 4px; }
 
 #db-profiles-add { margin-top: 4px; align-self: flex-start; }
+
+/* Inline test-bridge row inside the bridge fields panel */
+.dbp-test-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 2px;
+}
+.dbp-test-status {
+  font-size: 11px;
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dbp-test-status--info { color: var(--text-muted); }
+.dbp-test-status--ok   { color: #3ecf8e; }
+.dbp-test-status--err  { color: #ff6b6b; }
